@@ -210,7 +210,7 @@ export const CharacterConfigs = {
             path: 'assets/images/weapons/mace.png',
             scale: 0.5,
             offsetX: 10,
-            offsetY: 2,
+            offsetY: 10,
             attackType: 'swing',
             showSkillEffect: false
         },
@@ -235,6 +235,19 @@ export function preloadCharacters(scene) {
         if (config.assets && config.unlocked) {
             scene.load.atlas(config.key, config.assets.atlas, config.assets.atlasJson);
             scene.load.animation(`${config.key}_anim`, config.assets.anim);
+        }
+
+        // Preload transform form assets (e.g., Taoist -> Cluthu)
+        if (config.transformSkill) {
+            const t = config.transformSkill;
+            if (t.atlas && t.atlasJson) {
+                scene.load.atlas(t.texture, t.atlas, t.atlasJson);
+            }
+            if (t.anim) {
+                // Key name is not important here; the JSON file defines actual animation keys
+                const animKey = `${t.formKey || t.texture}_anim`;
+                scene.load.animation(animKey, t.anim);
+            }
         }
     });
 }

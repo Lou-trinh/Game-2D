@@ -475,6 +475,16 @@ export default class ForestGuardian {
     }
   }
 
+  getHitbox() {
+    // Hitbox lớn hơn để dễ bị trúng đòn cận chiến (ví dụ Cluthu)
+    return new Phaser.Geom.Rectangle(
+      this.sprite.x - 18,
+      this.sprite.y - 24,
+      36,
+      48
+    );
+  }
+
   die() {
     if (this.isDead) return;
 
