@@ -42,6 +42,29 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.setExistingBody(compoundBody);
     this.setPosition(x, y);
 
+    // Đặt category/mask rõ ràng để enemy nhận diện player qua collision filter
+    // Category 0x0001 được enemy (0x0002) cấu hình collidesWith.
+    this.setCollisionCategory(0x0001);
+    this.setCollidesWith([0x0002]);
+
+    // Store body parts for later scaling (Taoist transform)
+    this.compoundBody = compoundBody;
+    this.colliderBody = collider;
+    this.sensorBody = sensor;
+    // Lưu collision filter gốc để giữ hành vi va chạm khi biến hình
+    this.defaultCollisionFilter = {
+      category: this.body.collisionFilter.category,
+      mask: this.body.collisionFilter.mask
+    };
+    // Mask bỏ enemy (0x0002) để tránh bị đẩy khi biến hình Cluthu
+    this.noEnemyCollisionMask = this.defaultCollisionFilter.mask & ~0x0002;
+    // Store original radii for restoration
+    this.originalColliderRadius = 8;
+    this.originalSensorRadius = 16;
+    // Scale factor for Taoist -> Cluthu body size (affects 2 debug circles)
+    // Giảm bớt để vòng tròn nhỏ lại một chút
+    this.transformScaleFactor = 2.5;
+
     // =====================
     // ATTACK PROPERTIES
     // =====================
@@ -107,6 +130,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.originalScale = 1;
     this.transformCooldown = false;
     this.transformCooldownTime = 5000; // 5 seconds
+    this.transformConfig = this.characterConfig.transformSkill || null;
+    this.transformDuration = 10000; // 10 seconds in ms
+    this.transformDamageBonus = this.attackDamage || 10; // extra damage while transformed
+    this.transformTimerEvent = null;
+    this.transformDamageApplied = false;
+    this.originalAnimKeys = {
+      idle: this.characterConfig.idleAnim,
+      walk: this.characterConfig.walkAnim
+    };
 
     // =====================
     // MOUSE INPUT
@@ -206,7 +238,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.performDash(vel);
     });
 
-    // Setup R key for Assassin backstab and Wizard summon
+    // Setup R key for Assassin backstab, Wizard summon and Taoist transform
     scene.input.keyboard.on('keydown-R', () => {
       // Assassin - Backstab
       if (this.characterType === CharacterTypes.ASSASSIN) {
@@ -224,6 +256,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
         console.log('⌨️ R key pressed - summoning ice monster!');
         this.summonIceMonster();
+      }
+
+      // Taoist - Transform into Cluthu (no manual revert)
+      if (this.characterType === CharacterTypes.TAOIST) {
+        // Chỉ cho bấm R nếu chưa biến hình và không cooldown
+        if (this.transformCooldown || this.isDead || this.isTransformed) return;
+        console.log('⌨️ R key pressed - Taoist transform to Cluthu!');
+        this.toggleTaoistTransform();
       }
     });
   }
@@ -279,6 +319,34 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   attack() {
     if (this.isAttacking || this.isDead) return;
     this.isAttacking = true;
+
+    // Special attack handling for Taoist in transformed (Cluthu) form
+    if (this.characterType === CharacterTypes.TAOIST && this.isTransformed && this.transformConfig) {
+      const attackAnim = this.transformConfig.attackAnim || 'cluthu_1atk';
+      // Play Cluthu attack animation
+      if (this.anims.exists && this.anims.exists(attackAnim)) {
+        this.anims.play(attackAnim, true);
+      } else {
+        this.anims.play(attackAnim, true);
+      }
+
+      // Hide weapon while transformed
+      if (this.weapon) {
+        this.weapon.setVisible(false);
+      }
+
+      // Apply melee damage once during the attack
+      this.scene.time.delayedCall(200, () => {
+        this.checkAttackHit();
+      });
+
+      // End attack state after animation duration
+      this.scene.time.delayedCall(500, () => {
+        this.isAttacking = false;
+      });
+
+      return;
+    }
 
     // Only show lightning effect if weapon config allows it
     const showSkillEffect = this.characterConfig.weapon?.showSkillEffect;
@@ -857,7 +925,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       return;
     }
 
-    // Create portal sprite (smaller and higher)                                          
+    // Create portal sprite (smaller and higher)
     const portalY = y - 20;
     const portal = this.scene.add.sprite(x, portalY, 'tele_port', 'tele_port_1');
     portal.setScale(1.3);
@@ -1021,14 +1089,30 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.performDash(vel);
     }
 
+    // Determine current animation set (normal vs transformed Taoist)
+    const isTaoist = this.characterType === CharacterTypes.TAOIST;
+    const useTransformAnim = isTaoist && this.isTransformed && this.transformConfig;
+    const walkAnimKey = useTransformAnim
+      ? this.transformConfig.walkAnim || this.characterConfig.walkAnim
+      : this.characterConfig.walkAnim;
+    const idleAnimKey = useTransformAnim
+      ? this.transformConfig.idleAnim || this.characterConfig.idleAnim
+      : this.characterConfig.idleAnim;
+
     if (vel.length() > 0 && !this.isDashing) {
       vel.normalize().scale(speed);
       this.setVelocity(vel.x, vel.y);
-      this.anims.play(this.characterConfig.walkAnim, true);
+      // Do not override attack animation while transformed and attacking
+      if (!(useTransformAnim && this.isAttacking)) {
+        this.anims.play(walkAnimKey, true);
+      }
       this.setFlipX(vel.x < 0);
     } else if (!this.isDashing) {
       this.setVelocity(0, 0);
-      this.anims.play(this.characterConfig.idleAnim, true);
+      // Do not override attack animation while transformed and attacking
+      if (!(useTransformAnim && this.isAttacking)) {
+        this.anims.play(idleAnimKey, true);
+      }
     }
 
     // Space key now used for dash (removed attack on space)
@@ -1117,6 +1201,190 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             break;
           }
         }
+      }
+    }
+  }
+
+  toggleTaoistTransform() {
+    if (this.characterType !== CharacterTypes.TAOIST || !this.transformConfig) return;
+
+    if (!this.isTransformed) {
+      // Transform into Cluthu
+      this.isTransformed = true;
+      // Khóa phím R cho đến khi tự hết biến hình
+      this.transformCooldown = true;
+      this.setTexture(this.transformConfig.texture || 'cluthu');
+      this.setScale(this.transformConfig.scale || 1);
+
+      // Create larger physics body (two circles) while transformed
+      if (this.compoundBody) {
+        const { Body, Bodies } = Phaser.Physics.Matter.Matter;
+        const currentX = this.x;
+        const currentY = this.y;
+        const currentVelocity = this.body.velocity;
+
+        // Calculate new radii (much larger to match character size)
+        const newColliderRadius = this.originalColliderRadius * this.transformScaleFactor;
+        const newSensorRadius = this.originalSensorRadius * this.transformScaleFactor;
+
+        // Create new larger collider and sensor
+        const newCollider = Bodies.circle(0, 0, newColliderRadius, {
+          label: 'playerCollider',
+          friction: 0,
+          frictionStatic: 0,
+          frictionAir: 0
+        });
+
+        const newSensor = Bodies.circle(0, 0, newSensorRadius, {
+          isSensor: true,
+          label: 'playerSensor'
+        });
+
+        // Create new compound body
+        const newCompoundBody = Body.create({
+          parts: [newCollider, newSensor],
+          frictionAir: 0.35,
+          friction: 0,
+          frictionStatic: 0,
+          restitution: 0,
+          inertia: Infinity
+        });
+
+        // Giữ nguyên collision filter như lúc chưa biến hình
+        if (this.defaultCollisionFilter) {
+          newCompoundBody.collisionFilter.category = this.defaultCollisionFilter.category;
+          newCompoundBody.collisionFilter.mask = this.defaultCollisionFilter.mask;
+        }
+
+        // Remove old body and set new one
+        this.scene.matter.world.remove(this.body);
+        this.setExistingBody(newCompoundBody);
+        this.setPosition(currentX, currentY);
+        this.setVelocity(currentVelocity.x, currentVelocity.y);
+
+        // Khi biến hình: bỏ va chạm với enemy để không bị đẩy (quái vẫn tìm và đánh theo khoảng cách)
+        if (this.noEnemyCollisionMask !== undefined) {
+          this.body.collisionFilter.mask = this.noEnemyCollisionMask;
+        }
+
+        // Update stored references
+        this.compoundBody = newCompoundBody;
+        this.colliderBody = newCollider;
+        this.sensorBody = newSensor;
+      }
+
+       // Increase damage while transformed (apply once)
+      if (!this.transformDamageApplied) {
+        this.bonusDamage += this.transformDamageBonus;
+        this.transformDamageApplied = true;
+      }
+
+      // Auto revert after duration
+      if (this.transformTimerEvent) {
+        this.transformTimerEvent.remove(false);
+      }
+      this.transformTimerEvent = this.scene.time.delayedCall(this.transformDuration, () => {
+        if (this.isTransformed) {
+          this.toggleTaoistTransform();
+        }
+      });
+
+      // Hide weapon while transformed
+      if (this.weapon) {
+        this.weapon.setVisible(false);
+      }
+
+      // Play idle animation of transformed form
+      const idleAnim = this.transformConfig.idleAnim || 'cluthu_idle';
+      if (this.anims.exists && this.anims.exists(idleAnim)) {
+        this.anims.play(idleAnim, true);
+      } else {
+        this.anims.play(idleAnim, true);
+      }
+    } else {
+      // Revert back to Taoist
+      this.isTransformed = false;
+      // Mở lại phím R sau khi hết trạng thái biến hình
+      this.transformCooldown = false;
+      this.setTexture(this.originalTexture);
+      this.setScale(this.originalScale || 1);
+
+      // Restore original physics body size
+      if (this.compoundBody) {
+        const { Body, Bodies } = Phaser.Physics.Matter.Matter;
+        const currentX = this.x;
+        const currentY = this.y;
+        const currentVelocity = this.body.velocity;
+
+        // Create original size collider and sensor
+        const originalCollider = Bodies.circle(0, 0, this.originalColliderRadius, {
+          label: 'playerCollider',
+          friction: 0,
+          frictionStatic: 0,
+          frictionAir: 0
+        });
+
+        const originalSensor = Bodies.circle(0, 0, this.originalSensorRadius, {
+          isSensor: true,
+          label: 'playerSensor'
+        });
+
+        // Create original compound body
+        const originalCompoundBody = Body.create({
+          parts: [originalCollider, originalSensor],
+          frictionAir: 0.35,
+          friction: 0,
+          frictionStatic: 0,
+          restitution: 0,
+          inertia: Infinity
+        });
+
+        // Khôi phục collision filter gốc
+        if (this.defaultCollisionFilter) {
+          originalCompoundBody.collisionFilter.category = this.defaultCollisionFilter.category;
+          originalCompoundBody.collisionFilter.mask = this.defaultCollisionFilter.mask;
+        }
+
+        // Remove transformed body and restore original
+        this.scene.matter.world.remove(this.body);
+        this.setExistingBody(originalCompoundBody);
+        this.setPosition(currentX, currentY);
+        this.setVelocity(currentVelocity.x, currentVelocity.y);
+
+        // Khôi phục mask gốc để va chạm lại bình thường với enemy
+        if (this.defaultCollisionFilter) {
+          this.body.collisionFilter.mask = this.defaultCollisionFilter.mask;
+        }
+
+        // Update stored references
+        this.compoundBody = originalCompoundBody;
+        this.colliderBody = originalCollider;
+        this.sensorBody = originalSensor;
+      }
+
+      // Remove transform damage bonus
+      if (this.transformDamageApplied) {
+        this.bonusDamage -= this.transformDamageBonus;
+        this.transformDamageApplied = false;
+      }
+
+      // Clear auto-revert timer if any
+      if (this.transformTimerEvent) {
+        this.transformTimerEvent.remove(false);
+        this.transformTimerEvent = null;
+      }
+
+      // Show weapon again
+      if (this.weapon) {
+        this.weapon.setVisible(true);
+      }
+
+      // Play original idle animation
+      const idleAnim = this.originalAnimKeys?.idle || this.characterConfig.idleAnim;
+      if (this.anims.exists && this.anims.exists(idleAnim)) {
+        this.anims.play(idleAnim, true);
+      } else {
+        this.anims.play(idleAnim, true);
       }
     }
   }
