@@ -1,0 +1,60 @@
+{
+    "frames": [
+        {
+            "filename": "lightning_skill1_frame1",
+            "frame": {
+                "w": 256,
+                "h": 128,
+                "x": 1,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "lightning_skill1_frame2",
+            "frame": {
+                "w": 256,
+                "h": 128,
+                "x": 1,
+                "y": 130
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "lightning_skill1_frame3",
+            "frame": {
+                "w": 256,
+                "h": 128,
+                "x": 258,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "lightning_skill1_frame4",
+            "frame": {
+                "w": 256,
+                "h": 128,
+                "x": 258,
+                "y": 130
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        }
+    ],
+    "meta": {
+        "description": "Atlas generado con Atlas Packer Gamma V2",
+        "web": "https://gammafp.github.io/atlas-packer-phaser/"
+    }
+}

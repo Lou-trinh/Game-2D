@@ -1,0 +1,48 @@
+{
+    "anims": [
+        {
+            "key": "effect_2",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "tornado",
+                    "frame": "001"
+                },
+                {
+                    "key": "tornado",
+                    "frame": "002"
+                },
+                {
+                    "key": "tornado",
+                    "frame": "003"
+                },
+                {
+                    "key": "tornado",
+                    "frame": "004"
+                },
+                {
+                    "key": "tornado",
+                    "frame": "005"
+                },
+                {
+                    "key": "tornado",
+                    "frame": "006"
+                },
+                {
+                    "key": "tornado",
+                    "frame": "007"
+                },
+                {
+                    "key": "tornado",
+                    "frame": "008"
+                },
+                {
+                    "key": "tornado",
+                    "frame": "009"
+                }
+            ]
+        }
+    ]
+}

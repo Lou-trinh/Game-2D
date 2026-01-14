@@ -1,0 +1,52 @@
+{
+  "anims": [
+    {
+      "key": "gnollshaman_walk",
+      "type": "frames",
+      "repeat": -1,
+      "frameRate": 12,
+      "frames": [
+        {
+          "key": "gnollshaman",
+          "frame": "gnollshaman_walk_1"
+        },
+        {
+          "key": "gnollshaman",
+          "frame": "gnollshaman_walk_2"
+        },
+        {
+          "key": "gnollshaman",
+          "frame": "gnollshaman_walk_3"
+        },
+        {
+          "key": "gnollshaman",
+          "frame": "gnollshaman_walk_4"
+        }
+      ]
+    },
+    {
+      "key": "gnollshaman_idle",
+      "type": "frames",
+      "repeat": -1,
+      "frameRate": 12,
+      "frames": [
+        {
+          "key": "gnollshaman",
+          "frame": "gnollshaman_idle_1"
+        },
+        {
+          "key": "gnollshaman",
+          "frame": "gnollshaman_idle_2"
+        },
+        {
+          "key": "gnollshaman",
+          "frame": "gnollshaman_idle_3"
+        },
+        {
+          "key": "gnollshaman",
+          "frame": "gnollshaman_idle_4"
+        }
+      ]
+    }
+  ]
+}

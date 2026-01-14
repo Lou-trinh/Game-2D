@@ -1,0 +1,307 @@
+{
+    "frames": [
+        {
+            "filename": "tele_port1",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port2",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port3",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port4",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port5",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port6",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port7",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port8",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port9",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port10",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port11",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port12",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port13",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port14",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port15",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port16",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port17",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 261,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port18",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 261,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port19",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 261,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port20",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 261,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port21",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 261
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port22",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 261
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "tele_port23",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 261
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        }
+    ],
+    "meta": {
+        "description": "Atlas generado con Atlas Packer Gamma V2",
+        "web": "https://gammafp.github.io/atlas-packer-phaser/"
+    }
+}
