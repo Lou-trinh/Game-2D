@@ -178,8 +178,17 @@ export const CharacterConfigs = {
             scale: 0.5,
             offsetX: 10,
             offsetY: 10,
-            attackType: 'swing',
-            showSkillEffect: false  // Wizard uses summon skill instead
+            attackType: 'pull',  // Changed to use projectile system
+            showSkillEffect: false,
+            projectile: {
+                texture: 'purple_orb',
+                speed: 180,
+                range: 150,
+                damage: 20,
+                scale: 0.2,
+                count: 3,  // Shoot 3 orbs
+                spread: 15  // 15 degree spread between orbs
+            }
         },
         unlocked: true
     },
@@ -189,7 +198,7 @@ export const CharacterConfigs = {
         name: 'Đạo Sĩ',
         icon: '☯️',
         color: 0xf39c12,
-        description: 'Phép thuật đa dạng\nBiến hình Cluthu (R)',
+        description: 'Phép thuật đa dạng\nBiến hình Mino (R)',
         texture: 'taoist',
         idleFrame: 'taoist_idle_1',
         walkAnim: 'taoist_walk',
@@ -215,15 +224,15 @@ export const CharacterConfigs = {
             showSkillEffect: false
         },
         transformSkill: {
-            formKey: 'cluthu',
-            texture: 'cluthu',
-            idleAnim: 'cluthu_idle',
-            walkAnim: 'cluthu_walk',
-            attackAnim: 'cluthu_1atk',
-            scale: 1.0,
-            atlas: 'assets/images/skill/cluthu/cluthu.png',
-            atlasJson: 'assets/images/skill/cluthu/cluthu_atlas.json',
-            anim: 'assets/images/skill/cluthu/cluthu_anim.json'
+            formKey: 'mino',
+            texture: 'mino',
+            idleAnim: 'mino_idle',
+            walkAnim: 'mino_walk',
+            attackAnim: 'mino_attack',
+            scale: 0.75,
+            atlas: 'assets/images/skill/mino/mino.png',
+            atlasJson: 'assets/images/skill/mino/mino_atlas.json',
+            anim: 'assets/images/skill/mino/mino_anim.json'
         },
         unlocked: true
     }
@@ -237,7 +246,7 @@ export function preloadCharacters(scene) {
             scene.load.animation(`${config.key}_anim`, config.assets.anim);
         }
 
-        // Preload transform form assets (e.g., Taoist -> Cluthu)
+        // Preload transform form assets (e.g., Taoist -> Mino)
         if (config.transformSkill) {
             const t = config.transformSkill;
             if (t.atlas && t.atlasJson) {

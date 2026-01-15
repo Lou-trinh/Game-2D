@@ -56,12 +56,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       category: this.body.collisionFilter.category,
       mask: this.body.collisionFilter.mask
     };
-    // Mask bỏ enemy (0x0002) để tránh bị đẩy khi biến hình Cluthu
+    // Mask bỏ enemy (0x0002) để tránh bị đẩy khi biến hình Mino
     this.noEnemyCollisionMask = this.defaultCollisionFilter.mask & ~0x0002;
     // Store original radii for restoration
     this.originalColliderRadius = 8;
     this.originalSensorRadius = 16;
-    // Scale factor for Taoist -> Cluthu body size (affects 2 debug circles)
+    // Scale factor for Taoist -> Mino body size (affects 2 debug circles)
     // Giảm bớt để vòng tròn nhỏ lại một chút
     this.transformScaleFactor = 2.5;
 
@@ -160,6 +160,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     scene.load.image('scepter_2', 'assets/images/weapons/scepter_2.png');
     scene.load.image('bow', 'assets/images/weapons/bow.png');
     scene.load.image('arrow', 'assets/images/weapons/arrow.png');
+    scene.load.image('purple_orb', 'assets/images/weapons/purple_orb.png');
     scene.load.image('katana', 'assets/images/weapons/katana.png');
     scene.load.image('knife', 'assets/images/weapons/knife.png');
 
@@ -176,6 +177,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       'assets/images/effects/effect_3/surf_atlas.json'
     );
     scene.load.animation('effect_3_anim', 'assets/images/effects/effect_3/surf_anim.json');
+
+    // Load effect_4 for Taoist transformation
+    scene.load.atlas(
+      'effect_4',
+      'assets/images/effects/effect_4/effect_4.png',
+      'assets/images/effects/effect_4/effect_4_atlas.json'
+    );
+    scene.load.animation('effect_4_anim', 'assets/images/effects/effect_4/effect_4_anim.json');
 
     // Load Wizard summon skill assets
     scene.load.atlas(
@@ -209,10 +218,24 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       );
 
       // Flip player theo hướng chuột
-      if (worldX < this.x) {
-        this.setFlipX(true);
+      // Nếu đang transform thành Mino, đảo ngược logic vì sprite bị ngược
+      const isTaoist = this.characterType === CharacterTypes.TAOIST;
+      const useTransformAnim = isTaoist && this.isTransformed && this.transformConfig;
+
+      if (useTransformAnim) {
+        // Mino: ngược lại
+        if (worldX < this.x) {
+          this.setFlipX(false); // Click trái → không flip
+        } else {
+          this.setFlipX(true);  // Click phải → flip
+        }
       } else {
-        this.setFlipX(false);
+        // Taoist và các nhân vật khác: bình thường
+        if (worldX < this.x) {
+          this.setFlipX(true);
+        } else {
+          this.setFlipX(false);
+        }
       }
 
       // Attack on mouse click (backstab now uses R key)
@@ -258,11 +281,11 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.summonIceMonster();
       }
 
-      // Taoist - Transform into Cluthu (no manual revert)
+      // Taoist - Transform into Mino (no manual revert)
       if (this.characterType === CharacterTypes.TAOIST) {
         // Chỉ cho bấm R nếu chưa biến hình và không cooldown
         if (this.transformCooldown || this.isDead || this.isTransformed) return;
-        console.log('⌨️ R key pressed - Taoist transform to Cluthu!');
+        console.log('⌨️ R key pressed - Taoist transform to Mino!');
         this.toggleTaoistTransform();
       }
     });
@@ -292,38 +315,57 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const projectileConfig = this.characterConfig.weapon?.projectile;
     if (!projectileConfig) return;
 
-    // Create arrow sprite
-    const arrow = this.scene.add.sprite(this.x, this.y, projectileConfig.texture);
-    arrow.setScale(projectileConfig.scale);
-    arrow.setDepth(this.depth + 50);
+    // Get number of projectiles (default to 1 for archer)
+    const projectileCount = projectileConfig.count || 1;
+    const spreadAngle = projectileConfig.spread || 0; // degrees
 
-    // Calculate velocity from attack angle
-    const velocity = {
-      x: Math.cos(this.lastAttackAngle) * projectileConfig.speed,
-      y: Math.sin(this.lastAttackAngle) * projectileConfig.speed
-    };
+    // Calculate starting angle for spread
+    const baseAngle = this.lastAttackAngle;
 
-    // Rotate arrow to face flight direction
-    arrow.setAngle(Phaser.Math.RadToDeg(this.lastAttackAngle));
+    for (let i = 0; i < projectileCount; i++) {
+      // Calculate angle offset for this projectile
+      let angleOffset = 0;
+      if (projectileCount > 1) {
+        // Distribute projectiles evenly across the spread
+        const totalSpread = spreadAngle * (projectileCount - 1);
+        angleOffset = Phaser.Math.DegToRad(-totalSpread / 2 + (spreadAngle * i));
+      }
 
-    // Store arrow data
-    arrow.setData('velocity', velocity);
-    arrow.setData('startX', this.x);
-    arrow.setData('startY', this.y);
-    arrow.setData('damage', projectileConfig.damage + (this.bonusDamage || 0));
-    arrow.setData('range', projectileConfig.range);
+      const projectileAngle = baseAngle + angleOffset;
 
-    this.activeArrows.push(arrow);
+      // Create projectile sprite
+      const projectile = this.scene.add.sprite(this.x, this.y, projectileConfig.texture);
+      projectile.setScale(projectileConfig.scale);
+      projectile.setDepth(this.depth + 50);
+
+      // Calculate velocity from angle
+      const velocity = {
+        x: Math.cos(projectileAngle) * projectileConfig.speed,
+        y: Math.sin(projectileAngle) * projectileConfig.speed
+      };
+
+      // Rotate projectile to face flight direction
+      projectile.setAngle(Phaser.Math.RadToDeg(projectileAngle));
+
+      // Store projectile data
+      projectile.setData('velocity', velocity);
+      projectile.setData('startX', this.x);
+      projectile.setData('startY', this.y);
+      projectile.setData('damage', projectileConfig.damage + (this.bonusDamage || 0));
+      projectile.setData('range', projectileConfig.range);
+
+      this.activeArrows.push(projectile);
+    }
   }
 
   attack() {
     if (this.isAttacking || this.isDead) return;
     this.isAttacking = true;
 
-    // Special attack handling for Taoist in transformed (Cluthu) form
+    // Special attack handling for Taoist in transformed (Mino) form
     if (this.characterType === CharacterTypes.TAOIST && this.isTransformed && this.transformConfig) {
-      const attackAnim = this.transformConfig.attackAnim || 'cluthu_1atk';
-      // Play Cluthu attack animation
+      const attackAnim = this.transformConfig.attackAnim || 'mino_attack';
+      // Play Mino attack animation
       if (this.anims.exists && this.anims.exists(attackAnim)) {
         this.anims.play(attackAnim, true);
       } else {
@@ -1056,10 +1098,11 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.healthBar) this.healthBar.setVisible(false);
     if (this.healthBarBg) this.healthBarBg.setVisible(false);
 
-    // Change sprite to ghost
+    // Always change to ghost sprite when dying
     this.setTexture('ghost');
     this.stop(); // Stop any running animations
     this.setScale(0.3); // Make ghost smaller
+    this.setAlpha(1); // Reset alpha to full opacity
 
     // Floating animation (up and down)
     this.scene.tweens.add({
@@ -1074,6 +1117,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
   update() {
     if (this.isDead) return;
+
+    // Chỉ block movement khi đang tấn công với Mino (transformed)
+    const blockMovementForMino = this.characterType === CharacterTypes.TAOIST && this.isTransformed && this.isAttacking;
+    if (blockMovementForMino) return;
 
     const speed = this.characterConfig.stats.speed || 2.5;
     const vel = new Phaser.Math.Vector2(0, 0);
@@ -1106,7 +1153,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       if (!(useTransformAnim && this.isAttacking)) {
         this.anims.play(walkAnimKey, true);
       }
-      this.setFlipX(vel.x < 0);
+      // Flip logic: invert for Mino since sprite faces opposite direction
+      if (useTransformAnim) {
+        this.setFlipX(vel.x > 0); // Ngược lại với Taoist
+      } else {
+        this.setFlipX(vel.x < 0); // Bình thường cho Taoist
+      }
     } else if (!this.isDashing) {
       this.setVelocity(0, 0);
       // Do not override attack animation while transformed and attacking
@@ -1135,6 +1187,35 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     // Update arrows (for archer)
     this.updateArrows();
+
+    // Clamp player position to map bounds
+    if (this.scene.mapWidth && this.scene.mapHeight) {
+      const margin = 16; // Buffer to keep player fully inside
+      let newX = this.x;
+      let newY = this.y;
+      let needsUpdate = false;
+
+      if (this.x < margin) {
+        newX = margin;
+        needsUpdate = true;
+      }
+      if (this.x > this.scene.mapWidth - margin) {
+        newX = this.scene.mapWidth - margin;
+        needsUpdate = true;
+      }
+      if (this.y < margin) {
+        newY = margin;
+        needsUpdate = true;
+      }
+      if (this.y > this.scene.mapHeight - margin) {
+        newY = this.scene.mapHeight - margin;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        this.setPosition(newX, newY);
+      }
+    }
   }
 
   updateArrows() {
@@ -1205,109 +1286,160 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     }
   }
 
+  performTaoistTransformation() {
+    // Transform into Mino
+    this.isTransformed = true;
+    // Khóa phím R cho đến khi tự hết biến hình
+    this.transformCooldown = true;
+
+    // Lưu flipX hiện tại trước khi transform
+    const currentFlipX = this.flipX;
+
+    this.setTexture(this.transformConfig.texture || 'mino');
+    this.setScale(this.transformConfig.scale || 1);
+
+    // Đảo ngược hướng vì sprite Mino có hướng ngược với Taoist
+    this.setFlipX(!currentFlipX);
+
+    // Create larger physics body (two circles) while transformed
+    if (this.compoundBody) {
+      const { Body, Bodies } = Phaser.Physics.Matter.Matter;
+      const currentX = this.x;
+      const currentY = this.y;
+      const currentVelocity = this.body.velocity;
+
+      // Calculate new radii (much larger to match character size)
+      const newColliderRadius = this.originalColliderRadius * this.transformScaleFactor;
+      const newSensorRadius = this.originalSensorRadius * this.transformScaleFactor;
+
+      // Create new larger collider and sensor
+      const newCollider = Bodies.circle(0, 0, newColliderRadius, {
+        label: 'playerCollider',
+        friction: 0,
+        frictionStatic: 0,
+        frictionAir: 0
+      });
+
+      const newSensor = Bodies.circle(0, 0, newSensorRadius, {
+        isSensor: true,
+        label: 'playerSensor'
+      });
+
+      // Create new compound body
+      const newCompoundBody = Body.create({
+        parts: [newCollider, newSensor],
+        frictionAir: 0.35,
+        friction: 0,
+        frictionStatic: 0,
+        restitution: 0,
+        inertia: Infinity
+      });
+
+      // Giữ nguyên collision filter như lúc chưa biến hình
+      if (this.defaultCollisionFilter) {
+        newCompoundBody.collisionFilter.category = this.defaultCollisionFilter.category;
+        newCompoundBody.collisionFilter.mask = this.defaultCollisionFilter.mask;
+      }
+
+      // Remove old body and set new one
+      this.scene.matter.world.remove(this.body);
+      this.setExistingBody(newCompoundBody);
+      this.setPosition(currentX, currentY);
+      this.setVelocity(currentVelocity.x, currentVelocity.y);
+
+      // Khi biến hình: bỏ va chạm với enemy để không bị đẩy (quái vẫn tìm và đánh theo khoảng cách)
+      if (this.noEnemyCollisionMask !== undefined) {
+        this.body.collisionFilter.mask = this.noEnemyCollisionMask;
+      }
+
+      // Update stored references
+      this.compoundBody = newCompoundBody;
+      this.colliderBody = newCollider;
+      this.sensorBody = newSensor;
+    }
+
+    // Increase damage while transformed (apply once)
+    if (!this.transformDamageApplied) {
+      this.bonusDamage += this.transformDamageBonus;
+      this.transformDamageApplied = true;
+    }
+
+    // Auto revert after duration
+    if (this.transformTimerEvent) {
+      this.transformTimerEvent.remove(false);
+    }
+    this.transformTimerEvent = this.scene.time.delayedCall(this.transformDuration, () => {
+      if (this.isTransformed) {
+        this.toggleTaoistTransform();
+      }
+    });
+
+    // Hide weapon while transformed
+    if (this.weapon) {
+      this.weapon.setVisible(false);
+    }
+
+    // Play idle animation of transformed form
+    const idleAnim = this.transformConfig.idleAnim || 'mino_idle';
+    if (this.anims.exists && this.anims.exists(idleAnim)) {
+      this.anims.play(idleAnim, true);
+    } else {
+      this.anims.play(idleAnim, true);
+    }
+  }
+
   toggleTaoistTransform() {
     if (this.characterType !== CharacterTypes.TAOIST || !this.transformConfig) return;
 
     if (!this.isTransformed) {
-      // Transform into Cluthu
-      this.isTransformed = true;
-      // Khóa phím R cho đến khi tự hết biến hình
-      this.transformCooldown = true;
-      this.setTexture(this.transformConfig.texture || 'cluthu');
-      this.setScale(this.transformConfig.scale || 1);
+      console.log('🔥 Starting Taoist transformation...');
 
-      // Create larger physics body (two circles) while transformed
-      if (this.compoundBody) {
-        const { Body, Bodies } = Phaser.Physics.Matter.Matter;
-        const currentX = this.x;
-        const currentY = this.y;
-        const currentVelocity = this.body.velocity;
+      // Show effect_4 animation first
+      const effect = this.scene.add.sprite(this.x, this.y, 'effect_4');
+      effect.setScale(3.0);
+      effect.setDepth(this.depth + 100);
 
-        // Calculate new radii (much larger to match character size)
-        const newColliderRadius = this.originalColliderRadius * this.transformScaleFactor;
-        const newSensorRadius = this.originalSensorRadius * this.transformScaleFactor;
+      console.log('✨ Effect sprite created, playing animation...');
 
-        // Create new larger collider and sensor
-        const newCollider = Bodies.circle(0, 0, newColliderRadius, {
-          label: 'playerCollider',
-          friction: 0,
-          frictionStatic: 0,
-          frictionAir: 0
-        });
-
-        const newSensor = Bodies.circle(0, 0, newSensorRadius, {
-          isSensor: true,
-          label: 'playerSensor'
-        });
-
-        // Create new compound body
-        const newCompoundBody = Body.create({
-          parts: [newCollider, newSensor],
-          frictionAir: 0.35,
-          friction: 0,
-          frictionStatic: 0,
-          restitution: 0,
-          inertia: Infinity
-        });
-
-        // Giữ nguyên collision filter như lúc chưa biến hình
-        if (this.defaultCollisionFilter) {
-          newCompoundBody.collisionFilter.category = this.defaultCollisionFilter.category;
-          newCompoundBody.collisionFilter.mask = this.defaultCollisionFilter.mask;
-        }
-
-        // Remove old body and set new one
-        this.scene.matter.world.remove(this.body);
-        this.setExistingBody(newCompoundBody);
-        this.setPosition(currentX, currentY);
-        this.setVelocity(currentVelocity.x, currentVelocity.y);
-
-        // Khi biến hình: bỏ va chạm với enemy để không bị đẩy (quái vẫn tìm và đánh theo khoảng cách)
-        if (this.noEnemyCollisionMask !== undefined) {
-          this.body.collisionFilter.mask = this.noEnemyCollisionMask;
-        }
-
-        // Update stored references
-        this.compoundBody = newCompoundBody;
-        this.colliderBody = newCollider;
-        this.sensorBody = newSensor;
+      // Play effect_4 animation (key is 'effect_4', not 'effect_4_anim')
+      if (this.scene.anims.exists('effect_4')) {
+        effect.play('effect_4');
+        console.log('▶️ Animation playing!');
+      } else {
+        console.log('❌ Animation effect_4 does not exist!');
       }
 
-       // Increase damage while transformed (apply once)
-      if (!this.transformDamageApplied) {
-        this.bonusDamage += this.transformDamageBonus;
-        this.transformDamageApplied = true;
-      }
+      // Listen for animation complete
+      effect.once('animationcomplete', () => {
+        console.log('✅ Animation complete, transforming now...');
+        effect.destroy();
 
-      // Auto revert after duration
-      if (this.transformTimerEvent) {
-        this.transformTimerEvent.remove(false);
-      }
-      this.transformTimerEvent = this.scene.time.delayedCall(this.transformDuration, () => {
-        if (this.isTransformed) {
-          this.toggleTaoistTransform();
-        }
+        // Now perform the actual transformation
+        this.performTaoistTransformation();
       });
 
-      // Hide weapon while transformed
-      if (this.weapon) {
-        this.weapon.setVisible(false);
-      }
-
-      // Play idle animation of transformed form
-      const idleAnim = this.transformConfig.idleAnim || 'cluthu_idle';
-      if (this.anims.exists && this.anims.exists(idleAnim)) {
-        this.anims.play(idleAnim, true);
-      } else {
-        this.anims.play(idleAnim, true);
-      }
+      // Fallback: destroy effect after 800ms if animation doesn't complete
+      this.scene.time.delayedCall(800, () => {
+        if (effect && effect.active) {
+          console.log('⏰ Fallback timer triggered transformation');
+          effect.destroy();
+          this.performTaoistTransformation();
+        }
+      });
     } else {
       // Revert back to Taoist
       this.isTransformed = false;
       // Mở lại phím R sau khi hết trạng thái biến hình
       this.transformCooldown = false;
+
+      // Lưu flipX hiện tại trước khi revert
+      const currentFlipX = this.flipX;
+
       this.setTexture(this.originalTexture);
       this.setScale(this.originalScale || 1);
+
+      // Đảo ngược lại hướng khi revert về Taoist
+      this.setFlipX(!currentFlipX);
 
       // Restore original physics body size
       if (this.compoundBody) {

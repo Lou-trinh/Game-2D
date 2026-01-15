@@ -48,9 +48,9 @@ export default class MainScene extends Phaser.Scene {
     SmallMushRoom.preload(this);
     Golem.preload(this);
 
-    // Load cluthu transformation assets for Taoist
-    this.load.atlas('cluthu', 'assets/images/skill/cluthu/cluthu.png', 'assets/images/skill/cluthu/cluthu_atlas.json');
-    this.load.animation('cluthu_anim', 'assets/images/skill/cluthu/cluthu_anim.json');
+    // Load mino transformation assets for Taoist
+    this.load.atlas('mino', 'assets/images/skill/mino/mino.png', 'assets/images/skill/mino/mino_atlas.json');
+    this.load.animation('mino_anim', 'assets/images/skill/mino/mino_anim.json');
 
     // Load mace weapon for Taoist
     this.load.image('mace', 'assets/images/weapons/mace.png');
@@ -85,6 +85,10 @@ export default class MainScene extends Phaser.Scene {
     bushLayer.setDepth(0);
     decorLayer.setDepth(500);
     aboveLayer.setDepth(1000);
+
+    // Store map dimensions for bounds checking
+    this.mapWidth = map.widthInPixels;
+    this.mapHeight = map.heightInPixels;
 
     /* ===============================
        COLLISION (MATTER + OBJECT LAYER)
@@ -121,6 +125,9 @@ export default class MainScene extends Phaser.Scene {
       frame: charConfig.idleFrame,
       characterType: selectedCharKey
     });
+
+    // Prevent player from going outside map bounds
+    this.matter.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
     /* ===============================
        SPAWN BEARS (ENEMIES)
@@ -356,11 +363,12 @@ export default class MainScene extends Phaser.Scene {
       this.player.weapon.setDepth(playerDepth + 100);
     }
 
+    // Đặt health bar ở depth cao để luôn hiển thị trên cây/đá
     if (this.player.healthBar) {
-      this.player.healthBar.setDepth(playerDepth + 200);
+      this.player.healthBar.setDepth(20001);
     }
     if (this.player.healthBarBg) {
-      this.player.healthBarBg.setDepth(playerDepth + 200);
+      this.player.healthBarBg.setDepth(20000);
     }
 
     this.player.update();

@@ -38,8 +38,9 @@ export default class Stone {
     this.sprite.body.isStatic = true;
 
     // Set collision - đá phải va chạm với player
-    this.sprite.setCollisionCategory(1);
-    this.sprite.setCollidesWith([1]);
+    // Category 0x0002 (giống enemy) để player (0x0001) không đi xuyên qua
+    this.sprite.setCollisionCategory(0x0002);
+    this.sprite.setCollidesWith([0x0001]); // Collide với player
 
     // Thuộc tính của Stone
     this.maxHealth = 50;

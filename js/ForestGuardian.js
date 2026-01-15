@@ -476,7 +476,7 @@ export default class ForestGuardian {
   }
 
   getHitbox() {
-    // Hitbox lớn hơn để dễ bị trúng đòn cận chiến (ví dụ Cluthu)
+    // Hitbox lớn hơn để dễ bị trúng đòn cận chiến (ví dụ Mino)
     return new Phaser.Geom.Rectangle(
       this.sprite.x - 18,
       this.sprite.y - 24,
