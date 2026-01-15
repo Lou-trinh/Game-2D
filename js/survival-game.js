@@ -3,6 +3,8 @@ import PhaserMatterCollisionPlugin from 'phaser-matter-collision-plugin';
 import MenuScene from "./MenuScene";
 import CharacterSelectScene from "./CharacterSelectScene";
 import MainScene from "./MainScene";
+import GameOverScene from "./GameOverScene.js";
+import ReviveScene from './ReviveScene.js';
 
 const config = {
   width: 512,
@@ -10,14 +12,14 @@ const config = {
   backgroundColor: '#ffffff',
   type: Phaser.AUTO,
   parent: 'survival-game',
-  scene: [MenuScene, CharacterSelectScene, MainScene],
+  scene: [MenuScene, CharacterSelectScene, MainScene, GameOverScene, ReviveScene],
   scale: {
     zoom: 2,
   },
   physics: {
     default: 'matter',
     matter: {
-      debug: true,
+      debug: false,
       gravity: { x: 0, y: 0 },
     }
   },

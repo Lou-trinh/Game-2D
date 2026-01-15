@@ -11,6 +11,8 @@ export default class CharacterSelectScene extends Phaser.Scene {
     preload() {
         // Load all available character assets
         preloadCharacters(this);
+        this.load.image('button_ok', 'assets/images/inventory/button/button_ok.png');
+        this.load.image('button_back', 'assets/images/inventory/button/button_back.png');
     }
 
     create() {
@@ -106,7 +108,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
         });
 
         // Enhanced confirm button
-        this.createButton(width / 2 - 85, height * 0.78, 'XÁC NHẬN', 0x27ae60, () => {
+        this.createImageButton(width / 2 - 100, height * 0.78, 'button_ok', () => {
             const selectedChar = this.characters[this.selectedIndex];
             if (selectedChar.unlocked) {
                 // Store selected character
@@ -116,12 +118,12 @@ export default class CharacterSelectScene extends Phaser.Scene {
                     this.scene.start('MainScene');
                 });
             }
-        });
+        }, 0.7);
 
         // Back button
-        this.createButton(width / 2 + 85, height * 0.78, 'QUAY LẠI', 0xe74c3c, () => {
+        this.createImageButton(width / 2 + 100, height * 0.78, 'button_back', () => {
             this.scene.start('MenuScene');
-        });
+        }, 0.7);
 
         // Fade in
         this.cameras.main.fadeIn(500, 0, 0, 0);
@@ -310,51 +312,31 @@ export default class CharacterSelectScene extends Phaser.Scene {
         this.selectCharacter(newIndex);
     }
 
-    createButton(x, y, text, color, callback) {
-        const buttonWidth = 150;
-        const buttonHeight = 40;
+    createImageButton(x, y, key, callback, scale = 1) {
+        const button = this.add.sprite(x, y, key);
+        button.setScale(scale);
+        button.setInteractive({ useHandCursor: true });
 
-        // Glass morphism button
-        const buttonBg = this.add.rectangle(x, y, buttonWidth, buttonHeight, 0x000000, 0.3);
-        const buttonBorder = this.add.rectangle(x, y, buttonWidth, buttonHeight);
-        buttonBorder.setStrokeStyle(2, 0xffffff, 0.8);
-        buttonBorder.setFillStyle(color, 0.6);
-        buttonBorder.setInteractive({ useHandCursor: true });
-
-        const buttonText = this.add.text(x, y, text, {
-            fontFamily: 'Verdana, sans-serif',
-            fontSize: '18px',
-            fontStyle: 'bold',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 1
+        button.on('pointerover', () => {
+            button.setTint(0xdddddd);
+            button.setScale(scale * 1.05);
         });
-        buttonText.setOrigin(0.5);
 
-        const hoverColor = Phaser.Display.Color.ValueToColor(color).lighten(30).color;
+        button.on('pointerout', () => {
+            button.clearTint();
+            button.setScale(scale);
+        });
 
-        buttonBorder.on('pointerover', () => {
-            buttonBorder.setFillStyle(hoverColor, 0.8);
+        button.on('pointerdown', () => {
             this.tweens.add({
-                targets: [buttonBg, buttonBorder, buttonText],
-                scale: 1.08,
-                duration: 150,
-                ease: 'Back.easeOut'
+                targets: button,
+                scale: 0.95,
+                duration: 50,
+                yoyo: true,
+                onComplete: callback
             });
         });
 
-        buttonBorder.on('pointerout', () => {
-            buttonBorder.setFillStyle(color, 0.6);
-            this.tweens.add({
-                targets: [buttonBg, buttonBorder, buttonText],
-                scale: 1,
-                duration: 150,
-                ease: 'Power2'
-            });
-        });
-
-        buttonBorder.on('pointerdown', callback);
-
-        return { bg: buttonBg, border: buttonBorder, text: buttonText };
+        return button;
     }
 }

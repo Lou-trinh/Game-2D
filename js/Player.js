@@ -12,6 +12,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     scene.add.existing(this);
 
+    this.originalTexture = texture; // Store for revive
     this.setScale(1);
     this.setFixedRotation();
     this.setAngle(0);
@@ -1098,11 +1099,22 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.healthBar) this.healthBar.setVisible(false);
     if (this.healthBarBg) this.healthBarBg.setVisible(false);
 
+    console.log('💀 Player died! isTransformed:', this.isTransformed);
+
+    // Cancel transform timer if dying while transformed
+    if (this.transformTimerEvent) {
+      console.log('⏰ Canceling transform timer on death');
+      this.transformTimerEvent.remove(false);
+      this.transformTimerEvent = null;
+    }
+
     // Always change to ghost sprite when dying
     this.setTexture('ghost');
     this.stop(); // Stop any running animations
     this.setScale(0.3); // Make ghost smaller
     this.setAlpha(1); // Reset alpha to full opacity
+
+    console.log('👻 Ghost sprite set. Texture:', this.texture.key, 'Scale:', this.scale);
 
     // Floating animation (up and down)
     this.scene.tweens.add({
@@ -1113,6 +1125,48 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       yoyo: true,
       repeat: -1 // Loop forever
     });
+
+    // Show game over menu after a short delay
+    this.scene.time.delayedCall(1000, () => {
+      this.scene.scene.pause('MainScene');
+      this.scene.scene.launch('GameOverScene');
+    });
+  }
+
+  revive() {
+    console.log('✨ Player reviving!');
+    this.isDead = false;
+    this.health = this.maxHealth;
+
+    // Stop any animations/tweens first
+    this.scene.tweens.killTweensOf(this);
+    this.stop(); // Stop ghost animation if playing
+
+    // Restore texture and scale
+    this.setTexture(this.originalTexture);
+    this.setScale(this.originalScale);
+    this.setAlpha(1);
+    this.setAngle(0);
+
+    // Ensure state flags are reset
+    this.isAttacking = false;
+    this.isDashing = false;
+    this.backstabCooldown = false;
+    this.transformCooldown = false;
+    this.isTransformed = false;
+
+    // Restore UI visibility
+    if (this.weapon) this.weapon.setVisible(true);
+    if (this.healthBar) this.healthBar.setVisible(true);
+    if (this.healthBarBg) this.healthBarBg.setVisible(true);
+
+    // Update health bar visual to full
+    if (this.healthBar) {
+      this.updateHealthBar();
+      // Ensure width is set correctly immediately (redundancy for safety)
+      this.healthBar.width = 50;
+    }
+    console.log('✨ Player revived with health:', this.health, '/', this.maxHealth);
   }
 
   update() {

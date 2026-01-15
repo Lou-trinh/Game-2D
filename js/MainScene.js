@@ -36,6 +36,8 @@ export default class MainScene extends Phaser.Scene {
 
   preload() {
     Player.preload(this);
+    this.load.image('button_out', 'assets/images/inventory/button/button_out.png');
+    this.load.image('backpack', 'assets/images/inventory/backpack.png');
     Bear.preload(this);
     Stone.preload(this);
     Tree.preload(this);
@@ -57,9 +59,27 @@ export default class MainScene extends Phaser.Scene {
 
     this.load.image('tiles', 'assets/images/RPG Nature Tileset.png');
     this.load.tilemapTiledJSON('map', 'assets/images/map.json');
+
+    // Load inventory images
+    this.load.image('backpack', 'assets/images/inventory/backpack.png');
   }
 
   create() {
+    this.player = null;
+    this.bears = [];
+    this.stones = [];
+    this.trees = [];
+    this.treeMen = [];
+    this.forestGuardians = [];
+    this.gnollBrutes = [];
+    this.gnollShamans = [];
+    this.wolves = [];
+    this.mushrooms = [];
+    this.smallMushrooms = [];
+    this.golems = [];
+    this.summonedMonsters = [];
+    this.items = [];
+
     const map = this.make.tilemap({ key: 'map' });
 
     const tileset = map.addTilesetImage(
@@ -567,5 +587,11 @@ export default class MainScene extends Phaser.Scene {
     this.time.delayedCall(150, () => {
       this.player.clearTint();
     });
+  }
+
+  revivePlayer() {
+    if (this.player) {
+      this.player.revive();
+    }
   }
 }

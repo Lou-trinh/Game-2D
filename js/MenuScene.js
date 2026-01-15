@@ -6,51 +6,29 @@ export default class MenuScene extends Phaser.Scene {
     }
 
     preload() {
-        // Load menu assets if needed
+        // Load menu assets
+        this.load.image('button_start', 'assets/images/inventory/button/button_start.png');
+        this.load.image('button_characters', 'assets/images/inventory/button/button_characters.png');
+        this.load.image('button_settings', 'assets/images/inventory/button/button_settings.png');
+        this.load.image('menu_bg', 'assets/images/inventory/background.png');
     }
 
     create() {
         const { width, height } = this.scale;
 
-        // Background gradient effect
-        const graphics = this.add.graphics();
-        graphics.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x16213e, 0x16213e, 1);
-        graphics.fillRect(0, 0, width, height);
+        // Background image
+        const bg = this.add.image(0, 0, 'menu_bg');
+        bg.setOrigin(0, 0);
+        bg.setDisplaySize(width, height);
 
-        // Game title
-        const title = this.add.text(width / 2, height / 4, 'Survival Game', {
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '48px',
-            fontStyle: 'bold',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4,
-            shadow: {
-                offsetX: 2,
-                offsetY: 2,
-                color: '#000000',
-                blur: 8,
-                fill: true
-            }
-        });
-        title.setOrigin(0.5);
 
-        // Title floating animation
-        this.tweens.add({
-            targets: title,
-            y: title.y - 10,
-            duration: 1500,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1
-        });
 
         // Button configuration
-        const buttonStartY = height / 2;
-        const buttonSpacing = 55;
+        const buttonStartY = height / 2 - 100;
+        const buttonSpacing = 100; // Increased spacing to prevent overlap
 
         // Bắt đầu button
-        this.createButton(width / 2, buttonStartY, 'BẮT ĐẦU', 0x4a90d9, () => {
+        this.createImageButton(width / 2, buttonStartY, 'button_start', () => {
             this.cameras.main.fadeOut(500, 0, 0, 0);
             this.time.delayedCall(500, () => {
                 this.scene.start('MainScene');
@@ -58,12 +36,12 @@ export default class MenuScene extends Phaser.Scene {
         });
 
         // Chọn nhân vật button
-        this.createButton(width / 2, buttonStartY + buttonSpacing, 'CHỌN NHÂN VẬT', 0x9b59b6, () => {
+        this.createImageButton(width / 2, buttonStartY + buttonSpacing, 'button_characters', () => {
             this.scene.start('CharacterSelectScene');
         });
 
         // Cài đặt button
-        this.createButton(width / 2, buttonStartY + buttonSpacing * 2, 'CÀI ĐẶT', 0x27ae60, () => {
+        this.createImageButton(width / 2, buttonStartY + buttonSpacing * 2, 'button_settings', () => {
             console.log('Cài đặt - Coming soon!');
             // TODO: Navigate to settings scene
         });
@@ -80,35 +58,36 @@ export default class MenuScene extends Phaser.Scene {
         this.cameras.main.fadeIn(500, 0, 0, 0);
     }
 
-    createButton(x, y, text, color, callback) {
-        const buttonBg = this.add.rectangle(x, y, 180, 45, color);
-        buttonBg.setStrokeStyle(2, 0xffffff);
-        buttonBg.setInteractive({ useHandCursor: true });
+    createImageButton(x, y, key, callback) {
+        // Create button sprite
+        const button = this.add.sprite(x, y, key);
+        button.setInteractive({ useHandCursor: true });
 
-        const buttonText = this.add.text(x, y, text, {
-            fontFamily: 'Arial, sans-serif',
-            fontSize: '18px',
-            fontStyle: 'bold',
-            color: '#ffffff'
-        });
-        buttonText.setOrigin(0.5);
+        // Initial scale (adjust if images are too big/small)
+        // button.setScale(0.8); 
 
-        const hoverColor = Phaser.Display.Color.ValueToColor(color).lighten(20).color;
-
-        buttonBg.on('pointerover', () => {
-            buttonBg.setFillStyle(hoverColor);
-            buttonBg.setScale(1.05);
-            buttonText.setScale(1.05);
+        // Hover effects
+        button.on('pointerover', () => {
+            button.setTint(0xdddddd); // Light tint on hover
+            button.setScale(1.05);
         });
 
-        buttonBg.on('pointerout', () => {
-            buttonBg.setFillStyle(color);
-            buttonBg.setScale(1);
-            buttonText.setScale(1);
+        button.on('pointerout', () => {
+            button.clearTint();
+            button.setScale(1);
         });
 
-        buttonBg.on('pointerdown', callback);
+        button.on('pointerdown', () => {
+            // Click animation
+            this.tweens.add({
+                targets: button,
+                scale: 0.95,
+                duration: 50,
+                yoyo: true,
+                onComplete: callback
+            });
+        });
 
-        return { bg: buttonBg, text: buttonText };
+        return button;
     }
 }
