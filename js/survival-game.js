@@ -5,6 +5,7 @@ import CharacterSelectScene from "./CharacterSelectScene";
 import MainScene from "./MainScene";
 import GameOverScene from "./GameOverScene.js";
 import ReviveScene from './ReviveScene.js';
+import SceneLoading from './SceneLoading.js';
 
 const config = {
   width: 512,
@@ -12,7 +13,7 @@ const config = {
   backgroundColor: '#ffffff',
   type: Phaser.AUTO,
   parent: 'survival-game',
-  scene: [MenuScene, CharacterSelectScene, MainScene, GameOverScene, ReviveScene],
+  scene: [SceneLoading, MenuScene, CharacterSelectScene, MainScene, GameOverScene, ReviveScene],
   scale: {
     zoom: 2,
   },
