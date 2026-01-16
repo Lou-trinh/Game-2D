@@ -1,0 +1,52 @@
+{
+    "anims": [
+        {
+            "key": "chest",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 10,
+            "frames": [
+                {
+                    "key": "chest",
+                    "frame": "chest1"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest13"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest25"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest37"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest37"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest37"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest37"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest37"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest37"
+                },
+                {
+                    "key": "chest",
+                    "frame": "chest37"
+                }
+            ]
+        }
+    ]
+}

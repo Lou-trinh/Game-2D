@@ -31,8 +31,8 @@ export default class SmallMushRoom {
     this.maxHealth = 50;
     this.health = 50;
     this.isDead = false;
-    this.speed = 0.8; // Nhanh hơn Large một chút
-    this.detectionRange = 80;
+    this.speed = 0.6;
+    this.detectionRange = Infinity; // Always chase
     this.attackRange = 25;
     this.meleeRange = 18;
     this.state = 'idle';
@@ -355,42 +355,6 @@ export default class SmallMushRoom {
   }
 
   dropItems() {
-    const dropX = this.sprite.x;
-    const dropY = this.sprite.y;
-
-    // Rơi 1 blood nhỏ
-    const blood = this.scene.add.image(dropX, dropY, 'blood');
-    blood.setScale(0.03);
-    blood.setDepth(dropY - 1);
-    blood.setAlpha(0.8);
-    blood.setData('itemType', 'blood');
-
-    const bloodTargetX = dropX - 10 - Math.random() * 5;
-    const bloodTargetY = dropY + Math.random() * 5;
-
-    this.scene.tweens.add({
-      targets: blood,
-      x: bloodTargetX,
-      y: bloodTargetY - 20,
-      alpha: 1,
-      duration: 150,
-      ease: 'Quad.easeOut'
-    });
-
-    this.scene.tweens.add({
-      targets: blood,
-      y: bloodTargetY,
-      duration: 250,
-      delay: 150,
-      ease: 'Bounce.easeOut',
-      onComplete: () => {
-        if (this.scene.items) {
-          this.scene.items.push(blood);
-        }
-      }
-    });
-
-    console.log('🩸 SmallMushRoom dropped blood!');
   }
 
   get x() {

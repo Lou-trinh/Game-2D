@@ -81,27 +81,16 @@ export default class Tree {
         DAMAGE
   ========================== */
   takeDamage(amount) {
-    if (this.isDead) return;
-
-    this.health -= amount;
-    if (this.health < 0) this.health = 0;
-
-    this.sprite.setTint(0xffffff);
-    this.scene.time.delayedCall(80, () => {
-      if (!this.isDead) this.sprite.clearTint();
-    });
-
-    this.updateHealthBar();
-
-    if (this.health <= 0) {
-      this.destroy();
-    }
+    // Tree farming disabled - trees are now permanent obstacles
+    return;
   }
 
   /* =========================
         DESTROY – FIX COLLISION
   ========================== */
   destroy() {
+    // Tree farming disabled - trees cannot be destroyed
+    return;
     if (this.isDead) return;
     this.isDead = true;
 

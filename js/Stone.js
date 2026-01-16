@@ -121,40 +121,13 @@ export default class Stone {
   }
 
   takeDamage(amount) {
-    if (this.isDead) return;
-
-    this.health -= amount;
-    if (this.health < 0) this.health = 0;
-
-    // Hiệu ứng nhấp nháy khi bị tấn công
-    this.sprite.setTint(0xffffff);
-    this.scene.time.delayedCall(100, () => {
-      if (!this.isDead) {
-        this.sprite.clearTint();
-      }
-    });
-
-    // Hiệu ứng rung nhẹ
-    this.scene.tweens.add({
-      targets: this.sprite,
-      x: this.sprite.x + Phaser.Math.Between(-2, 2),
-      y: this.sprite.y + Phaser.Math.Between(-2, 2),
-      duration: 50,
-      yoyo: true,
-      repeat: 1
-    });
-
-    console.log(`🪨 Stone health: ${this.health}/${this.maxHealth}`);
-
-    // Cập nhật health bar
-    this.updateHealthBar();
-
-    if (this.health <= 0) {
-      this.destroy();
-    }
+    // Stone farming disabled - stones are now permanent obstacles
+    return;
   }
 
   destroy() {
+    // Stone farming disabled - stones cannot be destroyed
+    return;
     if (this.isDead) return;
 
     this.isDead = true;

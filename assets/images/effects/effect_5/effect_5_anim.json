@@ -1,0 +1,32 @@
+{
+    "anims": [
+        {
+            "key": "effect_5",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "effect_5",
+                    "frame": "lightning_skill3_frame1"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "lightning_skill3_frame2"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "lightning_skill3_frame3"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "lightning_skill3_frame4"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "lightning_skill3_frame5"
+                }
+            ]
+        }
+    ]
+}

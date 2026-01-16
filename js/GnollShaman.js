@@ -29,9 +29,9 @@ export default class GnollShaman {
     this.health = 80;
     this.isDead = false;
     this.speed = 0.7;
-    this.detectionRange = 100;
-    this.attackRange = 100;
-    this.meleeRange = 70;
+    this.detectionRange = Infinity; // Always chase
+    this.attackRange = 150; // Increased range
+    this.meleeRange = 130; // Increased range
     this.state = 'idle';
     this.direction = 'down';
 
@@ -81,7 +81,7 @@ export default class GnollShaman {
       this.sprite.y - 25,
       40,
       5,
-      0x9966ff
+      0xff0000
     );
     this.healthBar.setOrigin(0, 0.5);
     this.healthBar.setDepth(10001);
@@ -98,11 +98,11 @@ export default class GnollShaman {
     this.healthBar.setPosition(this.sprite.x - 20, this.sprite.y - 25);
 
     if (this.health > 48) {
-      this.healthBar.setFillStyle(0x9966ff);
+      this.healthBar.setFillStyle(0xff0000); // Red
     } else if (this.health > 24) {
-      this.healthBar.setFillStyle(0x6633cc);
+      this.healthBar.setFillStyle(0xff6600); // Orange
     } else {
-      this.healthBar.setFillStyle(0x330066);
+      this.healthBar.setFillStyle(0xcc0000); // Dark Red
     }
   }
 
@@ -271,9 +271,9 @@ export default class GnollShaman {
       return;
     }
 
-    // Attack range: 35-70 units for ice monster, 40-70 for player
-    const minAttackDistance = isIceMonster ? 35 : 40;
-    const maxAttackDistance = this.meleeRange; // 70
+    // Attack range: 50-130 units for ice monster, 60-130 for player (increased)
+    const minAttackDistance = isIceMonster ? 50 : 60;
+    const maxAttackDistance = this.meleeRange; // 130
 
     if (distance >= minAttackDistance && distance <= maxAttackDistance) {
       // IN ATTACK RANGE - STOP AND SHOOT
@@ -426,88 +426,6 @@ export default class GnollShaman {
   }
 
   dropItems() {
-    const dropX = this.sprite.x;
-    const dropY = this.sprite.y;
-
-    const blood = this.scene.add.image(dropX, dropY, 'blood');
-    blood.setScale(0.05);
-    blood.setDepth(dropY - 1);
-    blood.setAlpha(0.8);
-    blood.setData('itemType', 'blood');
-
-    const bloodTargetX = dropX - 15 - Math.random() * 10;
-    const bloodTargetY = dropY + Math.random() * 10;
-
-    this.scene.tweens.add({
-      targets: blood,
-      x: bloodTargetX,
-      y: bloodTargetY - 30,
-      alpha: 1,
-      duration: 200,
-      ease: 'Quad.easeOut'
-    });
-
-    this.scene.tweens.add({
-      targets: blood,
-      y: bloodTargetY,
-      duration: 300,
-      delay: 200,
-      ease: 'Bounce.easeOut',
-      onComplete: () => {
-        if (this.scene.items) {
-          this.scene.items.push(blood);
-        }
-      }
-    });
-
-    this.scene.tweens.add({
-      targets: blood,
-      angle: 360,
-      duration: 500,
-      ease: 'Linear'
-    });
-
-    const meat = this.scene.add.image(dropX, dropY, 'meat');
-    meat.setScale(0.1);
-    meat.setDepth(dropY - 1);
-    meat.setAlpha(0.8);
-    meat.setData('itemType', 'meat');
-
-    this.scene.time.delayedCall(80, () => {
-      const meatTargetX = dropX + 15 + Math.random() * 10;
-      const meatTargetY = dropY + Math.random() * 10;
-
-      this.scene.tweens.add({
-        targets: meat,
-        x: meatTargetX,
-        y: meatTargetY - 35,
-        alpha: 1,
-        duration: 200,
-        ease: 'Quad.easeOut'
-      });
-
-      this.scene.tweens.add({
-        targets: meat,
-        y: meatTargetY,
-        duration: 350,
-        delay: 200,
-        ease: 'Bounce.easeOut',
-        onComplete: () => {
-          if (this.scene.items) {
-            this.scene.items.push(meat);
-          }
-        }
-      });
-
-      this.scene.tweens.add({
-        targets: meat,
-        angle: -360,
-        duration: 550,
-        ease: 'Linear'
-      });
-    });
-
-    console.log('🩸🥩 Dropped blood and meat!');
   }
 
   get x() {

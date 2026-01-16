@@ -13,6 +13,7 @@ import LargeMushRoom from './LargeMushRoom';
 import SmallMushRoom from './SmallMushRoom';
 import Golem from './Golem';
 import IceMonster from './IceMonster';
+import Chest from './Chest';
 import ResourceUI from './ResourceUI';
 
 export default class MainScene extends Phaser.Scene {
@@ -31,6 +32,7 @@ export default class MainScene extends Phaser.Scene {
     this.smallMushrooms = [];
     this.golems = [];
     this.summonedMonsters = []; // Track wizard summons
+    this.chests = []; // Track chests
     this.items = [];
   }
 
@@ -49,6 +51,7 @@ export default class MainScene extends Phaser.Scene {
     LargeMushRoom.preload(this);
     SmallMushRoom.preload(this);
     Golem.preload(this);
+    Chest.preload(this);
 
     // Load mino transformation assets for Taoist
     this.load.atlas('mino', 'assets/images/skill/mino/mino.png', 'assets/images/skill/mino/mino_atlas.json');
@@ -62,6 +65,139 @@ export default class MainScene extends Phaser.Scene {
 
     // Load inventory images
     this.load.image('backpack', 'assets/images/inventory/backpack.png');
+    this.load.image('diamond', 'assets/images/item/diamon.png');
+
+    // Skill 3 (Gate)
+    this.load.atlas('gate', 'assets/images/skill/skill_3/gate.png', 'assets/images/skill/skill_3/gate_atlas.json');
+    this.load.animation('gate_anim', 'assets/images/skill/skill_3/gate_anim.json');
+  }
+
+  getSpawnPool() {
+    const elapsedSeconds = (this.time.now - (this.startTime || 0)) / 1000;
+    let pool = [];
+
+    // Weights (Chance ~ Count in pool)
+
+    // Phase 1: 0-25s : Bear, Treeman
+    const basicPool = ['bear', 'treeman'];
+
+    // Phase 2: 25s+ : Add few GnollBrute, GnollShaman, Wolf
+    const midPool = ['gnollbrute', 'gnollshaman', 'wolf'];
+
+    // Phase 4: 75s+ : Add few LargeMushRoom
+    const mushPool = ['mushroom'];
+
+    // Phase 6: 125s+ : Add few ForestGuardian
+    const guardianPool = ['forestguardian'];
+
+    // Phase 8: 175s+ : Add few Golem
+    const golemPool = ['golem'];
+
+
+    // Base Layout (Always include basics to keep variety)
+    pool = pool.concat(basicPool, basicPool, basicPool); // 6 items
+
+    // Phase 2 (25s+)
+    if (elapsedSeconds > 25) {
+      pool = pool.concat(midPool); // +3 items (Low chance)
+    }
+
+    // Phase 3 (50s+)
+    if (elapsedSeconds > 50) {
+      pool = pool.concat(midPool, midPool); // +6 items (Total 9 mid items - High chance)
+    }
+
+    // Phase 4 (75s+)
+    if (elapsedSeconds > 75) {
+      pool = pool.concat(mushPool); // +1 item (Low chance)
+    }
+
+    // Phase 5 (100s+)
+    if (elapsedSeconds > 100) {
+      pool = pool.concat(mushPool, mushPool, mushPool); // +3 items (High chance relative to before)
+    }
+
+    // Phase 6 (125s+)
+    if (elapsedSeconds > 125) {
+      pool = pool.concat(guardianPool); // +1 item
+    }
+
+    // Phase 7 (150s+)
+    if (elapsedSeconds > 150) {
+      pool = pool.concat(guardianPool, guardianPool, guardianPool); // +3 items
+    }
+
+    // Phase 8 (175s+)
+    if (elapsedSeconds > 175) {
+      pool = pool.concat(golemPool); // +1 item
+    }
+
+    // Phase 9 (200s+)
+    if (elapsedSeconds > 200) {
+      pool = pool.concat(golemPool, golemPool, golemPool); // +3 items
+    }
+
+    return pool;
+  }
+
+  spawnEnemyFromGate() {
+    // Alternating spawn mechanism to ensure even distribution
+    if (this.lastSpawnLeft === undefined) {
+      this.lastSpawnLeft = false;
+    }
+    this.lastSpawnLeft = !this.lastSpawnLeft;
+
+    const gateX = this.lastSpawnLeft ? 100 : 860;
+    const gateY = 260; // Same Y for both
+
+    // Get dynamic monster pool based on time
+    const enemies = this.getSpawnPool();
+    const type = Phaser.Utils.Array.GetRandom(enemies);
+
+    let enemy;
+
+    switch (type) {
+      case 'bear':
+        enemy = new Bear({ scene: this, x: gateX, y: gateY });
+        this.bears.push(enemy);
+        break;
+      case 'treeman':
+        enemy = new TreeMan({ scene: this, x: gateX, y: gateY });
+        this.treeMen.push(enemy);
+        break;
+      case 'forestguardian':
+        enemy = new ForestGuardian({ scene: this, x: gateX, y: gateY });
+        this.forestGuardians.push(enemy);
+        break;
+      case 'gnollbrute':
+        enemy = new GnollBrute({ scene: this, x: gateX, y: gateY });
+        this.gnollBrutes.push(enemy);
+        break;
+      case 'gnollshaman':
+        enemy = new GnollShaman({ scene: this, x: gateX, y: gateY });
+        this.gnollShamans.push(enemy);
+        break;
+      case 'wolf':
+        enemy = new Wolf({ scene: this, x: gateX, y: gateY });
+        this.wolves.push(enemy);
+        break;
+      case 'mushroom':
+        enemy = new LargeMushRoom({ scene: this, x: gateX, y: gateY });
+        this.mushrooms.push(enemy);
+        break;
+      case 'smallmushroom':
+        enemy = new SmallMushRoom({ scene: this, x: gateX, y: gateY });
+        this.smallMushrooms.push(enemy);
+        break;
+      case 'golem':
+        enemy = new Golem({ scene: this, x: gateX, y: gateY });
+        this.golems.push(enemy);
+        break;
+    }
+
+    if (enemy) {
+      console.log(`👾 Spawned ${type} from gate!`);
+    }
   }
 
   create() {
@@ -146,107 +282,128 @@ export default class MainScene extends Phaser.Scene {
       characterType: selectedCharKey
     });
 
+    // Gate 1 (Left)
+    this.gate1 = this.add.sprite(100, 260, 'gate');
+    this.gate1.setScale(1.5);
+    this.gate1.play('gate');
+    this.gate1.setDepth(299);
+
+    // Gate 2 (Right - Opposite to Gate 1)
+    // Map width is 960px (30 tiles * 32px). 960 - 100 = 860.
+    this.gate2 = this.add.sprite(860, 260, 'gate');
+    this.gate2.setScale(1.5);
+    this.gate2.setFlipX(true); // Flip horizontally
+    this.gate2.play('gate');
+    this.gate2.setDepth(299);
+
+    console.log('✨ Spawned Gates at (100,260) and (860,260)');
+
     // Prevent player from going outside map bounds
     this.matter.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
     /* ===============================
        SPAWN BEARS (ENEMIES)
     =============================== */
-    const bear = new Bear({
-      scene: this,
-      x: 150,
-      y: 400
-    });
-    this.bears.push(bear);
+    // const bear = new Bear({
+    //   scene: this,
+    //   x: 150,
+    //   y: 400
+    // });
+    // this.bears.push(bear);
 
     /* ===============================
        SPAWN TREEMAN
     =============================== */
-    const treeMan = new TreeMan({
-      scene: this,
-      x: 150,
-      y: 120
-    });
-    this.treeMen.push(treeMan);
+    // const treeMan = new TreeMan({
+    //   scene: this,
+    //   x: 150,
+    //   y: 120
+    // });
+    // this.treeMen.push(treeMan);
 
     /* ===============================
        SPAWN FOREST GUARDIAN
     =============================== */
-    const forestGuardian = new ForestGuardian({
-      scene: this,
-      x: 590,
-      y: 210
-    });
-    this.forestGuardians.push(forestGuardian);
+    // const forestGuardian = new ForestGuardian({
+    //   scene: this,
+    //   x: 590,
+    //   y: 210
+    // });
+    // this.forestGuardians.push(forestGuardian);
 
     /* ===============================
        SPAWN GNOLL BRUTE
     =============================== */
-    const gnollBrute = new GnollBrute({
-      scene: this,
-      x: 350,
-      y: 330
-    });
-    this.gnollBrutes.push(gnollBrute);
+    // const gnollBrute = new GnollBrute({
+    //   scene: this,
+    //   x: 350,
+    //   y: 330
+    // });
+    // this.gnollBrutes.push(gnollBrute);
 
     /* ===============================
        SPAWN GNOLL SHAMAN
     =============================== */
-    const gnollShaman = new GnollShaman({
-      scene: this,
-      x: 400,
-      y: 120
-    });
-    this.gnollShamans.push(gnollShaman);
+    // const gnollShaman = new GnollShaman({
+    //   scene: this,
+    //   x: 400,
+    //   y: 120
+    // });
+    // this.gnollShamans.push(gnollShaman);
 
     /* ===============================
        SPAWN WOLF
     =============================== */
-    const wolf1 = new Wolf({
-      scene: this,
-      x: 390,
-      y: 520
-    });
-    this.wolves.push(wolf1);
+    // const wolf1 = new Wolf({
+    //   scene: this,
+    //   x: 390,
+    //   y: 520
+    // });
+    // this.wolves.push(wolf1);
 
-    const wolf2 = new Wolf({
-      scene: this,
-      x: 350,
-      y: 500
-    });
-    this.wolves.push(wolf2);
+    // const wolf2 = new Wolf({
+    //   scene: this,
+    //   x: 350,
+    //   y: 500
+    // });
+    // this.wolves.push(wolf2);
 
-    const wolf3 = new Wolf({
-      scene: this,
-      x: 350,
-      y: 540
-    });
-    this.wolves.push(wolf3);
+    // const wolf3 = new Wolf({
+    //   scene: this,
+    //   x: 350,
+    //   y: 540
+    // });
+    // this.wolves.push(wolf3);
 
     /* ===============================
        SPAWN LARGE MUSHROOM
     =============================== */
-    const mushroom = new LargeMushRoom({
-      scene: this,
-      x: 680,
-      y: 430
-    });
-    this.mushrooms.push(mushroom);
+    // const mushroom = new LargeMushRoom({
+    //   scene: this,
+    //   x: 680,
+    //   y: 430
+    // });
+    // this.mushrooms.push(mushroom);
 
     /* ===============================
    SPAWN GOLEM
     =============================== */
-    const golem = new Golem({
-      scene: this,
-      x: 800,
-      y: 120
+    // const golem = new Golem({
+    //   scene: this,
+    //   x: 800,
+    //   y: 120
+    // });
+    // this.golems.push(golem);
+
+
+    // Start Wave Spawning from Gate - Reduced spawn rate
+    this.time.addEvent({
+      delay: 1500, // Spawn every 1.5 seconds (reduced from 0.8s for less density)
+      loop: true,
+      callback: () => {
+        this.spawnEnemyFromGate();
+      }
     });
-    this.golems.push(golem);
-
-
-    /* ===============================
-       SPAWN STONES (FROM TILES)
-    =============================== */
     const layers = [groundLayer, decorLayer, bushLayer];
 
     layers.forEach(layer => {
@@ -336,6 +493,30 @@ export default class MainScene extends Phaser.Scene {
     /* ===============================
        INPUT
     =============================== */
+    // Reset arrays to ensure no leftovers from previous session
+    this.bears = [];
+    this.stones = [];
+    this.trees = [];
+    this.treeMen = [];
+    this.forestGuardians = [];
+    this.gnollBrutes = [];
+    this.gnollShamans = [];
+    this.wolves = [];
+    this.mushrooms = [];
+    this.smallMushrooms = [];
+    this.golems = [];
+    this.summonedMonsters = [];
+    this.chests = [];
+    this.items = [];
+
+    // Initialize inputs
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasd = {
+      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+    };
     this.player.inputKeys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
       down: Phaser.Input.Keyboard.KeyCodes.S,
@@ -370,7 +551,14 @@ export default class MainScene extends Phaser.Scene {
     =============================== */
     this.resourceUI = new ResourceUI(this, this.player);
 
-    console.log('✅ MainScene with Bears, TreeMan, ForestGuardian, GnollBrute, GnollShaman, Wolves, Mushrooms and Stones loaded');
+    /* ===============================
+       SPAWN CHESTS
+    =============================== */
+    this.time.delayedCall(15000, () => {
+      this.spawnChest();
+    });
+
+    console.log('✅ MainScene with Bears, TreeMan, ForestGuardian, GnollBrute, GnollShaman, Wolves, Mushrooms, Chests and Stones loaded');
   }
 
   update(time, delta) {
@@ -437,6 +625,10 @@ export default class MainScene extends Phaser.Scene {
       tree.update();
     });
 
+    this.chests.forEach(chest => {
+      chest.update();
+    });
+
     // Update summoned monsters
     if (this.summonedMonsters && this.summonedMonsters.length > 0) {
       // Clean up dead summons
@@ -480,6 +672,17 @@ export default class MainScene extends Phaser.Scene {
         item.y
       );
 
+      // Magnet effect range check
+      const magnetRange = 30; // Very close range (pickup is 20)
+      if (distance <= magnetRange && distance > pickupRange) {
+        // Move item towards player
+        const speed = 4 + (magnetRange - distance) / 10; // Faster as it gets closer
+        const angle = Phaser.Math.Angle.Between(item.x, item.y, this.player.x, this.player.y);
+
+        item.x += Math.cos(angle) * speed;
+        item.y += Math.sin(angle) * speed;
+      }
+
       if (distance <= pickupRange) {
         const itemType = item.getData('itemType');
 
@@ -496,14 +699,13 @@ export default class MainScene extends Phaser.Scene {
           }
         });
 
-        if (itemType === 'blood') {
+        // Blood, meat, stone, and wood pickups disabled - only diamonds work
+        if (itemType === 'diamond') {
+          this.pickupDiamond();
+        } else if (itemType === 'blood') {
           this.pickupBlood();
         } else if (itemType === 'meat') {
           this.pickupMeat();
-        } else if (itemType === 'stone') {
-          this.pickupStone();
-        } else if (itemType === 'wood') {
-          this.pickupWood();
         }
 
         this.items.splice(i, 1);
@@ -586,6 +788,99 @@ export default class MainScene extends Phaser.Scene {
     this.player.setTint(0x8B4513);
     this.time.delayedCall(150, () => {
       this.player.clearTint();
+    });
+  }
+
+  pickupDiamond() {
+    if (!this.player.diamondCount) {
+      this.player.diamondCount = 0;
+    }
+
+    this.player.diamondCount += 1;
+    console.log(`💎 Picked up diamond! Total: ${this.player.diamondCount}`);
+
+    // Update UI if exists (you might need to update ResourceUI to show diamonds later)
+    if (this.resourceUI && this.resourceUI.updateResources) {
+      this.resourceUI.updateResources();
+    }
+
+    this.player.setTint(0x00ffff); // Cyan tint for diamond
+    this.time.delayedCall(150, () => {
+      this.player.clearTint();
+    });
+  }
+
+  /* ===============================
+     CHEST SPAWNING LOGIC
+  =============================== */
+  spawnChest() {
+    // Ensure map dimensions are available
+    const width = this.mapWidth || 1600;
+    const height = this.mapHeight || 1200;
+
+    let chestX, chestY;
+    let isValidPosition = false;
+    let attempts = 0;
+    const minDistance = 60; // Minimum distance from obstacles
+
+    // Try finding a valid position up to 15 times
+    while (!isValidPosition && attempts < 15) {
+      attempts++;
+
+      // Random position, avoiding edges
+      chestX = Phaser.Math.Between(100, width - 100);
+      chestY = Phaser.Math.Between(100, height - 100);
+
+      isValidPosition = true;
+
+      // Check distance to Stones
+      for (const stone of this.stones) {
+        if (!stone || !stone.sprite || !stone.sprite.active) continue;
+        const dist = Phaser.Math.Distance.Between(chestX, chestY, stone.x, stone.y);
+        if (dist < minDistance) {
+          isValidPosition = false;
+          break;
+        }
+      }
+
+      if (!isValidPosition) continue;
+
+      // Check distance to Trees
+      for (const tree of this.trees) {
+        if (!tree || !tree.sprite || !tree.sprite.active) continue;
+        const dist = Phaser.Math.Distance.Between(chestX, chestY, tree.x, tree.y);
+        if (dist < minDistance) {
+          isValidPosition = false;
+          break;
+        }
+      }
+    }
+
+    if (!isValidPosition) {
+      console.warn('⚠️ Could not find perfect spot for chest, spawning anyway at last pos');
+    } else {
+      console.log(`✅ Found valid chest position after ${attempts} attempts`);
+    }
+
+    const chest = new Chest({
+      scene: this,
+      x: chestX,
+      y: chestY
+    });
+
+    this.chests.push(chest);
+
+    console.log(`📦 Spawned NEW chest at (${chestX}, ${chestY})`);
+  }
+
+  onChestOpened() {
+    console.log('⏳ Chest opened! Next chest will spawn in 30 seconds...');
+
+    // Clean up destroyed chests from array
+    this.chests = this.chests.filter(c => !c.isOpened && !c.isOpening);
+
+    this.time.delayedCall(30000, () => {
+      this.spawnChest();
     });
   }
 

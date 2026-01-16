@@ -79,6 +79,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.maxHealth = this.characterConfig.stats.health || 100;
     this.health = this.characterConfig.stats.health || 100;
     this.isDead = false;
+    this.isInvulnerable = false; // Invulnerability after revive
+    this.invulnerabilityDuration = 3000; // 3 seconds
     this.createHealthBar(scene);
 
     // =====================
@@ -99,6 +101,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.stoneCount = 0;
     this.woodCount = 0;
     this.meatCount = 0;
+    this.diamondCount = 0;
 
     // =====================
     // PROJECTILES (for archer)
@@ -142,6 +145,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     };
 
     // =====================
+    // ARCHER SKILL (Arrow Rain)
+    // =====================
+    this.isAimingSkill = false;
+    this.skillTargetIndicator = null;
+    this.arrowRainCooldown = false;
+    this.arrowRainCooldownTime = 5000; // 5 seconds
+
+    // =====================
     // MOUSE INPUT
     // =====================
     this.setupMouseInput(scene);
@@ -164,6 +175,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     scene.load.image('purple_orb', 'assets/images/weapons/purple_orb.png');
     scene.load.image('katana', 'assets/images/weapons/katana.png');
     scene.load.image('knife', 'assets/images/weapons/knife.png');
+    scene.load.image('magic_circle', 'assets/images/weapons/magic_circle.png');
+    scene.load.image('magic_circle_1', 'assets/images/weapons/magic_circle_1.png');
 
     // Load common assets
     scene.load.image('ghost', 'assets/images/die/ghost.png');
@@ -187,6 +200,22 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     );
     scene.load.animation('effect_4_anim', 'assets/images/effects/effect_4/effect_4_anim.json');
 
+    // Load effect_5 for Mage R skill
+    scene.load.atlas(
+      'effect_5',
+      'assets/images/effects/effect_5/effect_5.png',
+      'assets/images/effects/effect_5/effect_5_atlas.json'
+    );
+    scene.load.animation('effect_5_anim', 'assets/images/effects/effect_5/effect_5_anim.json');
+
+    // Load effect_6 for Warrior R skill
+    scene.load.atlas(
+      'effect_6',
+      'assets/images/effects/effect_6/effect_6.png',
+      'assets/images/effects/effect_6/effect_6_atlas.json'
+    );
+    scene.load.animation('effect_6_anim', 'assets/images/effects/effect_6/effect_6_anim.json');
+
     // Load Wizard summon skill assets
     scene.load.atlas(
       'ice_monster',
@@ -203,9 +232,35 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   }
 
   setupMouseInput(scene) {
+    // Track mouse movement for skill aiming
+    scene.input.on('pointermove', (pointer) => {
+      if (this.isAimingSkill && this.skillTargetIndicator) {
+        const worldX = pointer.worldX;
+        const worldY = pointer.worldY;
+        this.skillTargetIndicator.setPosition(worldX, worldY);
+      }
+    });
+
     // Bắt sự kiện click chuột
     scene.input.on('pointerdown', (pointer) => {
-      if (this.isDead || this.isAttacking) return;
+      if (this.isDead) return;
+
+      // Handle Archer Arrow Rain Cast
+      if (this.characterType === CharacterTypes.ARCHER && this.isAimingSkill) {
+        const worldX = pointer.worldX;
+        const worldY = pointer.worldY;
+        this.castArrowRain(worldX, worldY);
+        return;
+      }
+
+      if (this.characterType === CharacterTypes.MAGE && this.isAimingSkill) {
+        const worldX = pointer.worldX;
+        const worldY = pointer.worldY;
+        this.castMageExplosion(worldX, worldY);
+        return;
+      }
+
+      if (this.isAttacking) return;
 
       // Tính góc từ player đến vị trí chuột (trong world coordinates)
       const worldX = pointer.worldX;
@@ -289,6 +344,64 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         console.log('⌨️ R key pressed - Taoist transform to Mino!');
         this.toggleTaoistTransform();
       }
+
+      // Archer - Arrow Rain (Toggle aiming)
+      if (this.characterType === CharacterTypes.ARCHER) {
+        if (this.arrowRainCooldown || this.isDead) return;
+
+        this.isAimingSkill = !this.isAimingSkill;
+
+        if (this.isAimingSkill) {
+          console.log('⌨️ R key pressed - Archer aiming skill!');
+          // Show indicator
+          if (!this.skillTargetIndicator) {
+            this.skillTargetIndicator = this.scene.add.image(this.scene.input.activePointer.worldX, this.scene.input.activePointer.worldY, 'magic_circle');
+            this.skillTargetIndicator.setDepth(this.depth + 100);
+            this.skillTargetIndicator.setAlpha(0.7);
+            this.skillTargetIndicator.setScale(0.5); // Adjust scale as needed
+          } else {
+            this.skillTargetIndicator.setTexture('magic_circle');
+          }
+          this.skillTargetIndicator.setVisible(true);
+
+        } else {
+          console.log('⌨️ R key pressed - Archer canceled aiming!');
+          // Hide indicator
+          if (this.skillTargetIndicator) {
+            this.skillTargetIndicator.setVisible(false);
+          }
+        }
+      }
+
+      // Mage - Explosion (Toggle aiming)
+      if (this.characterType === CharacterTypes.MAGE) {
+        if (this.arrowRainCooldown || this.isDead) return; // Reuse same cooldown var for now or create new one
+
+        this.isAimingSkill = !this.isAimingSkill;
+
+        if (this.isAimingSkill) {
+          if (!this.skillTargetIndicator) {
+            this.skillTargetIndicator = this.scene.add.image(this.scene.input.activePointer.worldX, this.scene.input.activePointer.worldY, 'magic_circle_1');
+            this.skillTargetIndicator.setDepth(this.depth + 100);
+            this.skillTargetIndicator.setAlpha(0.7);
+            this.skillTargetIndicator.setScale(0.5);
+          } else {
+            this.skillTargetIndicator.setTexture('magic_circle_1');
+          }
+          this.skillTargetIndicator.setVisible(true);
+        } else {
+          if (this.skillTargetIndicator) {
+            this.skillTargetIndicator.setVisible(false);
+          }
+        }
+      }
+
+      // Warrior - Spin Skill
+      if (this.characterType === CharacterTypes.WARRIOR) {
+        if (this.spinCooldown || this.isDead || this.isSpinning) return;
+        console.log('⌨️ R key pressed - Warrior Spin!');
+        this.performWarriorSpin();
+      }
     });
   }
 
@@ -305,7 +418,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   }
 
   takeDamage(amount) {
-    if (this.isDead) return;
+    if (this.isDead || this.isInvulnerable) return;
     this.health -= amount;
     if (this.health < 0) this.health = 0;
     this.updateHealthBar();
@@ -495,7 +608,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.scene.mushrooms,
       this.scene.smallMushrooms,
       this.scene.stones,
-      this.scene.trees
+      this.scene.trees,
+      this.scene.chests
     ];
 
     hitGroups.forEach(group => {
@@ -579,7 +693,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.scene.mushrooms,
       this.scene.smallMushrooms,
       this.scene.trees,
-      this.scene.stones
+      this.scene.stones,
+      this.scene.chests
     ];
 
     damageTargets.forEach(group => {
@@ -1166,6 +1281,28 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       // Ensure width is set correctly immediately (redundancy for safety)
       this.healthBar.width = 50;
     }
+
+    // Grant 3-second invulnerability
+    this.isInvulnerable = true;
+    console.log('🛡️ Player is invulnerable for 3 seconds!');
+
+    // Create flashing effect to indicate invulnerability
+    const flashTween = this.scene.tweens.add({
+      targets: this,
+      alpha: 0.4,
+      duration: 200,
+      yoyo: true,
+      repeat: -1 // Infinite repeat
+    });
+
+    // Remove invulnerability after 3 seconds
+    this.scene.time.delayedCall(this.invulnerabilityDuration, () => {
+      this.isInvulnerable = false;
+      flashTween.stop();
+      this.setAlpha(1); // Restore full opacity
+      console.log('🛡️ Invulnerability period ended');
+    });
+
     console.log('✨ Player revived with health:', this.health, '/', this.maxHealth);
   }
 
@@ -1241,6 +1378,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     // Update arrows (for archer)
     this.updateArrows();
+    this.updateRainArrows();
 
     // Clamp player position to map bounds
     if (this.scene.mapWidth && this.scene.mapHeight) {
@@ -1269,6 +1407,11 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       if (needsUpdate) {
         this.setPosition(newX, newY);
       }
+    }
+    // Update spin effect position if active
+    if (this.isSpinning && this.spinEffectSprite && this.spinEffectSprite.active) {
+      this.spinEffectSprite.setPosition(this.x, this.y + 5);
+      this.spinEffectSprite.setDepth(this.depth + 10);
     }
   }
 
@@ -1313,7 +1456,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.scene.mushrooms,
         this.scene.smallMushrooms,
         this.scene.stones,
-        this.scene.trees
+        this.scene.trees,
+        this.scene.chests
       ];
 
       let hitEnemy = false;
@@ -1573,5 +1717,342 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.anims.play(idleAnim, true);
       }
     }
+  }
+
+  castArrowRain(targetX, targetY) {
+    if (this.arrowRainCooldown) return;
+
+    console.log('🏹 Archer casting Arrow Rain!');
+
+    // Start cooldown
+    this.arrowRainCooldown = true;
+    this.isAimingSkill = false;
+
+    // Hide indicator
+    if (this.skillTargetIndicator) {
+      this.skillTargetIndicator.setVisible(false);
+    }
+
+    // Number of arrows
+    const arrowCount = 20;
+    const areaRadius = 25; // Random spread within circle
+
+    // Create rain active array if not exists
+    if (!this.activeRainArrows) {
+      this.activeRainArrows = [];
+    }
+
+    // Create a fading target marker on the ground
+    const targetMarker = this.scene.add.image(targetX, targetY, 'magic_circle');
+    targetMarker.setDepth(targetY - 1); // Ground level
+    targetMarker.setAlpha(0.5);
+    targetMarker.setScale(0.5); // Matches cursor scale
+
+    this.scene.tweens.add({
+      targets: targetMarker,
+      alpha: 0,
+      scaleX: 0.2,
+      scaleY: 0.2,
+      duration: 2000,
+      onComplete: () => targetMarker.destroy()
+    });
+
+    for (let i = 0; i < arrowCount; i++) {
+      // Random start time for each arrow to create "rain" effect
+      this.scene.time.delayedCall(i * 100, () => {
+        // Random position within circle
+        const r = areaRadius * Math.sqrt(Math.random());
+        const theta = Math.random() * 2 * Math.PI;
+
+        const offsetX = r * Math.cos(theta);
+        const offsetY = r * Math.sin(theta); // This is for landing position
+
+        const landX = targetX + offsetX;
+        const landY = targetY + offsetY; // Removed 0.5 factor to make it a perfect circle
+
+        // Spawn high above
+        const startY = landY - 600;
+
+        const arrow = this.scene.add.sprite(landX, startY, 'arrow');
+        arrow.setAngle(90); // Point down
+        arrow.setScale(0.7);
+        arrow.setDepth(landY + 100); // High depth
+
+        // Data for update loop
+        arrow.setData('velocity', { x: 0, y: 800 }); // Fast falling speed
+        arrow.setData('landY', landY);
+        arrow.setData('damage', 8 + (this.bonusDamage || 0));
+
+        this.activeRainArrows.push(arrow);
+      });
+    }
+
+    // Reset cooldown
+    this.scene.time.delayedCall(this.arrowRainCooldownTime, () => {
+      this.arrowRainCooldown = false;
+      console.log('✅ Arrow Rain ready!');
+    });
+  }
+
+  updateRainArrows() {
+    if (!this.activeRainArrows) return;
+
+    for (let i = this.activeRainArrows.length - 1; i >= 0; i--) {
+      const arrow = this.activeRainArrows[i];
+
+      if (!arrow || !arrow.active) {
+        this.activeRainArrows.splice(i, 1);
+        continue;
+      }
+
+      // Move arrow
+      const velocity = arrow.getData('velocity');
+      arrow.y += velocity.y * (1 / 60);
+
+      const landY = arrow.getData('landY');
+
+      // Only check collision if arrow is near the ground (simulate Z-axis)
+      // If arrow is too high (y < landY - 40), it shouldn't hit enemies
+      if (arrow.y < landY - 40) {
+        continue;
+      }
+
+      // Check collision with enemies
+      const damage = arrow.getData('damage');
+      const arrowRect = new Phaser.Geom.Rectangle(arrow.x - 5, arrow.y - 20, 10, 40); // Taller hitbox for falling arrow
+
+      let hitOb = false;
+
+      const enemyGroups = [
+        this.scene.bears,
+        this.scene.treeMen,
+        this.scene.forestGuardians,
+        this.scene.gnollBrutes,
+        this.scene.gnollShamans,
+        this.scene.wolves,
+        this.scene.golems,
+        this.scene.mushrooms,
+        this.scene.smallMushrooms,
+        this.scene.stones,
+        this.scene.trees
+      ];
+
+      for (const group of enemyGroups) {
+        if (!group || hitOb) break;
+
+        const enemies = Array.isArray(group) ? group : [group];
+        for (const enemy of enemies) {
+          if (!enemy || enemy.isDead) continue;
+
+          const enemyHitbox = enemy.getHitbox ? enemy.getHitbox() :
+            new Phaser.Geom.Rectangle(enemy.x - 12, enemy.y - 12, 24, 24);
+
+          if (Phaser.Geom.Rectangle.Overlaps(arrowRect, enemyHitbox)) {
+            enemy.takeDamage(damage);
+            hitOb = true;
+            break;
+          }
+        }
+      }
+
+      // If hit enemy OR reached ground
+      if (hitOb || arrow.y >= landY) {
+        // Show impact effect (reuse whatever or just simple fade)
+        // Reuse teleport particle for now as dust/impact
+        this.createTeleportEffect(arrow.x, arrow.y, 0xffffff);
+
+        arrow.destroy();
+        this.activeRainArrows.splice(i, 1);
+      }
+    }
+  }
+
+  castMageExplosion(targetX, targetY) {
+    if (this.arrowRainCooldown) return;
+
+    console.log('🔥 Mage casting Explosion (Multi-strike)!');
+
+    // Start cooldown
+    this.arrowRainCooldown = true;
+    this.isAimingSkill = false;
+
+    // Hide indicator
+    if (this.skillTargetIndicator) {
+      this.skillTargetIndicator.setVisible(false);
+    }
+
+    // Check if animation exists, if not create it
+    if (!this.scene.anims.exists('effect_5')) {
+      this.scene.anims.create({
+        key: 'effect_5',
+        frames: this.scene.anims.generateFrameNames('effect_5', {
+          start: 0,
+          end: 14,
+          zeroPad: 0,
+          prefix: '',
+          suffix: ''
+        }),
+        frameRate: 15,
+        repeat: 0
+      });
+    }
+
+    // Settings for multi-strike
+    const strikeCount = 3;
+    const spreadRadius = 45; // Random area around click
+    const damage = 20 + (this.bonusDamage || 0); // User requested values
+    const explosionRadius = 30; // User requested values
+
+    for (let i = 0; i < strikeCount; i++) {
+      // Staggered delays for "barrage" feel (more separated now)
+      const delay = i * 400 + Math.random() * 100;
+
+      this.scene.time.delayedCall(delay, () => {
+        // All strikes hit the exact target location
+        const strikeX = targetX;
+        const strikeY = targetY;
+
+        // 1. Visual Effect
+        const explosion = this.scene.add.sprite(strikeX, strikeY - 50, 'effect_5'); // Keep -50 offset
+        explosion.setDepth(strikeY + 50);
+        explosion.setScale(0.5); // Keep 0.5 scale
+        explosion.play({ key: 'effect_5', repeat: 0 });
+
+        explosion.once('animationcomplete', () => {
+          explosion.destroy();
+        });
+
+        // 2. Damage Logic (Sync with impact)
+        this.scene.time.delayedCall(100, () => {
+          const explosionCircle = new Phaser.Geom.Circle(strikeX, strikeY, explosionRadius);
+
+          const enemyGroups = [
+            this.scene.bears,
+            this.scene.treeMen,
+            this.scene.forestGuardians,
+            this.scene.gnollBrutes,
+            this.scene.gnollShamans,
+            this.scene.wolves,
+            this.scene.golems,
+            this.scene.mushrooms,
+            this.scene.smallMushrooms,
+            this.scene.stones,
+            this.scene.trees
+          ];
+
+          let hitCount = 0;
+          enemyGroups.forEach(group => {
+            if (!group) return;
+            const enemies = Array.isArray(group) ? group : [group];
+
+            enemies.forEach(enemy => {
+              if (!enemy || enemy.isDead) return;
+
+              const dist = Phaser.Math.Distance.Between(strikeX, strikeY, enemy.x, enemy.y);
+              if (dist <= explosionRadius) {
+                enemy.takeDamage(damage);
+                this.createTeleportEffect(enemy.x, enemy.y, 0xff4400);
+                hitCount++;
+              }
+            });
+          });
+          console.log(`💥 Strike ${i + 1} hit ${hitCount} enemies`);
+        });
+      });
+    }
+
+    // Reset cooldown
+    this.scene.time.delayedCall(this.arrowRainCooldownTime, () => {
+      this.arrowRainCooldown = false;
+      console.log('✅ Mage Explosion ready!');
+    });
+  }
+
+  performWarriorSpin() {
+    this.isSpinning = true;
+    this.spinCooldown = true;
+
+    console.log('🌪️ Warrior Spin Started!');
+
+    // Define spin duration and damage interval
+    const duration = 8000; // 8 seconds 
+    const damageInterval = 500; // Deal damage every 0.5s
+    const spinRadius = 60; // Further reduced radius (tight hitbox)
+    const damagePerTick = 15 + (this.bonusDamage || 0);
+
+    // Create effect_6 sprite attached to player
+    this.spinEffectSprite = this.scene.add.sprite(this.x, this.y + 5, 'effect_6');
+    this.spinEffectSprite.setScale(3.5); // Increased scale to make it wider
+    this.spinEffectSprite.setDepth(this.depth + 10);
+    this.spinEffectSprite.setAlpha(0.9);
+
+    // Play effect animation
+    if (this.scene.anims.exists('effect_6')) {
+      this.spinEffectSprite.play('effect_6');
+    } else {
+      // Create anim if not exists (fallback logic)
+      this.scene.anims.create({
+        key: 'effect_6',
+        frames: this.scene.anims.generateFrameNames('effect_6', { start: 0, end: 5, zeroPad: 0 }),
+        frameRate: 15,
+        repeat: -1
+      });
+      this.spinEffectSprite.play('effect_6');
+    }
+
+    // Damage loop
+    let elapsedTime = 0;
+    const damageEvent = this.scene.time.addEvent({
+      delay: damageInterval,
+      loop: true,
+      callback: () => {
+        elapsedTime += damageInterval;
+        if (elapsedTime >= duration || this.isDead || !this.isSpinning) {
+          damageEvent.remove();
+          this.isSpinning = false;
+
+          if (this.spinEffectSprite) {
+            this.spinEffectSprite.destroy();
+            this.spinEffectSprite = null;
+          }
+
+          // Reset cooldown (e.g. 10s after finish)
+          this.scene.time.delayedCall(10000, () => {
+            this.spinCooldown = false;
+            console.log('✅ Warrior Spin Ready!');
+          });
+          return;
+        }
+
+        // Check collisions
+        const enemyGroups = [
+          this.scene.bears,
+          this.scene.treeMen,
+          this.scene.forestGuardians,
+          this.scene.gnollBrutes,
+          this.scene.gnollShamans,
+          this.scene.wolves,
+          this.scene.golems,
+          this.scene.mushrooms,
+          this.scene.smallMushrooms
+        ];
+
+        let hitSomething = false;
+
+        enemyGroups.forEach(group => {
+          if (!group) return;
+          const enemies = Array.isArray(group) ? group : [group];
+          enemies.forEach(enemy => {
+            if (!enemy || enemy.isDead) return;
+            const dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
+            if (dist <= spinRadius) {
+              enemy.takeDamage(damagePerTick);
+              this.createTeleportEffect(enemy.x, enemy.y, 0xffffff);
+              hitSomething = true;
+            }
+          });
+        });
+      }
+    });
   }
 }

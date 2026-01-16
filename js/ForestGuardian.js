@@ -32,9 +32,9 @@ export default class ForestGuardian {
     this.health = 300;
     this.isDead = false;
     this.speed = 0.8;
-    this.detectionRange = 120; // Phát hiện xa hơn
-    this.attackRange = 100; // Tầm bắn xa
-    this.meleeRange = 90; // Khoảng cách tối ưu để bắn
+    this.detectionRange = Infinity; // Always chase // Phát hiện xa hơn
+    this.attackRange = 150; // Tầm bắn xa (increased)
+    this.meleeRange = 140; // Khoảng cách tối ưu để bắn (increased)
     this.state = 'idle';
     this.direction = 'down';
 
@@ -345,9 +345,9 @@ export default class ForestGuardian {
       return;
     }
 
-    // Attack range: 40-90 units for both targets
-    const minAttackDistance = 40;
-    const maxAttackDistance = this.meleeRange; // 90
+    // Attack range: 50-140 units for both targets
+    const minAttackDistance = 50;
+    const maxAttackDistance = this.meleeRange; // 140
 
     if (distance >= minAttackDistance && distance <= maxAttackDistance) {
       // IN ATTACK RANGE - STOP AND SHOOT
@@ -523,132 +523,8 @@ export default class ForestGuardian {
   }
 
   dropItems() {
-    const dropX = this.sprite.x;
-    const dropY = this.sprite.y;
-
-    // Rơi blood - văng sang trái
-    const blood = this.scene.add.image(dropX, dropY, 'blood');
-    blood.setScale(0.05);
-    blood.setDepth(dropY - 1);
-    blood.setAlpha(0.8);
-    blood.setData('itemType', 'blood');
-
-    // Hiệu ứng văng và nảy cho blood
-    const bloodTargetX = dropX - 15 - Math.random() * 10;
-    const bloodTargetY = dropY + Math.random() * 10;
-
-    this.scene.tweens.add({
-      targets: blood,
-      x: bloodTargetX,
-      y: bloodTargetY - 30,
-      alpha: 1,
-      duration: 200,
-      ease: 'Quad.easeOut'
-    });
-
-    this.scene.tweens.add({
-      targets: blood,
-      y: bloodTargetY,
-      duration: 300,
-      delay: 200,
-      ease: 'Bounce.easeOut',
-      onComplete: () => {
-        if (this.scene.items) {
-          this.scene.items.push(blood);
-        }
-      }
-    });
-
-    this.scene.tweens.add({
-      targets: blood,
-      angle: 360,
-      duration: 500,
-      ease: 'Linear'
-    });
-
-    // Rơi meat 1 - văng sang phải
-    const meat1 = this.scene.add.image(dropX, dropY, 'meat');
-    meat1.setScale(0.1);
-    meat1.setDepth(dropY - 1);
-    meat1.setAlpha(0.8);
-    meat1.setData('itemType', 'meat');
-
-    this.scene.time.delayedCall(80, () => {
-      const meat1TargetX = dropX + 15 + Math.random() * 10;
-      const meat1TargetY = dropY + Math.random() * 10;
-
-      this.scene.tweens.add({
-        targets: meat1,
-        x: meat1TargetX,
-        y: meat1TargetY - 35,
-        alpha: 1,
-        duration: 200,
-        ease: 'Quad.easeOut'
-      });
-
-      this.scene.tweens.add({
-        targets: meat1,
-        y: meat1TargetY,
-        duration: 350,
-        delay: 200,
-        ease: 'Bounce.easeOut',
-        onComplete: () => {
-          if (this.scene.items) {
-            this.scene.items.push(meat1);
-          }
-        }
-      });
-
-      this.scene.tweens.add({
-        targets: meat1,
-        angle: -360,
-        duration: 550,
-        ease: 'Linear'
-      });
-    });
-
-    // Rơi meat 2 - văng lên trên
-    const meat2 = this.scene.add.image(dropX, dropY, 'meat');
-    meat2.setScale(0.1);
-    meat2.setDepth(dropY - 1);
-    meat2.setAlpha(0.8);
-    meat2.setData('itemType', 'meat');
-
-    this.scene.time.delayedCall(160, () => {
-      const meat2TargetX = dropX + Math.random() * 20 - 10;
-      const meat2TargetY = dropY - 15 - Math.random() * 10;
-
-      this.scene.tweens.add({
-        targets: meat2,
-        x: meat2TargetX,
-        y: meat2TargetY - 40,
-        alpha: 1,
-        duration: 200,
-        ease: 'Quad.easeOut'
-      });
-
-      this.scene.tweens.add({
-        targets: meat2,
-        y: meat2TargetY,
-        duration: 400,
-        delay: 200,
-        ease: 'Bounce.easeOut',
-        onComplete: () => {
-          if (this.scene.items) {
-            this.scene.items.push(meat2);
-          }
-        }
-      });
-
-      this.scene.tweens.add({
-        targets: meat2,
-        angle: 360,
-        duration: 600,
-        ease: 'Linear'
-      });
-    });
-
-    console.log('🩸🍖🍖 Dropped 1 blood and 2 meat!');
+    // Item drops disabled - blood, meat, and diamonds no longer drop
+    return;
   }
 
   get x() {

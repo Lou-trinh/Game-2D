@@ -29,7 +29,7 @@ export default class Bear {
     this.health = 100;
     this.isDead = false;
     this.speed = 0.7;
-    this.detectionRange = 80;
+    this.detectionRange = Infinity; // Infinite chase range
     this.attackRange = 20;
     this.meleeRange = 17;
     this.state = 'idle';
@@ -398,96 +398,10 @@ export default class Bear {
   }
 
   dropItems() {
-    const dropX = this.sprite.x;
-    const dropY = this.sprite.y;
-
-    // Rơi blood - văng sang trái
-    const blood = this.scene.add.image(dropX, dropY, 'blood');
-    blood.setScale(0.05);
-    blood.setDepth(dropY - 1);
-    blood.setAlpha(0.8);
-    blood.setData('itemType', 'blood'); // Đánh dấu loại item
-
-    // Hiệu ứng văng và nảy cho blood
-    const bloodTargetX = dropX - 15 - Math.random() * 10;
-    const bloodTargetY = dropY + Math.random() * 10;
-
-    this.scene.tweens.add({
-      targets: blood,
-      x: bloodTargetX,
-      y: bloodTargetY - 30,
-      alpha: 1,
-      duration: 200,
-      ease: 'Quad.easeOut'
-    });
-
-    this.scene.tweens.add({
-      targets: blood,
-      y: bloodTargetY,
-      duration: 300,
-      delay: 200,
-      ease: 'Bounce.easeOut',
-      onComplete: () => {
-        // Sau khi rơi xong, thêm vào danh sách items
-        if (this.scene.items) {
-          this.scene.items.push(blood);
-        }
-      }
-    });
-
-    // Xoay nhẹ blood
-    this.scene.tweens.add({
-      targets: blood,
-      angle: 360,
-      duration: 500,
-      ease: 'Linear'
-    });
-
-    // Rơi meat - văng sang phải
-    const meat = this.scene.add.image(dropX, dropY, 'meat');
-    meat.setScale(0.1);
-    meat.setDepth(dropY - 1);
-    meat.setAlpha(0.8);
-    meat.setData('itemType', 'meat'); // Đánh dấu loại item
-
-    // Hiệu ứng văng và nảy cho meat (delay một chút)
-    this.scene.time.delayedCall(80, () => {
-      const meatTargetX = dropX + 15 + Math.random() * 10;
-      const meatTargetY = dropY + Math.random() * 10;
-
-      this.scene.tweens.add({
-        targets: meat,
-        x: meatTargetX,
-        y: meatTargetY - 35,
-        alpha: 1,
-        duration: 200,
-        ease: 'Quad.easeOut'
-      });
-
-      this.scene.tweens.add({
-        targets: meat,
-        y: meatTargetY,
-        duration: 350,
-        delay: 200,
-        ease: 'Bounce.easeOut',
-        onComplete: () => {
-          // Sau khi rơi xong, thêm vào danh sách items
-          if (this.scene.items) {
-            this.scene.items.push(meat);
-          }
-        }
-      });
-
-      // Xoay nhẹ meat
-      this.scene.tweens.add({
-        targets: meat,
-        angle: -360,
-        duration: 550,
-        ease: 'Linear'
-      });
-    });
-
-    console.log('🩸🥩 Dropped blood and meat!');
+    // Item drops disabled - blood, meat, and diamonds no longer drop
+    // Item drops disabled - no longer drops blood, meat, or diamonds
+    return;
+    return;
   }
 
   get x() {

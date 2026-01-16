@@ -31,11 +31,14 @@ export default class Golem {
     this.health = 500;
     this.isDead = false;
     this.speed = 0.8;
+    this.speed = 0.45;
 
     // Phạm vi - điều chỉnh giống TreeMan
     this.detectionRange = 80 * SCALE;  // Phạm vi phát hiện
     this.attackRange = 60 * SCALE;     // Phạm vi idle walk - tăng lên
     this.meleeRange = 50 * SCALE;      // Phạm vi tấn công thực sự - tăng lên
+
+    this.detectionRange = Infinity; // Always chase'down';
 
     this.state = 'idle';
     this.direction = 'down';
@@ -372,92 +375,6 @@ export default class Golem {
   }
 
   dropItems() {
-    const dropX = this.sprite.x;
-    const dropY = this.sprite.y;
-
-    // Rơi 2 blood
-    for (let i = 0; i < 2; i++) {
-      this.scene.time.delayedCall(i * 80, () => {
-        const blood = this.scene.add.image(dropX, dropY, 'blood');
-        blood.setScale(0.05);
-        blood.setDepth(dropY - 1);
-        blood.setAlpha(0.8);
-        blood.setData('itemType', 'blood');
-
-        const bloodTargetX = dropX - 20 + (i * 25) + Math.random() * 10;
-        const bloodTargetY = dropY + Math.random() * 10;
-
-        this.scene.tweens.add({
-          targets: blood,
-          x: bloodTargetX,
-          y: bloodTargetY - 30,
-          alpha: 1,
-          duration: 200,
-          ease: 'Quad.easeOut'
-        });
-
-        this.scene.tweens.add({
-          targets: blood,
-          y: bloodTargetY,
-          duration: 300,
-          delay: 200,
-          ease: 'Bounce.easeOut',
-          onComplete: () => {
-            this.scene.items?.push(blood);
-          }
-        });
-
-        this.scene.tweens.add({
-          targets: blood,
-          angle: 360,
-          duration: 500,
-          ease: 'Linear'
-        });
-      });
-    }
-
-    // Rơi 5 meat
-    for (let i = 0; i < 5; i++) {
-      this.scene.time.delayedCall(80 + (i * 70), () => {
-        const meat = this.scene.add.image(dropX, dropY, 'meat');
-        meat.setScale(0.1);
-        meat.setDepth(dropY - 1);
-        meat.setAlpha(0.8);
-        meat.setData('itemType', 'meat');
-
-        const angle = (Math.PI * 2 / 5) * i;
-        const radius = 25 + Math.random() * 15;
-        const meatTargetX = dropX + Math.cos(angle) * radius;
-        const meatTargetY = dropY + Math.sin(angle) * radius;
-
-        this.scene.tweens.add({
-          targets: meat,
-          x: meatTargetX,
-          y: meatTargetY - 35,
-          alpha: 1,
-          duration: 200,
-          ease: 'Quad.easeOut'
-        });
-
-        this.scene.tweens.add({
-          targets: meat,
-          y: meatTargetY,
-          duration: 350,
-          delay: 200,
-          ease: 'Bounce.easeOut',
-          onComplete: () => {
-            this.scene.items?.push(meat);
-          }
-        });
-
-        this.scene.tweens.add({
-          targets: meat,
-          angle: -360,
-          duration: 550,
-          ease: 'Linear'
-        });
-      });
-    }
   }
 
   get x() { return this.sprite.x; }

@@ -28,8 +28,8 @@ export default class TreeMan {
     this.maxHealth = 100;
     this.health = 100;
     this.isDead = false;
-    this.speed = 0.7;
-    this.detectionRange = 80;
+    this.speed = 0.4;
+    this.detectionRange = Infinity; // Always chase
     this.attackRange = 20;
     this.meleeRange = 17;
     this.state = 'idle';
@@ -396,96 +396,8 @@ export default class TreeMan {
   }
 
   dropItems() {
-    const dropX = this.sprite.x;
-    const dropY = this.sprite.y;
-
-    // Rơi blood - văng sang trái
-    const blood = this.scene.add.image(dropX, dropY, 'blood');
-    blood.setScale(0.05);
-    blood.setDepth(dropY - 1);
-    blood.setAlpha(0.8);
-    blood.setData('itemType', 'blood'); // Đánh dấu loại item
-
-    // Hiệu ứng văng và nảy cho blood
-    const bloodTargetX = dropX - 15 - Math.random() * 10;
-    const bloodTargetY = dropY + Math.random() * 10;
-
-    this.scene.tweens.add({
-      targets: blood,
-      x: bloodTargetX,
-      y: bloodTargetY - 30,
-      alpha: 1,
-      duration: 200,
-      ease: 'Quad.easeOut'
-    });
-
-    this.scene.tweens.add({
-      targets: blood,
-      y: bloodTargetY,
-      duration: 300,
-      delay: 200,
-      ease: 'Bounce.easeOut',
-      onComplete: () => {
-        // Sau khi rơi xong, thêm vào danh sách items
-        if (this.scene.items) {
-          this.scene.items.push(blood);
-        }
-      }
-    });
-
-    // Xoay nhẹ blood
-    this.scene.tweens.add({
-      targets: blood,
-      angle: 360,
-      duration: 500,
-      ease: 'Linear'
-    });
-
-    // Rơi wood - văng sang phải
-    const wood = this.scene.add.image(dropX, dropY, 'wood');
-    wood.setScale(0.1);
-    wood.setDepth(dropY - 1);
-    wood.setAlpha(0.8);
-    wood.setData('itemType', 'wood'); // Đánh dấu loại item
-
-    // Hiệu ứng văng và nảy cho wood (delay một chút)
-    this.scene.time.delayedCall(80, () => {
-      const woodTargetX = dropX + 15 + Math.random() * 10;
-      const woodTargetY = dropY + Math.random() * 10;
-
-      this.scene.tweens.add({
-        targets: wood,
-        x: woodTargetX,
-        y: woodTargetY - 35,
-        alpha: 1,
-        duration: 200,
-        ease: 'Quad.easeOut'
-      });
-
-      this.scene.tweens.add({
-        targets: wood,
-        y: woodTargetY,
-        duration: 350,
-        delay: 200,
-        ease: 'Bounce.easeOut',
-        onComplete: () => {
-          // Sau khi rơi xong, thêm vào danh sách items
-          if (this.scene.items) {
-            this.scene.items.push(wood);
-          }
-        }
-      });
-
-      // Xoay nhẹ wood
-      this.scene.tweens.add({
-        targets: wood,
-        angle: -360,
-        duration: 550,
-        ease: 'Linear'
-      });
-    });
-
-    console.log('🩸🪵 Dropped blood and wood!');
+    // Item drops disabled - blood, meat, and diamonds no longer drop
+    return;
   }
 
   get x() {

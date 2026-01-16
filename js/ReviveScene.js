@@ -61,7 +61,7 @@ export default class ReviveScene extends Phaser.Scene {
 
         // Diamond Button (Pay?)
         const diamondBtn = this.createButton(width / 2 + btnSpacing / 2, btnY, 'button_diamon', () => {
-            console.log("Diamond button clicked");
+            this.useDiamonds();
         }, 0.7);
 
         // Close Button (X)
@@ -168,6 +168,54 @@ export default class ReviveScene extends Phaser.Scene {
                 }
             }
         });
+    }
+
+    useDiamonds() {
+        // Get MainScene and Player
+        const mainScene = this.scene.get('MainScene');
+        if (!mainScene || !mainScene.player) return;
+
+        const player = mainScene.player;
+        const reviveCost = 20;
+
+        if (player.diamondCount >= reviveCost) {
+            // Deduct diamonds
+            player.diamondCount -= reviveCost;
+            console.log(`💎 Spent ${reviveCost} diamonds. Remaining: ${player.diamondCount}`);
+
+            // Update UI
+            if (mainScene.resourceUI) {
+                mainScene.resourceUI.updateResources();
+            }
+
+            // Revive
+            mainScene.revivePlayer();
+            this.scene.stop('ReviveScene');
+            this.scene.stop('GameOverScene');
+            this.scene.resume('MainScene');
+        } else {
+            console.log("❌ Not enough diamonds!");
+
+            // Visual feedback for failure (shake camera or show text)
+            const { width, height } = this.scale;
+            const errorText = this.add.text(width / 2, height / 2 + 100, 'NOT ENOUGH DIAMONDS!', {
+                fontSize: '24px',
+                color: '#ff0000',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+
+            this.tweens.add({
+                targets: errorText,
+                alpha: 0,
+                y: errorText.y - 50,
+                duration: 1000,
+                onComplete: () => errorText.destroy()
+            });
+
+            this.cameras.main.shake(200, 0.01);
+        }
     }
 
     createButton(x, y, key, callback, baseScale = 0.5) {

@@ -3,15 +3,15 @@ export default class ResourceUI {
         this.scene = scene;
         this.player = player;
 
-        // Position in top-right corner
-        const startX = scene.cameras.main.width - 120;
+        // Position in top-right corner - only diamonds now
+        const startX = scene.cameras.main.width - 60;
         const startY = 3;
 
-        // Wood icon and text (first item)
-        this.woodText = scene.add.text(
+        // Diamond icon and text (only resource displayed)
+        this.diamondText = scene.add.text(
             startX,
             startY,
-            '🪵 0',
+            '💎 0',
             {
                 fontSize: '16px',
                 fontStyle: 'bold',
@@ -20,30 +20,14 @@ export default class ResourceUI {
                 strokeThickness: 2
             }
         );
-        this.woodText.setScrollFactor(0);
-        this.woodText.setDepth(1001);
-
-        // Stone icon and text (second item, to the right of wood)
-        this.stoneText = scene.add.text(
-            startX + 60,  // 60 pixels to the right
-            startY,
-            '🪨 0',
-            {
-                fontSize: '16px',
-                fontStyle: 'bold',
-                color: '#ffffff',
-                stroke: '#000000',
-                strokeThickness: 2
-            }
-        );
-        this.stoneText.setScrollFactor(0);
-        this.stoneText.setDepth(1001);
+        this.diamondText.setScrollFactor(0);
+        this.diamondText.setDepth(1001);
 
         // Initial update
         this.updateResources();
 
         // Add backpack icon (bottom right)
-        this.createBackpack();
+        // this.createBackpack();
 
         // Add exit button (top left)
         this.createExitButton();
@@ -122,14 +106,11 @@ export default class ResourceUI {
     }
 
     updateResources() {
-        this.woodText.setText(`🪵 ${this.player.woodCount || 0}`);
-        this.stoneText.setText(`🪨 ${this.player.stoneCount || 0}`);
+        this.diamondText.setText(`💎 ${this.player.diamondCount || 0}`);
     }
 
     destroy() {
-        this.woodText.destroy();
-        this.stoneText.destroy();
-        if (this.backpack) this.backpack.destroy();
+        this.diamondText.destroy();
         if (this.exitButton) this.exitButton.destroy();
     }
 }
