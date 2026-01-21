@@ -22,58 +22,24 @@ export default class SceneLoading extends Phaser.Scene {
         // LOAD ALL GAME ASSETS HERE (MANUALLY TO AVOID CIRCULAR DEPS)
         // -----------------------------------
 
-        // 1. Characters (Manual Load)
-        // 1. Characters (Manual Load)
-        // Mage removed
-        // Archer
-        this.load.atlas('archer', 'assets/images/archer/archer.png', 'assets/images/archer/archer_atlas.json');
-        this.load.animation('archer_anim', 'assets/images/archer/archer_anim.json');
-        // Warrior
-        this.load.atlas('warrior', 'assets/images/warrior/warrior.png', 'assets/images/warrior/warrior_atlas.json');
-        this.load.animation('warrior_anim', 'assets/images/warrior/warrior_anim.json');
-        // Assassin
-        this.load.atlas('assassin', 'assets/images/assassin/assassin.png', 'assets/images/assassin/assassin_atlas.json');
-        this.load.animation('assassin_anim', 'assets/images/assassin/assassin_anim.json');
-        // Wizard
-        this.load.atlas('wizard', 'assets/images/wizard/wizard.png', 'assets/images/wizard/wizard_atlas.json');
-        this.load.animation('wizard_anim', 'assets/images/wizard/wizard_anim.json');
-        // Taoist
-        this.load.atlas('taoist', 'assets/images/taoist/taoist.png', 'assets/images/taoist/taoist_atlas.json');
-        this.load.animation('taoist_anim', 'assets/images/taoist/taoist_anim.json');
         // Player 1
         this.load.atlas('player_1', 'assets/images/player_1/player_1.png', 'assets/images/player_1/player_1_atlas.json');
         this.load.animation('player_1_anim', 'assets/images/player_1/player_1_anim.json');
 
         // 2. Weapons & Effects (Manually copied from Player.js preload)
-        this.load.image('scepter', 'assets/images/weapons/scepter.png');
-        this.load.image('scepter_2', 'assets/images/weapons/scepter_2.png');
-        this.load.image('bow', 'assets/images/weapons/bow.png');
-        this.load.image('arrow', 'assets/images/weapons/arrow.png');
-        this.load.image('purple_orb', 'assets/images/weapons/purple_orb.png');
-        this.load.image('katana', 'assets/images/weapons/katana.png');
-        this.load.image('knife', 'assets/images/weapons/knife.png');
-        this.load.image('magic_circle', 'assets/images/weapons/magic_circle.png');
-        this.load.image('magic_circle_1', 'assets/images/weapons/magic_circle_1.png');
         this.load.image('m4a1', 'assets/images/weapons/M4A1.png');
         this.load.image('ammo_pickup', 'assets/images/weapons/ammo_pickup.png');
         this.load.image('ghost', 'assets/images/die/ghost.png');
 
         // Effects
-        this.load.atlas('lightning_skill_1', 'assets/images/skill/skill_1/lightning_skill_1.png', 'assets/images/skill/skill_1/lightning_skill_1_atlas.json');
-        this.load.atlas('surf', 'assets/images/effects/effect_3/surf.png', 'assets/images/effects/effect_3/surf_atlas.json');
-        this.load.animation('effect_3_anim', 'assets/images/effects/effect_3/surf_anim.json');
-        this.load.atlas('effect_4', 'assets/images/effects/effect_4/effect_4.png', 'assets/images/effects/effect_4/effect_4_atlas.json');
-        this.load.animation('effect_4_anim', 'assets/images/effects/effect_4/effect_4_anim.json');
-        this.load.atlas('effect_5', 'assets/images/effects/effect_5/effect_5.png', 'assets/images/effects/effect_5/effect_5_atlas.json');
-        this.load.animation('effect_5_anim', 'assets/images/effects/effect_5/effect_5_anim.json');
-        this.load.atlas('effect_6', 'assets/images/effects/effect_6/effect_6.png', 'assets/images/effects/effect_6/effect_6_atlas.json');
-        this.load.animation('effect_6_anim', 'assets/images/effects/effect_6/effect_6_anim.json');
         this.load.atlas('effect_7', 'assets/images/effects/effect_7/effect_7.png', 'assets/images/effects/effect_7/effect_7_atlas.json');
         this.load.animation('effect_7_anim', 'assets/images/effects/effect_7/effect_7_anim.json');
 
+        // Blood splatter effect
+        this.load.atlas('effect_3', 'assets/images/effects/effect_3/blood.png', 'assets/images/effects/effect_3/blood_atlas.json');
+        this.load.animation('effect_3_anim', 'assets/images/effects/effect_3/blood_anim.json');
+
         // Wizard Skills
-        this.load.atlas('ice_monster', 'assets/images/skill/ice_monster/ice_monster.png', 'assets/images/skill/ice_monster/ice_monster_atlas.json');
-        this.load.animation('ice_monster_anim', 'assets/images/skill/ice_monster/ice_monster_anim.json');
         this.load.atlas('tele_port', 'assets/images/skill/skill_2/tele_port.png', 'assets/images/skill/skill_2/tele_port_atlas.json');
         this.load.animation('tele_port_anim', 'assets/images/skill/skill_2/tele_port_anim.json');
 
@@ -118,12 +84,7 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.image('backpack', 'assets/images/inventory/backpack.png');
         this.load.image('diamond', 'assets/images/item/diamon.png');
 
-        // Mino Transform
-        this.load.atlas('mino', 'assets/images/skill/mino/mino.png', 'assets/images/skill/mino/mino_atlas.json');
-        this.load.animation('mino_anim', 'assets/images/skill/mino/mino_anim.json');
 
-        // Taoist Mace
-        this.load.image('mace', 'assets/images/weapons/mace.png');
 
         // Skill 3 Gate
         this.load.atlas('gate', 'assets/images/skill/skill_3/gate.png', 'assets/images/skill/skill_3/gate_atlas.json');
@@ -131,6 +92,7 @@ export default class SceneLoading extends Phaser.Scene {
 
         // Sounds - Load rifle gunshot sound
         this.load.audio('rifle_shot', 'assets/sounds/rifle.mp3');
+        this.load.audio('reload_sound', 'assets/sounds/reload.mp3');
 
         // Map
         this.load.image('tiles', 'assets/images/RPG Nature Tileset.png');
@@ -139,6 +101,7 @@ export default class SceneLoading extends Phaser.Scene {
         // UI Asset Correction (SceneLoad specific or Menu)
         this.load.image('button_play', 'assets/images/inventory/button/button_play.png');
         this.load.image('button_settings', 'assets/images/inventory/button/button_settings.png');
+        this.load.image('cart3', 'assets/images/inventory/cart3.png');
 
         // Dashboard assets
         this.load.image('coin', 'assets/images/ui/coin.png');

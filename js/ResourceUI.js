@@ -272,24 +272,24 @@ export default class ResourceUI {
         this.exitButton.setScrollFactor(0);
         this.exitButton.setDepth(3000);
         this.exitButton.setInteractive({ useHandCursor: true });
-        this.exitButton.setScale(0.5);
+        this.exitButton.setScale(0.35); // Smaller scale
 
         // Hover effects
         this.exitButton.on('pointerover', () => {
             this.exitButton.setTint(0xff6666);
-            this.exitButton.setScale(0.55);
+            this.exitButton.setScale(0.4);
         });
 
         this.exitButton.on('pointerout', () => {
             this.exitButton.clearTint();
-            this.exitButton.setScale(0.5);
+            this.exitButton.setScale(0.35);
         });
 
         // Click logic
         this.exitButton.on('pointerdown', () => {
             this.scene.tweens.add({
                 targets: this.exitButton,
-                scale: 0.45,
+                scale: 0.3,
                 duration: 50,
                 yoyo: true,
                 onComplete: () => {

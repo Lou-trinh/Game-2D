@@ -43,14 +43,18 @@ export default class MenuScene extends Phaser.Scene {
         this.createCharacterPanel(padding, topBarHeight + padding, leftPanelWidth);
         this.createWeaponPanel(padding, topBarHeight + padding + 160, 130);
 
-        // 3. RIGHT PANEL (Maps)
-        this.createRightPanel(width - rightPanelWidth - padding, topBarHeight + padding, rightPanelWidth);
+        // 3. RIGHT COLUMN (Map, Shop, Start)
+        const rightPanelX = width - rightPanelWidth - padding;
+        const rightColumnCenter = rightPanelX + rightPanelWidth / 2;
+
+        this.createRightPanel(rightPanelX, topBarHeight + padding, rightPanelWidth);
 
         // 4. CENTER AREA (Spotlight & Start)
         this.createCenterSpotlight(width / 2, height / 2 + 20);
 
-        // 5. START BUTTON
-        this.createStartButton(width - 95, height - 110);
+        // 5. SHOP BUTTON & START BUTTON (Aligned)
+        this.createShopButton(rightColumnCenter, height - 160);
+        this.createStartButton(rightColumnCenter, height - 100);
 
         // Fade in effect
         this.cameras.main.fadeIn(500, 0, 0, 0);
@@ -257,6 +261,72 @@ export default class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         this.updateSpotlight();
+    }
+
+    createShopButton(x, y) {
+        const btn = this.add.container(x, y);
+
+        // Styling - Similar to Start Button but Orange
+        // Premium Glow Effect
+        const glow = this.add.graphics();
+        glow.fillStyle(0xe67e22, 0.3); // Orange glow
+        glow.fillRoundedRect(-65, -20, 130, 40, 10);
+        glow.setAlpha(0.5);
+
+        // Button Background
+        const bg = this.add.rectangle(0, 0, 120, 35, 0xd35400, 1); // Darker orange
+        bg.setStrokeStyle(3, 0xffffff, 1);
+
+        // Inner depth effect
+        const inner = this.add.graphics();
+        inner.lineStyle(2, 0xe67e22, 1);
+        inner.strokeRoundedRect(-56, -14, 112, 28, 5);
+
+        // Icon
+        const icon = this.add.image(-45, 0, 'cart3'); // Moved left
+        icon.setDisplaySize(24, 24);
+
+        // Text
+        const text = this.add.text(15, 0, 'CỬA HÀNG', { // Moved right
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 2, fill: true }
+        }).setOrigin(0.5);
+
+        btn.add([glow, bg, inner, icon, text]);
+        bg.setInteractive({ useHandCursor: true });
+
+        // Pulsing animation (slightly different timing than start)
+        this.tweens.add({
+            targets: btn,
+            y: y - 3,
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        this.tweens.add({
+            targets: glow,
+            alpha: 0.8,
+            scale: 1.1,
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        bg.on('pointerover', () => {
+            bg.setFillStyle(0xe67e22, 1);
+            bg.setStrokeStyle(4, 0xffcc00, 1); // Gold highlight
+            btn.setScale(1.1);
+        });
+        bg.on('pointerout', () => {
+            bg.setFillStyle(0xd35400, 1);
+            bg.setStrokeStyle(3, 0xffffff, 1);
+            btn.setScale(1);
+        });
     }
 
     createStartButton(x, y) {

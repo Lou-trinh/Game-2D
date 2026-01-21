@@ -54,12 +54,7 @@ export default class MainScene extends Phaser.Scene {
     Golem.preload(this);
     Chest.preload(this);
 
-    // Load mino transformation assets for Taoist
-    this.load.atlas('mino', 'assets/images/skill/mino/mino.png', 'assets/images/skill/mino/mino_atlas.json');
-    this.load.animation('mino_anim', 'assets/images/skill/mino/mino_anim.json');
 
-    // Load mace weapon for Taoist
-    this.load.image('mace', 'assets/images/weapons/mace.png');
 
     this.load.image('tiles', 'assets/images/RPG Nature Tileset.png');
     this.load.tilemapTiledJSON('map', 'assets/images/map.json');

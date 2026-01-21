@@ -106,45 +106,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.diamondCount = 0;
 
     // =====================
-    // PROJECTILES (for archer)
+    // PROJECTILES (for archer & player 1)
     // =====================
     this.activeArrows = [];
-
-    // =====================
-    // ASSASSIN SKILL
-    // =====================
-    this.backstabCooldown = false;
-    this.backstabCooldownTime = 3000; // 3 seconds (changed from 5s)
-    this.dashCooldown = false;
-    this.dashCooldownTime = 2000; // 2 seconds (changed from 3s)
-    this.isDashing = false;
-
-    // =====================
-    // WIZARD SKILL (Summon)
-    // =====================
-    this.summonCooldown = false;
-    this.summonCooldownTime = 15000; // 15 seconds
-    this.activeSummons = []; // Track active ice monsters
-    this.maxSummons = 1; // Max number of summons at once
-
-    // =====================
-    // TAOIST TRANSFORMATION
-    // =====================
-    this.isTransformed = false;
-    this.transformedSprite = null;
-    this.originalTexture = texture;
-    this.originalScale = 1;
-    this.transformCooldown = false;
-    this.transformCooldownTime = 5000; // 5 seconds
-    this.transformConfig = this.characterConfig.transformSkill || null;
-    this.transformDuration = 10000; // 10 seconds in ms
-    this.transformDamageBonus = this.attackDamage || 10; // extra damage while transformed
-    this.transformTimerEvent = null;
-    this.transformDamageApplied = false;
-    this.originalAnimKeys = {
-      idle: this.characterConfig.idleAnim,
-      walk: this.characterConfig.walkAnim
-    };
 
     // =====================
     // AMMO SYSTEM (Player 1)
@@ -153,14 +117,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.currentAmmo = this.maxAmmo;
     this.isReloading = false;
     this.reloadTimer = null;
-
-    // =====================
-    // ARCHER SKILL (Arrow Rain)
-    // =====================
-    this.isAimingSkill = false;
-    this.skillTargetIndicator = null;
-    this.arrowRainCooldown = false;
-    this.arrowRainCooldownTime = 5000; // 5 seconds
 
     // =====================
     // MOUSE INPUT
@@ -196,51 +152,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // Load common assets
     scene.load.image('ghost', 'assets/images/die/ghost.png');
 
-    // Load reload sound
-    scene.load.audio('reload_sound', 'assets/sounds/reload.mp3');
-    scene.load.atlas(
-      'lightning_skill_1',
-      'assets/images/skill/skill_1/lightning_skill_1.png',
-      'assets/images/skill/skill_1/lightning_skill_1_atlas.json'
-    );
-    scene.load.atlas(
-      'surf',
-      'assets/images/effects/effect_3/surf.png',
-      'assets/images/effects/effect_3/surf_atlas.json'
-    );
-    scene.load.animation('effect_3_anim', 'assets/images/effects/effect_3/surf_anim.json');
-
-    // Load effect_4 for Taoist transformation
-    scene.load.atlas(
-      'effect_4',
-      'assets/images/effects/effect_4/effect_4.png',
-      'assets/images/effects/effect_4/effect_4_atlas.json'
-    );
-    scene.load.animation('effect_4_anim', 'assets/images/effects/effect_4/effect_4_anim.json');
-
-    // Load effect_5 for Mage R skill
-    scene.load.atlas(
-      'effect_5',
-      'assets/images/effects/effect_5/effect_5.png',
-      'assets/images/effects/effect_5/effect_5_atlas.json'
-    );
-    scene.load.animation('effect_5_anim', 'assets/images/effects/effect_5/effect_5_anim.json');
-
-    // Load effect_6 for Warrior R skill
-    scene.load.atlas(
-      'effect_6',
-      'assets/images/effects/effect_6/effect_6.png',
-      'assets/images/effects/effect_6/effect_6_atlas.json'
-    );
-    scene.load.animation('effect_6_anim', 'assets/images/effects/effect_6/effect_6_anim.json');
-
     // Load Wizard summon skill assets
-    scene.load.atlas(
-      'ice_monster',
-      'assets/images/skill/ice_monster/ice_monster.png',
-      'assets/images/skill/ice_monster/ice_monster_atlas.json'
-    );
-    scene.load.animation('ice_monster_anim', 'assets/images/skill/ice_monster/ice_monster_anim.json');
     scene.load.atlas(
       'tele_port',
       'assets/images/skill/skill_2/tele_port.png',
@@ -250,26 +162,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   }
 
   setupMouseInput(scene) {
-    // Track mouse movement for skill aiming
-    scene.input.on('pointermove', (pointer) => {
-      if (this.isAimingSkill && this.skillTargetIndicator) {
-        const worldX = pointer.worldX;
-        const worldY = pointer.worldY;
-        this.skillTargetIndicator.setPosition(worldX, worldY);
-      }
-    });
+    // Track mouse movement
+    // (Aiming logic removed)
 
     // Bắt sự kiện click chuột
     scene.input.on('pointerdown', (pointer) => {
       if (this.isDead) return;
 
-      // Handle Archer Arrow Rain Cast
-      if (this.characterType === CharacterTypes.ARCHER && this.isAimingSkill) {
-        const worldX = pointer.worldX;
-        const worldY = pointer.worldY;
-        this.castArrowRain(worldX, worldY);
-        return;
-      }
+
 
 
 
@@ -287,24 +187,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       );
 
       // Flip player theo hướng chuột
-      // Nếu đang transform thành Mino, đảo ngược logic vì sprite bị ngược
-      const isTaoist = this.characterType === CharacterTypes.TAOIST;
-      const useTransformAnim = isTaoist && this.isTransformed && this.transformConfig;
-
-      if (useTransformAnim) {
-        // Mino: ngược lại
-        if (worldX < this.x) {
-          this.setFlipX(false); // Click trái → không flip
-        } else {
-          this.setFlipX(true);  // Click phải → flip
-        }
+      // Flip player theo hướng chuột
+      if (worldX < this.x) {
+        // Player 1 defaults to facing right? No, Player is left by default in atlas?
+        // Let's assume standard behavior:
+        this.setFlipX(true); // Left
       } else {
-        // Taoist và các nhân vật khác: bình thường
-        if (worldX < this.x) {
-          this.setFlipX(true);
-        } else {
-          this.setFlipX(false);
-        }
+        this.setFlipX(false); // Right
       }
 
       // Attack on mouse click (backstab now uses R key)
@@ -341,68 +230,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       // Player 1 Reload
       if (this.characterType === CharacterTypes.PLAYER_1) {
         this.reloadWeapon();
-      }
-      // Assassin - Backstab
-      if (this.characterType === CharacterTypes.ASSASSIN) {
-        if (this.backstabCooldown || this.isAttacking || this.isDead || this.isDashing) return;
-        console.log('⌨️ R key pressed - triggering backstab!');
-        this.performBackstab();
-      }
-
-      // Wizard - Summon Ice Monster
-      if (this.characterType === CharacterTypes.WIZARD) {
-        if (this.summonCooldown || this.isDead || this.isAttacking) return;
-        if (this.activeSummons.length >= this.maxSummons) {
-          console.log('❌ Cannot summon: max summons reached');
-          return;
-        }
-        console.log('⌨️ R key pressed - summoning ice monster!');
-        this.summonIceMonster();
-      }
-
-      // Taoist - Transform into Mino (no manual revert)
-      if (this.characterType === CharacterTypes.TAOIST) {
-        // Chỉ cho bấm R nếu chưa biến hình và không cooldown
-        if (this.transformCooldown || this.isDead || this.isTransformed) return;
-        console.log('⌨️ R key pressed - Taoist transform to Mino!');
-        this.toggleTaoistTransform();
-      }
-
-      // Archer - Arrow Rain (Toggle aiming)
-      if (this.characterType === CharacterTypes.ARCHER) {
-        if (this.arrowRainCooldown || this.isDead) return;
-
-        this.isAimingSkill = !this.isAimingSkill;
-
-        if (this.isAimingSkill) {
-          console.log('⌨️ R key pressed - Archer aiming skill!');
-          // Show indicator
-          if (!this.skillTargetIndicator) {
-            this.skillTargetIndicator = this.scene.add.image(this.scene.input.activePointer.worldX, this.scene.input.activePointer.worldY, 'magic_circle');
-            this.skillTargetIndicator.setDepth(this.depth + 100);
-            this.skillTargetIndicator.setAlpha(0.7);
-            this.skillTargetIndicator.setScale(0.5); // Adjust scale as needed
-          } else {
-            this.skillTargetIndicator.setTexture('magic_circle');
-          }
-          this.skillTargetIndicator.setVisible(true);
-
-        } else {
-          console.log('⌨️ R key pressed - Archer canceled aiming!');
-          // Hide indicator
-          if (this.skillTargetIndicator) {
-            this.skillTargetIndicator.setVisible(false);
-          }
-        }
-      }
-
-
-
-      // Warrior - Spin Skill
-      if (this.characterType === CharacterTypes.WARRIOR) {
-        if (this.spinCooldown || this.isDead || this.isSpinning) return;
-        console.log('⌨️ R key pressed - Warrior Spin!');
-        this.performWarriorSpin();
       }
     });
   }
@@ -528,12 +355,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       });
 
       return;
-    }
-
-    // Only show lightning effect if weapon config allows it
-    const showSkillEffect = this.characterConfig.weapon?.showSkillEffect;
-    if (showSkillEffect) {
-      this.showSkillEffect();
     }
 
     const attackType = this.characterConfig.weapon?.attackType || 'swing';
@@ -720,90 +541,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     });
   }
 
-  showSkillEffect() {
-    const frames = [
-      'lightning_skill1_frame1',
-      'lightning_skill1_frame2',
-      'lightning_skill1_frame3',
-      'lightning_skill1_frame4'
-    ];
 
-    // Tính vị trí skill theo góc tấn công
-    const skillDistance = 40;
-    const lightningX = this.x + Math.cos(this.lastAttackAngle) * skillDistance;
-    const lightningY = this.y + Math.sin(this.lastAttackAngle) * skillDistance;
-
-    const skillEffect = this.scene.add.sprite(lightningX, lightningY, 'lightning_skill_1', frames[0]);
-    skillEffect.setScale(0.3);
-    skillEffect.setDepth(this.depth + 50);
-
-    // Xoay skill theo góc tấn công
-    const angleDegrees = Phaser.Math.RadToDeg(this.lastAttackAngle);
-    skillEffect.setAngle(angleDegrees);
-
-    let frameIndex = 0;
-    const timer = this.scene.time.addEvent({
-      delay: 80,
-      repeat: frames.length - 1,
-      callback: () => {
-        skillEffect.setFrame(frames[frameIndex]);
-        frameIndex++;
-      }
-    });
-
-    this.applyLightningDamage(lightningX, lightningY);
-
-    this.scene.time.delayedCall(350, () => {
-      timer.remove();
-      skillEffect.destroy();
-    });
-  }
-
-  applyLightningDamage(x, y) {
-    const totalDamage = 25 + (this.bonusDamage || 0);
-
-    const hitWidth = 65;
-    const hitHeight = 14;
-
-    // Tính vị trí damage theo góc
-    const damageDistance = 32;
-    const hitX = this.x + Math.cos(this.lastAttackAngle) * damageDistance;
-    const hitY = this.y + Math.sin(this.lastAttackAngle) * damageDistance;
-
-    const hitRect = new Phaser.Geom.Rectangle(
-      hitX - hitWidth / 2,
-      hitY - hitHeight / 2,
-      hitWidth,
-      hitHeight
-    );
-
-    const damageTargets = [
-      this.scene.bears,
-      this.scene.treeMen,
-      this.scene.forestGuardians,
-      this.scene.gnollBrutes,
-      this.scene.gnollShamans,
-      this.scene.wolves,
-      this.scene.golems,
-      this.scene.mushrooms,
-      this.scene.smallMushrooms,
-      this.scene.trees,
-      this.scene.stones,
-      this.scene.chests
-    ];
-
-    damageTargets.forEach(group => {
-      if (!group) return;
-      (Array.isArray(group) ? group : []).forEach(target => {
-        if (!target || target.isDead) return;
-
-        const targetRect = target.getHitbox ? target.getHitbox() : new Phaser.Geom.Rectangle(target.x - 12, target.y - 12, 24, 24);
-        if (Phaser.Geom.Rectangle.Overlaps(hitRect, targetRect)) {
-          target.takeDamage(totalDamage);
-        }
-      });
-    });
-  }
 
   showMuzzleFlash() {
     // Calculate muzzle position at the gun barrel tip
@@ -874,336 +612,61 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     return nearestEnemy;
   }
 
-  performBackstab() {
-    if (this.backstabCooldown || this.isAttacking) return;
-
-    const target = this.findNearestEnemy();
-    if (!target) {
-      console.log('No enemy found for backstab');
+  createBloodSplatter(x, y, velocity, enemy) {
+    // Create blood splatter effect using effect_3
+    if (!this.scene.textures.exists('effect_3')) {
+      console.warn('effect_3 texture not found for blood splatter');
       return;
     }
 
-    // Check if target is within range (120 pixels)
-    const distanceToTarget = Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y);
-    const backstabRange = 120;
+    // Calculate offset behind enemy based on bullet direction
+    let offsetX = x;
+    let offsetY = y;
 
-    if (distanceToTarget > backstabRange) {
-      console.log(`Enemy too far! Distance: ${Math.floor(distanceToTarget)}, Max range: ${backstabRange}`);
-      return;
+    if (velocity) {
+      // Normalize velocity and offset behind enemy
+      const angle = Math.atan2(velocity.y, velocity.x);
+      const offsetDistance = 15; // Distance behind enemy
+      offsetX = x + Math.cos(angle) * offsetDistance;
+      offsetY = y + Math.sin(angle) * offsetDistance;
     }
 
-    this.isAttacking = true;
-    this.backstabCooldown = true;
+    const bloodEffect = this.scene.add.sprite(offsetX, offsetY, 'effect_3', 'blood15');
+    bloodEffect.setScale(0.4);
 
-    // Calculate position behind the enemy
-    const angle = Phaser.Math.Angle.Between(target.x, target.y, this.x, this.y);
-    const behindDistance = 25; // Position behind enemy
-    const behindX = target.x + Math.cos(angle) * behindDistance;
-    const behindY = target.y + Math.sin(angle) * behindDistance;
-
-    // Store original position for effect
-    const startX = this.x;
-    const startY = this.y;
-
-    // Create disappear effect at start position
-    this.createTeleportEffect(startX, startY, 0x2c3e50);
-
-    // Teleport instantly
-    this.setPosition(behindX, behindY);
-
-    // Face the enemy
-    this.setFlipX(target.x < this.x);
-
-    // Create appear effect at new position
-    this.createTeleportEffect(behindX, behindY, 0xff0000);
-
-    // Flash the player
-    this.scene.tweens.add({
-      targets: this,
-      alpha: 0.3,
-      duration: 100,
-      yoyo: true,
-      repeat: 1
-    });
-
-    // Perform backstab attack after short delay
-    this.scene.time.delayedCall(150, () => {
-      this.performBackstabDamage(target);
-    });
-
-    // Reset cooldown
-    this.scene.time.delayedCall(this.backstabCooldownTime, () => {
-      this.backstabCooldown = false;
-    });
-  }
-
-  performBackstabDamage(target) {
-    if (!target || target.isDead) {
-      this.isAttacking = false;
-      return;
-    }
-
-    // Calculate if attacking from behind
-    const angleToPlayer = Phaser.Math.Angle.Between(target.x, target.y, this.x, this.y);
-    const targetFacing = target.flipX ? Math.PI : 0; // Assuming flipX indicates facing direction
-    const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(angleToPlayer - targetFacing));
-
-    // Consider "behind" if angle difference is less than 90 degrees (π/2)
-    const isFromBehind = angleDiff < Math.PI / 2;
-
-    // Base damage for backstab
-    const baseDamage = 40 + (this.bonusDamage || 0);
-    const damage = isFromBehind ? baseDamage * 2 : baseDamage;
-
-    // Create red slash effect
-    this.createSlashEffect(target.x, target.y);
-
-    // Apply damage
-    const wasAlive = !target.isDead;
-    target.takeDamage(damage);
-
-    // If enemy died from this attack, create blood explosion
-    if (wasAlive && target.isDead) {
-      this.createBloodExplosion(target.x, target.y);
-    }
-
-    // Show damage number
-    const damageText = this.scene.add.text(target.x, target.y - 20, `-${Math.floor(damage)}`, {
-      fontSize: '16px',
-      fontStyle: 'bold',
-      color: isFromBehind ? '#ff0000' : '#ffaa00',
-      stroke: '#000000',
-      strokeThickness: 3
-    });
-    damageText.setOrigin(0.5);
-
-    this.scene.tweens.add({
-      targets: damageText,
-      y: damageText.y - 30,
-      alpha: 0,
-      duration: 800,
-      ease: 'Power2',
-      onComplete: () => damageText.destroy()
-    });
-
-    // Weapon swing animation
-    this.scene.tweens.add({
-      targets: this,
-      weaponRotation: 120,
-      duration: 150,
-      ease: 'Power3',
-      onComplete: () => {
-        this.scene.tweens.add({
-          targets: this,
-          weaponRotation: 0,
-          duration: 100,
-          ease: 'Power1',
-          onComplete: () => {
-            this.isAttacking = false;
-          }
-        });
-      }
-    });
-  }
-
-  createTeleportEffect(x, y, color) {
-    // Create particle burst for teleport
-    const particleCount = 15;
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (Math.PI * 2 * i) / particleCount;
-      const speed = 50 + Math.random() * 30;
-
-      const particle = this.scene.add.rectangle(x, y, 3, 3, color);
-      particle.setDepth(this.depth + 10);
-
-      this.scene.tweens.add({
-        targets: particle,
-        x: x + Math.cos(angle) * speed,
-        y: y + Math.sin(angle) * speed,
-        alpha: 0,
-        duration: 400,
-        ease: 'Power2',
-        onComplete: () => particle.destroy()
-      });
-    }
-  }
-
-  createSlashEffect(x, y) {
-    // Create pixel-style red slash
-    const graphics = this.scene.add.graphics();
-    graphics.lineStyle(4, 0xff0000, 1);
-    graphics.setDepth(this.depth + 20);
-
-    // Draw diagonal slash
-    const slashLength = 40;
-    const angle = -Math.PI / 4; // Diagonal slash
-    graphics.beginPath();
-    graphics.moveTo(
-      x - Math.cos(angle) * slashLength / 2,
-      y - Math.sin(angle) * slashLength / 2
-    );
-    graphics.lineTo(
-      x + Math.cos(angle) * slashLength / 2,
-      y + Math.sin(angle) * slashLength / 2
-    );
-    graphics.strokePath();
-
-    // Flash effect
-    this.scene.tweens.add({
-      targets: graphics,
-      alpha: 0,
-      duration: 300,
-      ease: 'Power2',
-      onComplete: () => graphics.destroy()
-    });
-  }
-
-  createBloodExplosion(x, y) {
-    // Create blood particle explosion
-    const particleCount = 25;
-    for (let i = 0; i < particleCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 30 + Math.random() * 50;
-      const size = 2 + Math.random() * 3;
-
-      // Red blood particles
-      const particle = this.scene.add.rectangle(x, y, size, size, 0xff0000);
-      particle.setDepth(this.depth + 15);
-
-      this.scene.tweens.add({
-        targets: particle,
-        x: x + Math.cos(angle) * speed,
-        y: y + Math.sin(angle) * speed,
-        alpha: 0,
-        duration: 500 + Math.random() * 300,
-        ease: 'Cubic.easeOut',
-        onComplete: () => particle.destroy()
-      });
-    }
-
-    // Add some darker blood splatters
-    for (let i = 0; i < 10; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 20 + Math.random() * 30;
-      const size = 3 + Math.random() * 2;
-
-      const particle = this.scene.add.rectangle(x, y, size, size, 0x8b0000);
-      particle.setDepth(this.depth + 15);
-
-      this.scene.tweens.add({
-        targets: particle,
-        x: x + Math.cos(angle) * speed,
-        y: y + Math.sin(angle) * speed,
-        alpha: 0,
-        duration: 600 + Math.random() * 400,
-        ease: 'Cubic.easeOut',
-        onComplete: () => particle.destroy()
-      });
-    }
-  }
-
-  performDash(direction) {
-    if (this.dashCooldown || this.isDashing || this.isDead || this.isAttacking) return;
-    if (this.characterType !== CharacterTypes.ASSASSIN) return;
-
-    console.log('🏃 Assassin performing dash!');
-
-    this.isDashing = true;
-    this.dashCooldown = true;
-
-    // Calculate dash direction (use movement direction or facing direction)
-    let dashAngle;
-    if (direction.length() > 0) {
-      dashAngle = Math.atan2(direction.y, direction.x);
+    // Set depth below enemy so blood appears behind
+    if (enemy && enemy.depth !== undefined) {
+      bloodEffect.setDepth(enemy.depth - 1);
     } else {
-      // If no movement, dash in facing direction
-      dashAngle = this.flipX ? Math.PI : 0;
+      bloodEffect.setDepth(this.depth - 1);
     }
 
-    // Dash distance and duration
-    const dashDistance = 80;
-    const dashDuration = 200;
+    // Flip based on bullet direction
+    // If bullet is moving to the left (velocity.x < 0), flip the blood
+    if (velocity && velocity.x < 0) {
+      bloodEffect.setFlipX(true);
+    } else {
+      bloodEffect.setFlipX(false);
+    }
 
-    // Calculate target position
-    let targetX = this.x + Math.cos(dashAngle) * dashDistance;
-    let targetY = this.y + Math.sin(dashAngle) * dashDistance;
+    // Play blood animation
+    if (this.scene.anims.exists('blood')) {
+      bloodEffect.play('blood');
 
-    // Clamp position within map bounds
-    const mapBounds = this.scene.cameras.main.getBounds();
-    const margin = 16; // Keep player slightly away from edge
-
-    targetX = Phaser.Math.Clamp(targetX, mapBounds.x + margin, mapBounds.x + mapBounds.width - margin);
-    targetY = Phaser.Math.Clamp(targetY, mapBounds.y + margin, mapBounds.y + mapBounds.height - margin);
-
-    console.log(`Dash target: (${Math.floor(targetX)}, ${Math.floor(targetY)}), Map bounds: ${mapBounds.width}x${mapBounds.height}`);
-
-    // Create surf trail effect behind player
-    this.createSurfTrail(dashAngle);
-
-    // Make player semi-transparent during dash
-    this.setAlpha(0.6);
-
-    // Dash movement
-    this.scene.tweens.add({
-      targets: this,
-      x: targetX,
-      y: targetY,
-      duration: dashDuration,
-      ease: 'Power2',
-      onComplete: () => {
-        this.isDashing = false;
-        this.setAlpha(1);
-      }
-    });
-
-    // Reset dash cooldown
-    this.scene.time.delayedCall(this.dashCooldownTime, () => {
-      this.dashCooldown = false;
-    });
-  }
-
-  summonIceMonster() {
-    if (this.summonCooldown || this.activeSummons.length >= this.maxSummons) return;
-
-    console.log('🔮 Wizard summoning ice monster...');
-
-    this.summonCooldown = true;
-
-    // Calculate summon position in front of wizard
-    const summonDistance = 40;
-    const summonAngle = this.flipX ? Math.PI : 0; // Face direction
-    const summonX = this.x + Math.cos(summonAngle) * summonDistance;
-    const summonY = this.y + Math.sin(summonAngle) * summonDistance;
-
-    // Create portal effect
-    this.createPortalEffect(summonX, summonY, (portalX, portalY) => {
-      // Spawn ice monster after portal animation at the portal's position
-      const IceMonster = require('./IceMonster').default;
-      const iceMonster = new IceMonster({
-        scene: this.scene,
-        x: portalX,
-        y: portalY,
-        owner: this
+      // Destroy after animation completes
+      bloodEffect.once('animationcomplete', () => {
+        bloodEffect.destroy();
       });
-
-      // Track active summon
-      this.activeSummons.push(iceMonster);
-
-      // Add to scene's summon group
-      if (!this.scene.summonedMonsters) {
-        this.scene.summonedMonsters = [];
-      }
-      this.scene.summonedMonsters.push(iceMonster);
-
-      console.log(`❄️ Ice Monster spawned at portal position (${portalX}, ${portalY})! Active summons: ${this.activeSummons.length}/${this.maxSummons}`);
-    });
-
-    // Reset cooldown
-    this.scene.time.delayedCall(this.summonCooldownTime, () => {
-      this.summonCooldown = false;
-      console.log('✅ Summon skill ready!');
-    });
+    } else {
+      // Fallback: just destroy after a short delay
+      this.scene.time.delayedCall(400, () => {
+        if (bloodEffect && bloodEffect.active) {
+          bloodEffect.destroy();
+        }
+      });
+    }
   }
+
 
   reloadWeapon() {
     if (this.isReloading || this.currentAmmo === this.maxAmmo) {
@@ -1768,10 +1231,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       }
     }
     // Update spin effect position if active
-    if (this.isSpinning && this.spinEffectSprite && this.spinEffectSprite.active) {
-      this.spinEffectSprite.setPosition(this.x, this.y + 5);
-      this.spinEffectSprite.setDepth(this.depth + 10);
-    }
+    // if (this.isSpinning && this.spinEffectSprite && this.spinEffectSprite.active) {
+    //   this.spinEffectSprite.setPosition(this.x, this.y + 5);
+    //   this.spinEffectSprite.setDepth(this.depth + 10);
+    // }
 
     // Update reload indicator position if active
     if (this.isReloading && this.reloadIndicator) {
@@ -1840,6 +1303,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             new Phaser.Geom.Rectangle(enemy.x - 12, enemy.y - 12, 24, 24);
 
           if (Phaser.Geom.Rectangle.Overlaps(arrowRect, enemyHitbox)) {
+            // Get arrow velocity to calculate direction
+            const velocity = arrow.getData('velocity');
+
+            // Create blood splatter effect at hit location (with offset behind enemy)
+            this.createBloodSplatter(enemy.x, enemy.y, velocity, enemy);
+
             enemy.takeDamage(damage);
             arrow.destroy();
             this.activeArrows.splice(i, 1);
@@ -1852,105 +1321,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   }
 
   performTaoistTransformation() {
-    // Transform into Mino
-    this.isTransformed = true;
-    // Khóa phím R cho đến khi tự hết biến hình
-    this.transformCooldown = true;
-
-    // Lưu flipX hiện tại trước khi transform
-    const currentFlipX = this.flipX;
-
-    this.setTexture(this.transformConfig.texture || 'mino');
-    this.setScale(this.transformConfig.scale || 1);
-
-    // Đảo ngược hướng vì sprite Mino có hướng ngược với Taoist
-    this.setFlipX(!currentFlipX);
-
-    // Create larger physics body (two circles) while transformed
-    if (this.compoundBody) {
-      const { Body, Bodies } = Phaser.Physics.Matter.Matter;
-      const currentX = this.x;
-      const currentY = this.y;
-      const currentVelocity = this.body.velocity;
-
-      // Calculate new radii (much larger to match character size)
-      const newColliderRadius = this.originalColliderRadius * this.transformScaleFactor;
-      const newSensorRadius = this.originalSensorRadius * this.transformScaleFactor;
-
-      // Create new larger collider and sensor
-      const newCollider = Bodies.circle(0, 0, newColliderRadius, {
-        label: 'playerCollider',
-        friction: 0,
-        frictionStatic: 0,
-        frictionAir: 0
-      });
-
-      const newSensor = Bodies.circle(0, 0, newSensorRadius, {
-        isSensor: true,
-        label: 'playerSensor'
-      });
-
-      // Create new compound body
-      const newCompoundBody = Body.create({
-        parts: [newCollider, newSensor],
-        frictionAir: 0.35,
-        friction: 0,
-        frictionStatic: 0,
-        restitution: 0,
-        inertia: Infinity
-      });
-
-      // Giữ nguyên collision filter như lúc chưa biến hình
-      if (this.defaultCollisionFilter) {
-        newCompoundBody.collisionFilter.category = this.defaultCollisionFilter.category;
-        newCompoundBody.collisionFilter.mask = this.defaultCollisionFilter.mask;
-      }
-
-      // Remove old body and set new one
-      this.scene.matter.world.remove(this.body);
-      this.setExistingBody(newCompoundBody);
-      this.setPosition(currentX, currentY);
-      this.setVelocity(currentVelocity.x, currentVelocity.y);
-
-      // Khi biến hình: bỏ va chạm với enemy để không bị đẩy (quái vẫn tìm và đánh theo khoảng cách)
-      if (this.noEnemyCollisionMask !== undefined) {
-        this.body.collisionFilter.mask = this.noEnemyCollisionMask;
-      }
-
-      // Update stored references
-      this.compoundBody = newCompoundBody;
-      this.colliderBody = newCollider;
-      this.sensorBody = newSensor;
-    }
-
-    // Increase damage while transformed (apply once)
-    if (!this.transformDamageApplied) {
-      this.bonusDamage += this.transformDamageBonus;
-      this.transformDamageApplied = true;
-    }
-
-    // Auto revert after duration
-    if (this.transformTimerEvent) {
-      this.transformTimerEvent.remove(false);
-    }
-    this.transformTimerEvent = this.scene.time.delayedCall(this.transformDuration, () => {
-      if (this.isTransformed) {
-        this.toggleTaoistTransform();
-      }
-    });
-
-    // Hide weapon while transformed
-    if (this.weapon) {
-      this.weapon.setVisible(false);
-    }
-
-    // Play idle animation of transformed form
-    const idleAnim = this.transformConfig.idleAnim || 'mino_idle';
-    if (this.anims.exists && this.anims.exists(idleAnim)) {
-      this.anims.play(idleAnim, true);
-    } else {
-      this.anims.play(idleAnim, true);
-    }
+    console.log('Taoist transformation disabled.');
   }
 
   toggleTaoistTransform() {
@@ -1958,39 +1329,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     if (!this.isTransformed) {
       console.log('🔥 Starting Taoist transformation...');
-
-      // Show effect_4 animation first
-      const effect = this.scene.add.sprite(this.x, this.y, 'effect_4');
-      effect.setScale(3.0);
-      effect.setDepth(this.depth + 100);
-
-      console.log('✨ Effect sprite created, playing animation...');
-
-      // Play effect_4 animation (key is 'effect_4', not 'effect_4_anim')
-      if (this.scene.anims.exists('effect_4')) {
-        effect.play('effect_4');
-        console.log('▶️ Animation playing!');
-      } else {
-        console.log('❌ Animation effect_4 does not exist!');
-      }
-
-      // Listen for animation complete
-      effect.once('animationcomplete', () => {
-        console.log('✅ Animation complete, transforming now...');
-        effect.destroy();
-
-        // Now perform the actual transformation
-        this.performTaoistTransformation();
-      });
-
-      // Fallback: destroy effect after 800ms if animation doesn't complete
-      this.scene.time.delayedCall(800, () => {
-        if (effect && effect.active) {
-          console.log('⏰ Fallback timer triggered transformation');
-          effect.destroy();
-          this.performTaoistTransformation();
-        }
-      });
+      this.performTaoistTransformation();
     } else {
       // Revert back to Taoist
       this.isTransformed = false;
@@ -2279,15 +1618,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const strikeX = targetX;
         const strikeY = targetY;
 
-        // 1. Visual Effect
-        const explosion = this.scene.add.sprite(strikeX, strikeY - 50, 'effect_5'); // Keep -50 offset
-        explosion.setDepth(strikeY + 50);
-        explosion.setScale(0.5); // Keep 0.5 scale
-        explosion.play({ key: 'effect_5', repeat: 0 });
-
-        explosion.once('animationcomplete', () => {
-          explosion.destroy();
-        });
+        // Visual Effect Removed (effect_5)
 
         // 2. Damage Logic (Sync with impact)
         this.scene.time.delayedCall(100, () => {
@@ -2348,24 +1679,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const damagePerTick = 15 + (this.bonusDamage || 0);
 
     // Create effect_6 sprite attached to player
-    this.spinEffectSprite = this.scene.add.sprite(this.x, this.y + 5, 'effect_6');
-    this.spinEffectSprite.setScale(3.5); // Increased scale to make it wider
-    this.spinEffectSprite.setDepth(this.depth + 10);
-    this.spinEffectSprite.setAlpha(0.9);
-
-    // Play effect animation
-    if (this.scene.anims.exists('effect_6')) {
-      this.spinEffectSprite.play('effect_6');
-    } else {
-      // Create anim if not exists (fallback logic)
-      this.scene.anims.create({
-        key: 'effect_6',
-        frames: this.scene.anims.generateFrameNames('effect_6', { start: 0, end: 5, zeroPad: 0 }),
-        frameRate: 15,
-        repeat: -1
-      });
-      this.spinEffectSprite.play('effect_6');
-    }
+    // Effect removed
 
     // Damage loop
     let elapsedTime = 0;
@@ -2377,11 +1691,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         if (elapsedTime >= duration || this.isDead || !this.isSpinning) {
           damageEvent.remove();
           this.isSpinning = false;
-
-          if (this.spinEffectSprite) {
-            this.spinEffectSprite.destroy();
-            this.spinEffectSprite = null;
-          }
 
           // Reset cooldown (e.g. 10s after finish)
           this.scene.time.delayedCall(10000, () => {
