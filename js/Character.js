@@ -28,7 +28,7 @@ export const CharacterConfigs = {
             anim: 'assets/images/player_1/player_1_anim.json'
         },
         weapon: {
-            texture: 'm4a1',
+            texture: 'M4A1',
             path: 'assets/images/weapons/M4A1.png',
             scale: 0.6,
             offsetX: 7,
@@ -36,11 +36,11 @@ export const CharacterConfigs = {
             attackType: 'gun_fire',
             showSkillEffect: false,
             projectile: {
-                texture: 'bullet', // Use specific bullet texture
+                texture: 'bullet', // bullet.png
                 speed: 1000,
-                range: 150,
+                range: 180,
                 damage: 25,
-                scale: 0.3 // Smaller bullet size
+                scale: 0.4
             },
             ammo: {
                 max: 60

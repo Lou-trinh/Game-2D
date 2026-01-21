@@ -527,11 +527,7 @@ export default class MainScene extends Phaser.Scene {
       f: Phaser.Input.Keyboard.KeyCodes.F
     });
 
-    this.input.on('pointerdown', (pointer) => {
-      if (pointer.leftButtonDown()) {
-        this.player.attack();
-      }
-    });
+    // Shooting is handled exclusively by the Space bar in Player.js update()
 
     /* ===============================
        CAMERA

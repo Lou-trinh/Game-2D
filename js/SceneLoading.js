@@ -27,13 +27,32 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.animation('player_1_anim', 'assets/images/player_1/player_1_anim.json');
 
         // 2. Weapons & Effects (Manually copied from Player.js preload)
-        this.load.image('m4a1', 'assets/images/weapons/M4A1.png');
+        this.load.image('M4A1', 'assets/images/weapons/M4A1.png');
+        this.load.image('AK47', 'assets/images/weapons/AK47.png');
+        this.load.image('Glock_17', 'assets/images/weapons/Glock_17.png');
+        this.load.image('PDW', 'assets/images/weapons/PDW.png');
+        this.load.image('Pump_Shotgun', 'assets/images/weapons/Pump_Shotgun.png');
+        this.load.image('SKS', 'assets/images/weapons/SKS.png');
+        this.load.image('Grenade', 'assets/images/weapons/Grenade.png');
+        this.load.image('Minigun', 'assets/images/weapons/Minigun.png');
+        this.load.image('Shovel', 'assets/images/weapons/Shovel.png');
+        this.load.image('Rocket', 'assets/images/weapons/Rocket.png');
+        this.load.image('Rocket_Bullet', 'assets/images/weapons/Rocket_Bullet.png');
         this.load.image('ammo_pickup', 'assets/images/weapons/ammo_pickup.png');
+        this.load.image('bullet_1', 'assets/images/weapons/bullet_1.png');
+        this.load.image('bullet_2', 'assets/images/weapons/bullet_2.png');
+        this.load.image('bullet_3', 'assets/images/weapons/bullet_3.png');
+        this.load.image('bullet_4', 'assets/images/weapons/bullet_4.png');
+        this.load.image('bullet', 'assets/images/weapons/bullet.png');
         this.load.image('ghost', 'assets/images/die/ghost.png');
 
         // Effects
         this.load.atlas('effect_7', 'assets/images/effects/effect_7/effect_7.png', 'assets/images/effects/effect_7/effect_7_atlas.json');
         this.load.animation('effect_7_anim', 'assets/images/effects/effect_7/effect_7_anim.json');
+
+        // Explosion effect for bombs
+        this.load.atlas('effect_4', 'assets/images/effects/effect_4/effect_4.png', 'assets/images/effects/effect_4/effect_4_atlas.json');
+        this.load.animation('effect_4_anim', 'assets/images/effects/effect_4/effect_4_anim.json');
 
         // Blood splatter effect
         this.load.atlas('effect_3', 'assets/images/effects/effect_3/blood.png', 'assets/images/effects/effect_3/blood_atlas.json');
@@ -93,6 +112,7 @@ export default class SceneLoading extends Phaser.Scene {
         // Sounds - Load rifle gunshot sound
         this.load.audio('rifle_shot', 'assets/sounds/rifle.mp3');
         this.load.audio('reload_sound', 'assets/sounds/reload.mp3');
+        this.load.audio('grenade_explosion', 'assets/sounds/grenade.wav');
 
         // Map
         this.load.image('tiles', 'assets/images/RPG Nature Tileset.png');

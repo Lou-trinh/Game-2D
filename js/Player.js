@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { preloadCharacters, getCharacterConfig, CharacterTypes } from './Character';
+import { getWeaponByKey, WeaponCategories } from './data/WeaponData';
 
 export default class Player extends Phaser.Physics.Matter.Sprite {
   constructor(data) {
@@ -84,18 +85,21 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.createHealthBar(scene);
 
     // =====================
-    // WEAPON
+    // WEAPON SLOTS SYSTEM
     // =====================
-    const weaponConfig = this.characterConfig.weapon || { texture: 'scepter', scale: 0.09 };
-    this.weapon = scene.add.image(0, 0, weaponConfig.texture);
-    this.weapon.setScale(weaponConfig.scale);
-    this.weapon.setOrigin(0.5, 0.9);
-    this.weapon.setDepth(this.depth + 1);
+    this.weaponSlots = {
+      slot1: null,
+      slot2: null,
+      slot3: null,
+      slot4: null
+    };
+    this.activeSlot = 'slot1';
 
-    this.isAttacking = false;
-    this.isAttacking = false;
-    this.weaponRotation = 0;
-    this.weaponKick = 0; // Recoil offset
+    // Load equipped weapons
+    this.loadEquippedWeapons(scene);
+
+    // Initial weapon setup
+    this.setupActiveWeapon(scene);
 
     // =====================
     // INVENTORY
@@ -113,8 +117,25 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // =====================
     // AMMO SYSTEM (Player 1)
     // =====================
-    this.maxAmmo = this.characterConfig.weapon?.ammo?.max || 30;
-    this.currentAmmo = this.maxAmmo;
+    // Ammo will be managed per weapon slot if possible, but for now global or per slot
+    this.ammoData = {
+      slot1: { current: 0, max: 0 },
+      slot2: { current: 0, max: 0 },
+      slot3: { current: 0, max: 0 },
+      slot4: { current: 0, max: 0 }
+    };
+
+    // Populate ammoData based on loaded weapons
+    Object.keys(this.weaponSlots).forEach(slot => {
+      const weaponKey = this.weaponSlots[slot];
+      if (weaponKey) {
+        const weapon = getWeaponByKey(weaponKey);
+        if (weapon && weapon.maxAmmo) {
+          this.ammoData[slot] = { current: weapon.maxAmmo, max: weapon.maxAmmo };
+        }
+      }
+    });
+
     this.isReloading = false;
     this.reloadTimer = null;
 
@@ -124,41 +145,90 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.setupMouseInput(scene);
 
     // =====================
-    // KEYBOARD INPUT (F key for dash)
+    // KEYBOARD INPUT (F key for dash, 1-4 for slots)
     // =====================
     this.setupKeyboardInput(scene);
     // Track space key for auto-fire
+    this.inputKeys = scene.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D,
+      dash: Phaser.Input.Keyboard.KeyCodes.F,
+      skillR: Phaser.Input.Keyboard.KeyCodes.R,
+      slot1: Phaser.Input.Keyboard.KeyCodes.ONE,
+      slot2: Phaser.Input.Keyboard.KeyCodes.TWO,
+      slot3: Phaser.Input.Keyboard.KeyCodes.THREE,
+      slot4: Phaser.Input.Keyboard.KeyCodes.FOUR
+    });
+
+    this.inputKeys.slot1.on('down', () => this.switchWeapon(1));
+    this.inputKeys.slot2.on('down', () => this.switchWeapon(2));
+    this.inputKeys.slot3.on('down', () => this.switchWeapon(3));
+    this.inputKeys.slot4.on('down', () => this.switchWeapon(4));
     this.keySpace = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
   }
 
   static preload(scene) {
-    // Load all character assets
     preloadCharacters(scene);
+  }
 
-    // Load character weapons
-    scene.load.image('scepter', 'assets/images/weapons/scepter.png');
-    scene.load.image('scepter_2', 'assets/images/weapons/scepter_2.png');
-    scene.load.image('bow', 'assets/images/weapons/bow.png');
-    scene.load.image('arrow', 'assets/images/weapons/arrow.png');
-    scene.load.image('purple_orb', 'assets/images/weapons/purple_orb.png');
-    scene.load.image('katana', 'assets/images/weapons/katana.png');
-    scene.load.image('knife', 'assets/images/weapons/knife.png');
-    scene.load.image('magic_circle', 'assets/images/weapons/magic_circle.png');
-    scene.load.image('magic_circle_1', 'assets/images/weapons/magic_circle_1.png');
-    scene.load.image('bullet', 'assets/images/weapons/bullet.png');
-    scene.load.image('bullet_1', 'assets/images/weapons/bullet_1.png');
-    scene.load.image('ammo_pickup', 'assets/images/weapons/ammo_pickup.png');
+  loadEquippedWeapons(scene) {
+    const equipped = JSON.parse(localStorage.getItem('equipped_weapons') || '{}');
 
-    // Load common assets
-    scene.load.image('ghost', 'assets/images/die/ghost.png');
+    // Fallback to defaults if not set in localStorage
+    this.weaponSlots = {
+      slot1: equipped.slot1 || 'Glock_17', // Handgun/Melee
+      slot2: equipped.slot2 || 'M4A1',      // SMG/AR/Shotgun
+      slot3: equipped.slot3 || 'SKS',       // Sniper/LMG/Rocket
+      slot4: equipped.slot4 || null
+    };
 
-    // Load Wizard summon skill assets
-    scene.load.atlas(
-      'tele_port',
-      'assets/images/skill/skill_2/tele_port.png',
-      'assets/images/skill/skill_2/tele_port_atlas.json'
-    );
-    scene.load.animation('tele_port_anim', 'assets/images/skill/skill_2/tele_port_anim.json');
+    console.log('Equipped Weapons:', this.weaponSlots);
+  }
+
+  setupActiveWeapon(scene) {
+    if (!this.weaponSlots) return; // Wait for loadEquippedWeapons
+
+    const weaponKey = this.weaponSlots[this.activeSlot];
+
+    // Destroy old weapon if exists
+    if (this.weapon) {
+      this.weapon.destroy();
+      this.weapon = null;
+    }
+
+    this.isAttacking = false;
+    this.weaponRotation = 0;
+    this.weaponKick = 0;
+
+    const weapon = getWeaponByKey(weaponKey);
+    const texture = weapon ? weapon.texture : weaponKey;
+
+    // Setup weapon sprite
+    this.weapon = scene.add.image(0, 0, texture);
+    this.weapon.setScale(0.6);
+    this.weapon.setOrigin(0.5, 0.9);
+    this.weapon.setDepth(this.depth + 1);
+
+    // Synchronize weapon stats and projectiles from Character configuration or WeaponData
+    // For now, Player 1 logic uses CharacterConfig.weapon
+  }
+
+  switchWeapon(slotIndex) {
+    if (this.isDead || this.isReloading) return;
+
+    const newSlot = `slot${slotIndex}`;
+    if (this.activeSlot === newSlot) return;
+
+    this.activeSlot = newSlot;
+    this.setupActiveWeapon(this.scene);
+
+    // Notify UI of change
+    if (this.scene.resourceUI) {
+      this.scene.resourceUI.updateActiveSlot(slotIndex);
+      this.scene.resourceUI.updateAmmoUI();
+    }
   }
 
   setupMouseInput(scene) {
@@ -196,11 +266,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setFlipX(false); // Right
       }
 
-      // Attack on mouse click (backstab now uses R key)
-      // DISABLE mouse attack for PLAYER_1 (uses Space + Auto-aim)
-      if (this.characterType !== CharacterTypes.PLAYER_1) {
-        this.attack();
-      }
+      // Attack logic removed from mouse click (now uses Space ONLY)
     });
   }
 
@@ -260,9 +326,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     // Decrement ammo for Player 1
     if (this.characterType === CharacterTypes.PLAYER_1) {
-      this.currentAmmo--;
-      console.log(`Ammo: ${this.currentAmmo}/${this.maxAmmo}`);
-      // Update UI if any
+      const ammo = this.ammoData[this.activeSlot];
+      if (ammo) {
+        // Reduced decrement here as it's now handled in attack() for gun_fire
+        // But for other characters/archers, we still want a log
+        console.log(`Ammo check: ${ammo.current}/${ammo.max}`);
+      }
     }
 
     // Get number of projectiles (default to 1 for archer)
@@ -283,21 +352,27 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
       const projectileAngle = baseAngle + angleOffset;
 
+      // Get weapon specific projectile texture override
+      const weaponKey = this.weaponSlots[this.activeSlot];
+      const weapon = getWeaponByKey(weaponKey);
+      const textureOverride = weapon?.projectileTexture;
+
       // Create projectile sprite
-      const projectile = this.scene.add.sprite(this.x, this.y, projectileConfig.texture);
-      projectile.setScale(projectileConfig.scale);
+      const projectile = this.scene.add.sprite(this.x, this.y, textureOverride || projectileConfig.texture || 'bullet');
+      projectile.setScale(projectileConfig.scale || 0.4);
       if (projectileConfig.tint) {
         projectile.setTint(projectileConfig.tint);
       }
       projectile.setDepth(this.depth + 50);
 
       // Calculate velocity from angle
+      const speed = weapon?.speed || projectileConfig.speed || 1000;
       const velocity = {
-        x: Math.cos(projectileAngle) * projectileConfig.speed,
-        y: Math.sin(projectileAngle) * projectileConfig.speed
+        x: Math.cos(projectileAngle) * speed,
+        y: Math.sin(projectileAngle) * speed
       };
 
-      // Rotate projectile to face flight direction (add 90° offset for bullet sprite)
+      // Rotate projectile to face flight direction (add 90° offset for vertical bullet sprite)
       projectile.setAngle(Phaser.Math.RadToDeg(projectileAngle) + 90);
 
       // Store projectile data
@@ -305,7 +380,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       projectile.setData('startX', this.x);
       projectile.setData('startY', this.y);
       projectile.setData('damage', projectileConfig.damage + (this.bonusDamage || 0));
-      projectile.setData('range', projectileConfig.range);
+      projectile.setData('range', weapon?.range || projectileConfig.range);
+      projectile.setData('isExplosive', !!weapon?.isExplosive);
 
       this.activeArrows.push(projectile);
     }
@@ -357,7 +433,51 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       return;
     }
 
-    const attackType = this.characterConfig.weapon?.attackType || 'swing';
+    const weaponKey = this.weaponSlots[this.activeSlot];
+    const weapon = getWeaponByKey(weaponKey);
+
+    // Get current weapon's attack type, fallback to character default
+    const attackType = weapon?.attackType || this.characterConfig.weapon?.attackType;
+
+    // BOMB handling (Slot 4 / Throwables)
+    if (weapon && weapon.category === WeaponCategories.BOMB) {
+      // Find nearest enemy to aim grenade
+      const nearestEnemy = this.findNearestEnemy(180);
+      if (nearestEnemy) {
+        this.lastAttackAngle = Phaser.Math.Angle.Between(this.x, this.y, nearestEnemy.x, nearestEnemy.y);
+        this.setFlipX(nearestEnemy.x < this.x);
+      } else {
+        this.lastAttackAngle = this.flipX ? Math.PI : 0;
+      }
+
+      // Consume ammo
+      const ammo = this.ammoData[this.activeSlot];
+      if (ammo && ammo.current > 0) {
+        ammo.current--;
+        if (this.scene.resourceUI) this.scene.resourceUI.updateAmmoUI();
+      }
+
+      // Throwing animation
+      this.scene.tweens.add({
+        targets: this,
+        weaponRotation: -45,
+        duration: 150,
+        ease: 'Power2',
+        onComplete: () => {
+          this.throwGrenade();
+          this.scene.tweens.add({
+            targets: this,
+            weaponRotation: 0,
+            duration: 150,
+            ease: 'Power2',
+            onComplete: () => {
+              this.isAttacking = false;
+            }
+          });
+        }
+      });
+      return;
+    }
 
     if (attackType === 'pull') {
       // Bow attack: pull back animation (toward player)
@@ -397,19 +517,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
       // Recoil attack (for guns/rifles)
 
-      // Consume ammo if Player 1
-      if (this.characterType === CharacterTypes.PLAYER_1) {
-        if (this.currentAmmo > 0) {
-          this.currentAmmo--;
-          // Update HUD if exists
-          if (this.scene.resourceUI) {
-            this.scene.resourceUI.updatePlayerHUD();
-          }
-        }
-      }
-
       // Find nearest enemy within range
-      const projectileRange = this.characterConfig.weapon?.projectile?.range || 250;
+      const projectileRange = this.characterConfig.weapon?.projectile?.range || 180;
       const nearestEnemy = this.findNearestEnemy(projectileRange);
 
       if (nearestEnemy) {
@@ -425,6 +534,18 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       } else {
         // No enemy in range, shoot straight in facing direction
         this.lastAttackAngle = this.flipX ? Math.PI : 0;
+      }
+
+      // Consume ammo if Player 1
+      if (this.characterType === CharacterTypes.PLAYER_1) {
+        const ammo = this.ammoData[this.activeSlot];
+        if (ammo && ammo.current > 0) {
+          ammo.current--;
+          // Update HUD instantly
+          if (this.scene.resourceUI) {
+            this.scene.resourceUI.updateAmmoUI();
+          }
+        }
       }
 
       // Launch projectile (shoot bullet)
@@ -460,8 +581,48 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           });
         }
       });
+    } else if (attackType === 'melee') {
+      // Find nearest enemy for melee auto-targeting (within 100px)
+      const nearestEnemy = this.findNearestEnemy(100);
+      if (nearestEnemy) {
+        this.lastAttackAngle = Phaser.Math.Angle.Between(this.x, this.y, nearestEnemy.x, nearestEnemy.y);
+        this.setFlipX(nearestEnemy.x < this.x);
+      } else {
+        // Default to facing direction
+        this.lastAttackAngle = this.flipX ? Math.PI : 0;
+      }
+
+      // Shovel swing: Raised up then slammed down (vụt lên vụt xuống)
+      this.scene.tweens.add({
+        targets: this,
+        weaponRotation: -60, // Raise high up
+        duration: 100,
+        ease: 'Cubic.easeOut',
+        onComplete: () => {
+          // Check for damage at the start of downswing/slam
+          this.checkAttackHit();
+
+          this.scene.tweens.add({
+            targets: this,
+            weaponRotation: 60, // Slam down past horizontal
+            duration: 80,
+            ease: 'Back.easeIn',
+            onComplete: () => {
+              this.scene.tweens.add({
+                targets: this,
+                weaponRotation: 0, // Return to normal
+                duration: 120,
+                ease: 'Power1',
+                onComplete: () => {
+                  this.isAttacking = false;
+                }
+              });
+            }
+          });
+        }
+      });
     } else {
-      // Default swing attack (for scepter)
+      // Default swing attack (for scepter or other defaults)
       this.scene.tweens.add({
         targets: this,
         weaponRotation: -30,
@@ -469,6 +630,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         ease: 'Power2',
         onComplete: () => {
           // Only check melee hit if character doesn't have skill effect (not Mage)
+          const showSkillEffect = this.characterConfig.weapon?.showSkillEffect;
           if (!showSkillEffect) {
             this.checkAttackHit();
           }
@@ -499,9 +661,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const damage = this.attackDamage + (this.bonusDamage || 0);
 
     // Tính vị trí tấn công theo góc
-    const attackDistance = 20;
-    const hitWidth = 40;
-    const hitHeight = 30;
+    const attackDistance = 25;
+    const hitWidth = 50;
+    const hitHeight = 50;
 
     const hitX = this.x + Math.cos(this.lastAttackAngle) * attackDistance;
     const hitY = this.y + Math.sin(this.lastAttackAngle) * attackDistance;
@@ -579,6 +741,113 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     });
   }
 
+  throwGrenade() {
+    const weaponKey = this.weaponSlots[this.activeSlot];
+    const weapon = getWeaponByKey(weaponKey);
+    const texture = weapon ? weapon.texture : 'Grenade';
+
+    const grenade = this.scene.add.sprite(this.x, this.y, texture);
+    grenade.setScale(0.6);
+    grenade.setDepth(this.depth + 50);
+
+    // Dynamic target: Land on nearest enemy or fixed distance
+    const nearestEnemy = this.findNearestEnemy(180);
+    const startX = this.x;
+    const startY = this.y;
+    let targetX, targetY;
+
+    if (nearestEnemy) {
+      targetX = nearestEnemy.x;
+      targetY = nearestEnemy.y;
+    } else {
+      const throwDistance = 180;
+      targetX = this.x + Math.cos(this.lastAttackAngle) * throwDistance;
+      targetY = this.y + Math.sin(this.lastAttackAngle) * throwDistance;
+    }
+
+    const duration = 700;
+    const arcHeight = 100;
+
+    this.scene.tweens.addCounter({
+      from: 0,
+      to: 1,
+      duration: duration,
+      onUpdate: (tween) => {
+        const t = tween.getValue();
+        const currentX = startX + (targetX - startX) * t;
+        const currentY = startY + (targetY - startY) * t;
+
+        // Parabolic arc: h = 4 * height * t * (1 - t)
+        const yOffset = 4 * arcHeight * t * (1 - t);
+
+        grenade.setPosition(currentX, currentY - yOffset);
+        grenade.angle += 15;
+      },
+      onComplete: () => {
+        this.explodeGrenade(grenade);
+      }
+    });
+  }
+
+  explodeGrenade(grenade) {
+    const ex = grenade.x;
+    const ey = grenade.y;
+    grenade.destroy();
+
+    // Explosion Effect (effect_4)
+    const explosion = this.scene.add.sprite(ex, ey, 'effect_4');
+    explosion.setScale(1.5);
+    explosion.setDepth(this.depth + 100);
+    explosion.play('effect_4');
+
+    explosion.on('animationcomplete', () => {
+      explosion.destroy();
+    });
+
+    // Play explosion sound
+    try {
+      this.scene.sound.play('grenade_explosion', { volume: 0.6 });
+    } catch (e) {
+      console.warn('Could not play grenade explosion sound:', e);
+    }
+
+    // Auto-destroy fallback
+    this.scene.time.delayedCall(1000, () => {
+      if (explosion && explosion.active) explosion.destroy();
+    });
+
+    // AOE Logic - Reduced radius
+    const aoeRadius = 80;
+    const aoeDamage = 120;
+
+    const enemyGroups = [
+      this.scene.bears,
+      this.scene.treeMen,
+      this.scene.forestGuardians,
+      this.scene.gnollBrutes,
+      this.scene.gnollShamans,
+      this.scene.wolves,
+      this.scene.golems,
+      this.scene.mushrooms,
+      this.scene.smallMushrooms,
+      this.scene.chests
+    ];
+
+    enemyGroups.forEach(group => {
+      if (!group) return;
+      const enemies = Array.isArray(group) ? group : [];
+      enemies.forEach(enemy => {
+        // Fix: Check enemy.sprite.active instead of enemy.active
+        if (enemy && enemy.sprite && enemy.sprite.active && !enemy.isDead) {
+          const dist = Phaser.Math.Distance.Between(ex, ey, enemy.sprite.x, enemy.sprite.y);
+          if (dist <= aoeRadius) {
+            enemy.takeDamage(aoeDamage);
+          }
+        }
+      });
+    });
+  }
+
   findNearestEnemy(maxRange = Infinity) {
     const enemyGroups = [
       this.scene.bears,
@@ -599,9 +868,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     enemyGroups.forEach(group => {
       if (!group) return;
       (Array.isArray(group) ? group : []).forEach(enemy => {
-        if (!enemy || enemy.isDead) return;
+        // Fix: Consistent active check
+        if (!enemy || enemy.isDead || !enemy.sprite || !enemy.sprite.active) return;
 
-        const distance = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
+        const distance = Phaser.Math.Distance.Between(this.x, this.y, enemy.sprite.x, enemy.sprite.y);
         if (distance <= maxRange && distance < nearestDistance) {
           nearestDistance = distance;
           nearestEnemy = enemy;
@@ -669,7 +939,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
 
   reloadWeapon() {
-    if (this.isReloading || this.currentAmmo === this.maxAmmo) {
+    const ammo = this.ammoData[this.activeSlot];
+    if (!ammo || this.isReloading || ammo.current === ammo.max) {
       console.log('Already reloading or full ammo.');
       return;
     }
@@ -755,7 +1026,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.reloadProgressTimer = progressTimer;
 
     this.reloadTimer = this.scene.time.delayedCall(reloadTime, () => {
-      this.currentAmmo = this.maxAmmo;
+      const ammo = this.ammoData[this.activeSlot];
+      if (ammo) ammo.current = ammo.max;
       this.isReloading = false;
       this.reloadTimer = null;
 
@@ -771,7 +1043,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.reloadProgressTimer = null;
       }
 
-      console.log('Reload complete! Ammo: ' + this.currentAmmo);
+      console.log('Reload complete! Ammo: ' + ammo.current);
 
       // Update UI
       if (this.scene.resourceUI) {
@@ -1032,7 +1304,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.reloadTimer.remove();
       this.reloadTimer = null;
     }
-    this.currentAmmo = this.maxAmmo; // Restore full ammo
+    const ammo = this.ammoData[this.activeSlot];
+    if (ammo) ammo.current = ammo.max; // Restore full ammo
 
     // Restore UI visibility
     if (this.weapon) this.weapon.setVisible(true);
@@ -1077,9 +1350,20 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const blockMovementForMino = this.characterType === CharacterTypes.TAOIST && this.isTransformed && this.isAttacking;
     if (blockMovementForMino) return;
 
-    // Check for auto-fire (Space held down)
-    if (this.characterType === CharacterTypes.PLAYER_1 && this.keySpace?.isDown) {
-      if (this.currentAmmo > 0 && !this.isReloading) {
+    // Check for attack input (Space held down)
+    if (this.keySpace?.isDown) {
+      if (this.characterType === CharacterTypes.PLAYER_1) {
+        const weaponKey = this.weaponSlots[this.activeSlot];
+        const weapon = getWeaponByKey(weaponKey);
+        const isMelee = weapon && weapon.category === WeaponCategories.MELEE;
+        const ammo = this.ammoData[this.activeSlot];
+
+        // Allow attack if it's Melee OR if we have ammo and not reloading
+        if ((isMelee || (ammo && ammo.current > 0)) && !this.isReloading) {
+          this.attack();
+        }
+      } else {
+        // Other characters also use Space to attack
         this.attack();
       }
     }
@@ -1266,7 +1550,11 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       const distance = Phaser.Math.Distance.Between(startX, startY, arrow.x, arrow.y);
 
       if (distance > range) {
-        arrow.destroy();
+        if (arrow.getData('isExplosive')) {
+          this.explodeGrenade(arrow);
+        } else {
+          arrow.destroy();
+        }
         this.activeArrows.splice(i, 1);
         continue;
       }
@@ -1310,7 +1598,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.createBloodSplatter(enemy.x, enemy.y, velocity, enemy);
 
             enemy.takeDamage(damage);
-            arrow.destroy();
+
+            if (arrow.getData('isExplosive')) {
+              this.explodeGrenade(arrow);
+            } else {
+              arrow.destroy();
+            }
+
             this.activeArrows.splice(i, 1);
             hitEnemy = true;
             break;
@@ -1448,20 +1742,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.activeRainArrows = [];
     }
 
-    // Create a fading target marker on the ground
-    const targetMarker = this.scene.add.image(targetX, targetY, 'magic_circle');
-    targetMarker.setDepth(targetY - 1); // Ground level
-    targetMarker.setAlpha(0.5);
-    targetMarker.setScale(0.5); // Matches cursor scale
-
-    this.scene.tweens.add({
-      targets: targetMarker,
-      alpha: 0,
-      scaleX: 0.2,
-      scaleY: 0.2,
-      duration: 2000,
-      onComplete: () => targetMarker.destroy()
-    });
+    // Marker removal as asset is deleted
 
     for (let i = 0; i < arrowCount; i++) {
       // Random start time for each arrow to create "rain" effect

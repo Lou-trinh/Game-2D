@@ -1,3 +1,5 @@
+import { getWeaponByKey, WeaponCategories } from './data/WeaponData';
+
 export default class ResourceUI {
     constructor(scene, player) {
         this.scene = scene;
@@ -125,46 +127,65 @@ export default class ResourceUI {
         this.healthText.setScrollFactor(0);
         this.healthText.setDepth(2002);
 
-        // Weapon and Ammo section (below health bar)
-        const weaponY = hudY + 43;
+        // Weapon Slots Section (Bottom-Left)
+        const slotW = 40; // Smaller squares
+        const slotH = 40;
+        const slotMargin = 8;
 
-        // Weapon Icon (LARGER, with background)
-        this.weaponBg = this.scene.add.circle(healthX + 18, weaponY, 20, 0x1a1a1a, 0.8);
-        this.weaponBg.setScrollFactor(0);
-        this.weaponBg.setDepth(2000);
-        this.weaponBg.setStrokeStyle(1, 0x555555, 1);
+        const slotX = 20; // Left offset
+        this.bottomOffset = 150; // Reference for other methods
+        const slotY = this.scene.cameras.main.height - slotH - this.bottomOffset;
 
-        this.weaponIcon = this.scene.add.image(healthX + 18, weaponY, 'm4a1');
-        this.weaponIcon.setScrollFactor(0);
-        this.weaponIcon.setDepth(2001);
-        this.weaponIcon.setScale(1.4); // Slightly smaller scale to fit compact frame
+        this.hudWeaponSlots = [];
+        for (let i = 0; i < 4; i++) {
+            const sx = slotX + i * (slotW + slotMargin);
 
-        // If player has weapon config
-        if (this.player.characterConfig && this.player.characterConfig.weapon) {
-            const weaponTex = this.player.characterConfig.weapon.texture;
-            if (this.scene.textures.exists(weaponTex)) {
-                this.weaponIcon.setTexture(weaponTex);
-            }
+            const bg = this.scene.add.graphics();
+            bg.setScrollFactor(0);
+            bg.setDepth(2000);
+
+            // Draw square background
+            const isFirst = (i === 0);
+            bg.fillStyle(0x1a1a1a, 0.8);
+            bg.fillRoundedRect(sx, slotY, slotW, slotH, 8);
+            bg.lineStyle(isFirst ? 2 : 1, isFirst ? 0x00ff00 : 0x555555, 1);
+            bg.strokeRoundedRect(sx, slotY, slotW, slotH, 8);
+
+            const icon = this.scene.add.image(sx + slotW / 2, slotY + slotH / 2, 'M4A1');
+            icon.setScrollFactor(0);
+            icon.setDepth(2001);
+            icon.setScale(0.75);
+            icon.setVisible(false);
+
+            // Store references for updates
+            this.hudWeaponSlots.push({ bg, icon, sx, sy: slotY, sw: slotW, sh: slotH });
         }
 
-        // Ammo Icon (bullet_1.png) with background
-        this.ammoBg = this.scene.add.circle(healthX + 50, weaponY, 10, 0x1a1a1a, 0.8);
+        // Initialize icons from player data
+        this.updateIcons();
+
+        // Ammo Section (above slots)
+        const ammoX = slotX + 12;
+        const ammoY = slotY - 18;
+
+        // Ammo Icon (bullet_1.png) - MINI
+        this.ammoBg = this.scene.add.circle(ammoX, ammoY, 8, 0x1a1a1a, 0.8);
         this.ammoBg.setScrollFactor(0);
         this.ammoBg.setDepth(2000);
         this.ammoBg.setStrokeStyle(1, 0x555555, 1);
 
-        this.ammoIcon = this.scene.add.image(healthX + 50, weaponY, 'bullet_1');
+        this.ammoIcon = this.scene.add.image(ammoX, ammoY, 'bullet_1');
         this.ammoIcon.setScrollFactor(0);
         this.ammoIcon.setDepth(2001);
-        this.ammoIcon.setScale(0.35);
+        this.ammoIcon.setScale(0.4); // Larger bullet icon
 
         // Ammo Text (60/60) - larger and more visible
-        this.ammoText = this.scene.add.text(healthX + 75, weaponY, '60/60', {
-            fontSize: '16px',
+        this.ammoText = this.scene.add.text(ammoX + 15, ammoY, '60/60', {
+            fontSize: '14px',
             fontStyle: 'bold',
             color: '#ffff00',
             stroke: '#000000',
-            strokeThickness: 3
+            strokeThickness: 2
         });
         this.ammoText.setOrigin(0, 0.5);
         this.ammoText.setScrollFactor(0);
@@ -184,41 +205,114 @@ export default class ResourceUI {
     updatePlayerHUD() {
         if (!this.player) return;
 
-        // Update Health (with null check)
+        // Update Health
         if (this.hudHealth) {
             const hpPercent = Phaser.Math.Clamp(this.player.health / this.player.maxHealth, 0, 1);
             this.hudHealth.width = 120 * hpPercent;
 
-            // Change color based on health percentage
-            if (hpPercent > 0.6) {
-                this.hudHealth.setFillStyle(0x00ff00); // Green
-            } else if (hpPercent > 0.3) {
-                this.hudHealth.setFillStyle(0xffaa00); // Orange
-            } else {
-                this.hudHealth.setFillStyle(0xff0000); // Red
+            if (hpPercent > 0.6) this.hudHealth.setFillStyle(0x00ff00);
+            else if (hpPercent > 0.3) this.hudHealth.setFillStyle(0xffaa00);
+            else this.hudHealth.setFillStyle(0xff0000);
+        }
+
+        if (this.healthText) {
+            this.healthText.setText(`${Math.ceil(this.player.health)}/${this.player.maxHealth}`);
+        }
+
+        // Update Active Slot Highlight
+        const activeIdx = parseInt(this.player.activeSlot.replace('slot', ''));
+        this.updateActiveSlot(activeIdx);
+        this.updateIcons();
+
+        // Update Ammo for active slot
+        this.updateAmmoUI();
+    }
+
+    updateAmmoUI() {
+        if (!this.ammoText || !this.ammoIcon || !this.ammoBg) return;
+
+        const weaponKey = this.player.weaponSlots[this.player.activeSlot];
+        const weapon = getWeaponByKey(weaponKey);
+
+        // Hide ammo HUD for melee weapons
+        if (weapon && (weapon.category === WeaponCategories.MELEE)) {
+            this.ammoText.setVisible(false);
+            this.ammoIcon.setVisible(false);
+            this.ammoBg.setVisible(false);
+            return;
+        } else if (this.player.characterType === 'player_1') {
+            // Re-show for other guns (only if Player 1)
+            this.ammoText.setVisible(true);
+            this.ammoIcon.setVisible(true);
+            this.ammoBg.setVisible(true);
+        }
+
+        const ammo = this.player.ammoData[this.player.activeSlot] || { current: 0, max: 0 };
+        this.ammoText.setText(`${ammo.current}/${ammo.max}`);
+
+        if (ammo.current === 0) this.ammoText.setColor('#ff0000');
+        else if (ammo.current <= ammo.max * 0.2) this.ammoText.setColor('#ffaa00');
+        else this.ammoText.setColor('#ffff00');
+
+        // Update Ammo Icon based on weapon type
+        if (weaponKey && this.ammoIcon) {
+            const weapon = getWeaponByKey(weaponKey);
+            if (weapon) {
+                let bulletTexture = 'bullet_1'; // Default: SMG / Assault / Battle Rifles
+                if (weapon.category === WeaponCategories.HANDGUNS || weapon.category === WeaponCategories.MELEE) {
+                    bulletTexture = 'bullet_2';
+                } else if (weapon.category === WeaponCategories.SHOTGUNS) {
+                    bulletTexture = 'bullet_4';
+                } else if (weapon.category === WeaponCategories.SNIPER_RIFLES || weapon.category === WeaponCategories.LMG || weapon.category === WeaponCategories.ROCKET_LAUNCHERS) {
+                    bulletTexture = 'bullet_3';
+                }
+
+                if (this.ammoIcon && this.ammoIcon.texture.key !== bulletTexture) {
+                    this.ammoIcon.setTexture(bulletTexture);
+                    this.ammoIcon.setScale(0.4);
+                }
             }
         }
+    }
 
-        // Update Health Text
-        if (this.healthText) {
-            const currentHP = Math.ceil(this.player.health);
-            const maxHP = this.player.maxHealth;
-            this.healthText.setText(`${currentHP}/${maxHP}`);
-        }
+    updateActiveSlot(slotIndex) {
+        this.hudWeaponSlots.forEach((slot, i) => {
+            const isActive = (i === slotIndex - 1);
+            const sy = this.scene.cameras.main.height - slot.sh - (this.bottomOffset || 150);
+            slot.bg.clear();
+            slot.bg.fillStyle(0x1a1a1a, 0.8);
+            slot.bg.fillRoundedRect(slot.sx, sy, slot.sw, slot.sh, 6);
+            slot.bg.lineStyle(isActive ? 2 : 1, isActive ? 0x00ff00 : 0x555555, 1);
+            slot.bg.strokeRoundedRect(slot.sx, sy, slot.sw, slot.sh, 6);
 
-        // Update Ammo (with null check)
-        if (this.player.characterType === 'player_1' && this.ammoText) {
-            const current = this.player.currentAmmo !== undefined ? this.player.currentAmmo : 30;
-            const max = this.player.maxAmmo || 30;
-            this.ammoText.setText(`${current}/${max}`);
+            // Add a subtle glow to active slot
+            if (isActive) {
+                const sy = this.scene.cameras.main.height - slot.sh - (this.bottomOffset || 150);
+                slot.bg.lineStyle(4, 0x00ff00, 0.2);
+                slot.bg.strokeRoundedRect(slot.sx - 2, sy - 2, slot.sw + 4, slot.sh + 4, 8);
+            }
+        });
+    }
 
-            // Change ammo color based on amount
-            if (current === 0) {
-                this.ammoText.setColor('#ff0000'); // Red when empty
-            } else if (current <= 10) {
-                this.ammoText.setColor('#ffaa00'); // Orange when low
+    updateIcons() {
+        if (!this.player || !this.player.weaponSlots) return;
+
+        for (let i = 0; i < 4; i++) {
+            const weaponKey = this.player.weaponSlots[`slot${i + 1}`];
+            const slot = this.hudWeaponSlots[i];
+
+            if (weaponKey) {
+                const weapon = getWeaponByKey(weaponKey);
+                const texture = weapon ? weapon.texture : weaponKey;
+
+                if (texture && this.scene.textures.exists(texture)) {
+                    slot.icon.setTexture(texture);
+                    slot.icon.setVisible(true);
+                } else {
+                    slot.icon.setVisible(false);
+                }
             } else {
-                this.ammoText.setColor('#ffff00'); // Yellow when normal
+                slot.icon.setVisible(false);
             }
         }
     }
