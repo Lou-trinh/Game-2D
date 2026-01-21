@@ -7,7 +7,7 @@ export default class SceneLoading extends Phaser.Scene {
 
     preload() {
         // Load background first (no progress bar yet)
-        this.load.image('loading_bg', 'assets/images/inventory/background.png');
+        this.load.image('loading_bg', 'assets/images/inventory/background_load.png');
 
         // Use a small loader to wait for background
         this.load.once('complete', () => {
@@ -163,70 +163,85 @@ export default class SceneLoading extends Phaser.Scene {
         const bg = this.add.image(width / 2, height / 2, 'loading_bg');
         bg.setDisplaySize(width, height);
 
-        // 1. Create loading bar visuals
+        // --- PROGRESS BAR DESIGN ---
+        const barWidth = 400;
+        const barHeight = 30;
+        const barX = width / 2 - barWidth / 2;
+        const barY = height / 2 + 50; // Moved down slightly
 
-        // "Loading..." Text
+        // 1. Glow effect (Outer)
+        const glow = this.add.graphics();
+        glow.fillStyle(0x00ff00, 0.2);
+        glow.fillRoundedRect(barX - 5, barY - 5, barWidth + 10, barHeight + 10, 15);
+
+        // 2. Container (Background of the bar)
+        const progressBox = this.add.graphics();
+        progressBox.fillStyle(0x000000, 0.7);
+        progressBox.fillRoundedRect(barX, barY, barWidth, barHeight, 10);
+        progressBox.lineStyle(2, 0xffffff, 0.5);
+        progressBox.strokeRoundedRect(barX, barY, barWidth, barHeight, 10);
+
+        // 3. The Fill (Dynamic)
+        const progressBar = this.add.graphics();
+
+        // --- TEXT DESIGN ---
+        // Combined Text: "LOADING... 45%"
+        // Positioned BELOW the bar
         const loadingText = this.make.text({
             x: width / 2,
-            y: height / 2 - 60,
-            text: 'LOADING...',
+            y: barY + barHeight + 30, // 30px below the bar
+            text: 'LOADING... 0%',
             style: {
                 font: 'bold 24px monospace',
-                fill: '#ffffff'
+                fill: '#ffffff',
+                shadow: { offsetX: 1, offsetY: 1, color: '#000000', blur: 3, fill: true }
             }
         });
         loadingText.setOrigin(0.5, 0.5);
 
-        // Percentage Text
-        const percentText = this.make.text({
-            x: width / 2,
-            y: height / 2 + 70, // Below bar
-            text: '0%',
-            style: {
-                font: '18px monospace',
-                fill: '#ffffff'
-            }
-        });
-        percentText.setOrigin(0.5, 0.5);
-
-        // Progress bar container (Border)
-        const progressBox = this.add.graphics();
-        progressBox.lineStyle(2, 0xffffff, 1);
-        progressBox.strokeRoundedRect(width / 2 - 160, height / 2 - 15, 320, 30, 10);
-
-        // Progress bar fill
-        const progressBar = this.add.graphics();
-
-        // 2. FAKE LOADING PROGRESS (Visuals)
+        // --- FAKE LOADING LOGIC ---
         let progressValue = 0;
 
         const updateProgressBar = () => {
-            // Update percentage text
-            percentText.setText(parseInt(progressValue * 100) + '%');
+            const percentage = parseInt(progressValue * 100);
 
-            // Update progress bar (Green: 0x2ecc71 - nicer green)
+            // Update UI Text
+            loadingText.setText(`LOADING... ${percentage}%`);
+
+            // Update Progress Bar Fill
             progressBar.clear();
-            progressBar.fillStyle(0x2ecc71, 1);
 
-            // Draw rounded rect inside
-            const barWidth = 310 * progressValue;
-            if (barWidth > 0) {
-                progressBar.fillRoundedRect(width / 2 - 155, height / 2 - 10, barWidth, 20, 8);
+            // Gradient effect by drawing multiple lines (simple imitation) or using fillGradientStyle if supported for rect (phaser 3 usually supports basic gradient fills in newer versions, but fillStyle is safer for generic rects)
+            // We'll use a solid vibrant green for now, maybe add a shine
+            progressBar.fillStyle(0x00e055, 1);
+
+            const w = barWidth * progressValue;
+            if (w > 0) {
+                // Limit width to container
+                // Draw rounded rect
+                progressBar.fillRoundedRect(barX + 2, barY + 2, w - 4, barHeight - 4, 8);
+
+                // Add a "shine" or highlight at the top half
+                progressBar.fillStyle(0xffffff, 0.2);
+                progressBar.fillRoundedRect(barX + 2, barY + 2, w - 4, (barHeight - 4) / 2, { tl: 8, tr: 8, bl: 0, br: 0 });
             }
         };
 
         // Use a timer to fake the progress smooth visuals
         this.time.addEvent({
-            delay: 30,
-            repeat: 100,
+            delay: 30, // Speed of loading
+            repeat: 100, // 0 to 100 steps approximately
             callback: () => {
                 progressValue += 0.01;
                 if (progressValue > 1) progressValue = 1;
                 updateProgressBar();
 
+                // Extra delay at 100% before starting
                 if (progressValue >= 1) {
-                    console.log('✅ Loading complete, starting MenuScene');
-                    this.scene.start('MenuScene');
+                    this.time.delayedCall(500, () => {
+                        console.log('✅ Loading complete, starting MenuScene');
+                        this.scene.start('MenuScene');
+                    });
                 }
             }
         });

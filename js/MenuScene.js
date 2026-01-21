@@ -28,7 +28,7 @@ export default class MenuScene extends Phaser.Scene {
         const bg = this.add.image(0, 0, 'menu_bg');
         bg.setOrigin(0, 0);
         bg.setDisplaySize(width, height);
-        bg.setAlpha(0.6); // Darken for UI contrast
+        // bg.setAlpha(0.6); // Removed to use original image brightness
 
         // Layout Constants
         const topBarHeight = 60;
