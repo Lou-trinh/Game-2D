@@ -89,6 +89,15 @@ export default class Chest {
     }
 
     dropItems() {
+        // Drop 10-20 coins
+        const coinCount = Phaser.Math.Between(10, 20);
+        if (this.scene.dropLoot) {
+            this.scene.dropLoot(this.x, this.y, coinCount, 'coin');
+        }
+
+        // Spawn 3-5 random power-up items
+        const itemCount = Phaser.Math.Between(3, 5);
+
         const dropX = this.sprite.x;
         const dropY = this.sprite.y;
 

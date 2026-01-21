@@ -355,6 +355,10 @@ export default class SmallMushRoom {
   }
 
   dropItems() {
+    // Drop 1 coin
+    if (this.scene.dropLoot) {
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'coin');
+    }
   }
 
   get x() {

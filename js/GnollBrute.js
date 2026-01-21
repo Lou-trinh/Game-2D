@@ -368,8 +368,11 @@ export default class GnollBrute {
   }
 
   dropItems() {
-    // Item drops disabled - blood, meat, and diamonds no longer drop
-    return;
+    // Drop 2-4 coins
+    const coinCount = Phaser.Math.Between(2, 4);
+    if (this.scene.dropLoot) {
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
+    }
   }
 
   get x() {

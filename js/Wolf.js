@@ -422,8 +422,11 @@ export default class Wolf {
   }
 
   dropItems() {
-    // Item drops disabled - blood, meat, and diamonds no longer drop
-    return;
+    // Drop 1-2 coins
+    const coinCount = Phaser.Math.Between(1, 2);
+    if (this.scene.dropLoot) {
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
+    }
   }
 
   get x() {

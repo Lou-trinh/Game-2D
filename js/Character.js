@@ -2,54 +2,21 @@ import Phaser from 'phaser';
 
 // Character configurations
 export const CharacterTypes = {
-    MAGE: 'mage',
     ARCHER: 'archer',
     WARRIOR: 'warrior',
     ASSASSIN: 'assassin',
     WIZARD: 'wizard',
-    TAOIST: 'taoist'
+    TAOIST: 'taoist',
+    PLAYER_1: 'player_1'
 };
 
 export const CharacterConfigs = {
-    [CharacterTypes.MAGE]: {
-        key: 'mage',
-        name: 'Pháp Sư',
-        icon: '🧙',
-        color: 0x9b59b6,
-        description: 'Sát thương phép cao\nMáu thấp',
-        texture: 'mage',
-        idleFrame: 'townsfolk_f_idle_1',
-        walkAnim: 'mage_walk',
-        idleAnim: 'mage_idle',
-        stats: {
-            health: 80,
-            damage: 0,
-            speed: 2.5,
-            defense: 5
-        },
-        assets: {
-            atlas: 'assets/images/mage/mage.png',
-            atlasJson: 'assets/images/mage/mage_atlas.json',
-            anim: 'assets/images/mage/mage_anim.json'
-        },
-        weapon: {
-            texture: 'scepter',
-            path: 'assets/images/weapons/scepter.png',
-            scale: 0.5,
-            offsetX: 10,
-            offsetY: 2,
-            attackType: 'swing',
-            showSkillEffect: true  // Mage shows lightning
-        },
-        unlocked: true
-    },
-
     [CharacterTypes.ARCHER]: {
         key: 'archer',
-        name: 'Cung Thủ',
+        name: 'SILVANUS',
         icon: '🏹',
         color: 0x27ae60,
-        description: 'Tấn công tầm xa\nDi chuyển nhanh',
+        description: '',
         texture: 'archer',
         idleFrame: 'archer_idle_1',
         walkAnim: 'archer_walk',
@@ -86,10 +53,10 @@ export const CharacterConfigs = {
 
     [CharacterTypes.WARRIOR]: {
         key: 'warrior',
-        name: 'Chiến Binh',
+        name: 'VANGUARD',
         icon: '⚔️',
         color: 0xe74c3c,
-        description: 'Cân bằng tấn công\nvà phòng thủ',
+        description: '',
         texture: 'warrior',
         idleFrame: 'blacksmith_idle_1',
         walkAnim: 'warrior_walk',
@@ -119,10 +86,10 @@ export const CharacterConfigs = {
 
     [CharacterTypes.ASSASSIN]: {
         key: 'assassin',
-        name: 'Sát Thủ',
+        name: 'NIGHTFALL',
         icon: '🗡️',
         color: 0x2c3e50,
-        description: 'Chém từ sau lưng\\nClick phải: Dịch chuyển',
+        description: '',
         texture: 'assassin',
         idleFrame: 'thief_idle_1',
         walkAnim: 'assassin_walk',
@@ -153,10 +120,10 @@ export const CharacterConfigs = {
 
     [CharacterTypes.WIZARD]: {
         key: 'wizard',
-        name: 'Thuật Sĩ',
+        name: 'AETHER',
         icon: '✨',
         color: 0x3498db,
-        description: 'Phép thuật đa dạng\nHỗ trợ đồng đội',
+        description: '',
         texture: 'wizard',
         idleFrame: 'wizard_idle_1',
         walkAnim: 'wizard_walk',
@@ -195,10 +162,10 @@ export const CharacterConfigs = {
 
     [CharacterTypes.TAOIST]: {
         key: 'taoist',
-        name: 'Đạo Sĩ',
+        name: 'ECLIPSE',
         icon: '☯️',
         color: 0xf39c12,
-        description: 'Phép thuật đa dạng\nBiến hình Mino (R)',
+        description: '',
         texture: 'taoist',
         idleFrame: 'taoist_idle_1',
         walkAnim: 'taoist_walk',
@@ -235,6 +202,49 @@ export const CharacterConfigs = {
             anim: 'assets/images/skill/mino/mino_anim.json'
         },
         unlocked: true
+    },
+
+    [CharacterTypes.PLAYER_1]: {
+        key: 'player_1',
+        name: 'PHOENIX',
+        icon: '👤',
+        color: 0x34495e,
+        description: '',
+        texture: 'player_1',
+        idleFrame: 'player_1', // Using first frame of idle
+        walkAnim: 'run_front', // Default walk for generic logic (will be overridden)
+        idleAnim: 'idle',
+        stats: {
+            health: 100,
+            damage: 25,
+            speed: 3.0,
+            defense: 8
+        },
+        assets: {
+            atlas: 'assets/images/player_1/player_1.png',
+            atlasJson: 'assets/images/player_1/player_1_atlas.json',
+            anim: 'assets/images/player_1/player_1_anim.json'
+        },
+        weapon: {
+            texture: 'm4a1',
+            path: 'assets/images/weapons/M4A1.png',
+            scale: 0.6,
+            offsetX: 7,
+            offsetY: 5,
+            attackType: 'gun_fire',
+            showSkillEffect: false,
+            projectile: {
+                texture: 'bullet', // Use specific bullet texture
+                speed: 1000,
+                range: 150,
+                damage: 25,
+                scale: 0.3 // Smaller bullet size
+            },
+            ammo: {
+                max: 60
+            }
+        },
+        unlocked: true
     }
 };
 
@@ -263,7 +273,7 @@ export function preloadCharacters(scene) {
 
 // Get character config by key
 export function getCharacterConfig(key) {
-    return CharacterConfigs[key] || CharacterConfigs[CharacterTypes.MAGE];
+    return CharacterConfigs[key] || CharacterConfigs[CharacterTypes.PLAYER_1];
 }
 
 // Get all unlocked characters

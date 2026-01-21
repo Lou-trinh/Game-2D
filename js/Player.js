@@ -3,7 +3,7 @@ import { preloadCharacters, getCharacterConfig, CharacterTypes } from './Charact
 
 export default class Player extends Phaser.Physics.Matter.Sprite {
   constructor(data) {
-    const { scene, x, y, texture, frame, characterType = CharacterTypes.MAGE } = data;
+    const { scene, x, y, texture, frame, characterType = CharacterTypes.PLAYER_1 } = data;
     super(scene.matter.world, x, y, texture, frame);
 
     // Store character config
@@ -93,7 +93,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.weapon.setDepth(this.depth + 1);
 
     this.isAttacking = false;
+    this.isAttacking = false;
     this.weaponRotation = 0;
+    this.weaponKick = 0; // Recoil offset
 
     // =====================
     // INVENTORY
@@ -145,6 +147,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     };
 
     // =====================
+    // AMMO SYSTEM (Player 1)
+    // =====================
+    this.maxAmmo = this.characterConfig.weapon?.ammo?.max || 30;
+    this.currentAmmo = this.maxAmmo;
+    this.isReloading = false;
+    this.reloadTimer = null;
+
+    // =====================
     // ARCHER SKILL (Arrow Rain)
     // =====================
     this.isAimingSkill = false;
@@ -161,6 +171,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // KEYBOARD INPUT (F key for dash)
     // =====================
     this.setupKeyboardInput(scene);
+    // Track space key for auto-fire
+    this.keySpace = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
   }
 
   static preload(scene) {
@@ -177,9 +189,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     scene.load.image('knife', 'assets/images/weapons/knife.png');
     scene.load.image('magic_circle', 'assets/images/weapons/magic_circle.png');
     scene.load.image('magic_circle_1', 'assets/images/weapons/magic_circle_1.png');
+    scene.load.image('bullet', 'assets/images/weapons/bullet.png');
+    scene.load.image('bullet_1', 'assets/images/weapons/bullet_1.png');
+    scene.load.image('ammo_pickup', 'assets/images/weapons/ammo_pickup.png');
 
     // Load common assets
     scene.load.image('ghost', 'assets/images/die/ghost.png');
+
+    // Load reload sound
+    scene.load.audio('reload_sound', 'assets/sounds/reload.mp3');
     scene.load.atlas(
       'lightning_skill_1',
       'assets/images/skill/skill_1/lightning_skill_1.png',
@@ -253,12 +271,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         return;
       }
 
-      if (this.characterType === CharacterTypes.MAGE && this.isAimingSkill) {
-        const worldX = pointer.worldX;
-        const worldY = pointer.worldY;
-        this.castMageExplosion(worldX, worldY);
-        return;
-      }
+
 
       if (this.isAttacking) return;
 
@@ -295,30 +308,40 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       }
 
       // Attack on mouse click (backstab now uses R key)
-      this.attack();
+      // DISABLE mouse attack for PLAYER_1 (uses Space + Auto-aim)
+      if (this.characterType !== CharacterTypes.PLAYER_1) {
+        this.attack();
+      }
     });
   }
 
   setupKeyboardInput(scene) {
-    // Setup SPACE key for dash (only trigger once per press)
+    // Setup SPACE key for dash (Assassin only)
     scene.input.keyboard.on('keydown-SPACE', () => {
-      if (this.characterType !== CharacterTypes.ASSASSIN) return;
-      if (this.isDashing || this.dashCooldown || this.isDead || this.isAttacking) return;
+      // Assassin Dash Logic
+      if (this.characterType === CharacterTypes.ASSASSIN) {
+        if (this.isDashing || this.dashCooldown || this.isDead || this.isAttacking) return;
 
-      console.log('⌨️ SPACE key pressed - triggering dash!');
+        console.log('⌨️ SPACE key pressed - triggering dash!');
 
-      // Get current movement direction
-      const vel = new Phaser.Math.Vector2(0, 0);
-      if (this.inputKeys?.left?.isDown) vel.x = -1;
-      else if (this.inputKeys?.right?.isDown) vel.x = 1;
-      if (this.inputKeys?.up?.isDown) vel.y = -1;
-      else if (this.inputKeys?.down?.isDown) vel.y = 1;
+        // Get current movement direction
+        const vel = new Phaser.Math.Vector2(0, 0);
+        if (this.inputKeys?.left?.isDown) vel.x = -1;
+        else if (this.inputKeys?.right?.isDown) vel.x = 1;
+        if (this.inputKeys?.up?.isDown) vel.y = -1;
+        else if (this.inputKeys?.down?.isDown) vel.y = 1;
 
-      this.performDash(vel);
+        this.performDash(vel);
+      }
+      // Player 1 shooting is handled in update() method for auto-fire
     });
 
-    // Setup R key for Assassin backstab, Wizard summon and Taoist transform
+    // Setup R key for Assassin backstab, Wizard summon, Taoist transform AND Reload
     scene.input.keyboard.on('keydown-R', () => {
+      // Player 1 Reload
+      if (this.characterType === CharacterTypes.PLAYER_1) {
+        this.reloadWeapon();
+      }
       // Assassin - Backstab
       if (this.characterType === CharacterTypes.ASSASSIN) {
         if (this.backstabCooldown || this.isAttacking || this.isDead || this.isDashing) return;
@@ -373,28 +396,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
       }
 
-      // Mage - Explosion (Toggle aiming)
-      if (this.characterType === CharacterTypes.MAGE) {
-        if (this.arrowRainCooldown || this.isDead) return; // Reuse same cooldown var for now or create new one
 
-        this.isAimingSkill = !this.isAimingSkill;
-
-        if (this.isAimingSkill) {
-          if (!this.skillTargetIndicator) {
-            this.skillTargetIndicator = this.scene.add.image(this.scene.input.activePointer.worldX, this.scene.input.activePointer.worldY, 'magic_circle_1');
-            this.skillTargetIndicator.setDepth(this.depth + 100);
-            this.skillTargetIndicator.setAlpha(0.7);
-            this.skillTargetIndicator.setScale(0.5);
-          } else {
-            this.skillTargetIndicator.setTexture('magic_circle_1');
-          }
-          this.skillTargetIndicator.setVisible(true);
-        } else {
-          if (this.skillTargetIndicator) {
-            this.skillTargetIndicator.setVisible(false);
-          }
-        }
-      }
 
       // Warrior - Spin Skill
       if (this.characterType === CharacterTypes.WARRIOR) {
@@ -429,6 +431,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const projectileConfig = this.characterConfig.weapon?.projectile;
     if (!projectileConfig) return;
 
+    // Decrement ammo for Player 1
+    if (this.characterType === CharacterTypes.PLAYER_1) {
+      this.currentAmmo--;
+      console.log(`Ammo: ${this.currentAmmo}/${this.maxAmmo}`);
+      // Update UI if any
+    }
+
     // Get number of projectiles (default to 1 for archer)
     const projectileCount = projectileConfig.count || 1;
     const spreadAngle = projectileConfig.spread || 0; // degrees
@@ -450,6 +459,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       // Create projectile sprite
       const projectile = this.scene.add.sprite(this.x, this.y, projectileConfig.texture);
       projectile.setScale(projectileConfig.scale);
+      if (projectileConfig.tint) {
+        projectile.setTint(projectileConfig.tint);
+      }
       projectile.setDepth(this.depth + 50);
 
       // Calculate velocity from angle
@@ -458,8 +470,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         y: Math.sin(projectileAngle) * projectileConfig.speed
       };
 
-      // Rotate projectile to face flight direction
-      projectile.setAngle(Phaser.Math.RadToDeg(projectileAngle));
+      // Rotate projectile to face flight direction (add 90° offset for bullet sprite)
+      projectile.setAngle(Phaser.Math.RadToDeg(projectileAngle) + 90);
 
       // Store projectile data
       projectile.setData('velocity', velocity);
@@ -474,6 +486,20 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
   attack() {
     if (this.isAttacking || this.isDead) return;
+
+    // Player 1 specific check for ammo before attacking
+    if (this.characterType === CharacterTypes.PLAYER_1) {
+      if (this.currentAmmo <= 0) {
+        console.log('❌ Out of ammo! Cannot attack.');
+        // Optional: Play empty click sound
+        return;
+      }
+      if (this.isReloading) {
+        console.log('❌ Reloading! Cannot attack.');
+        return;
+      }
+    }
+
     this.isAttacking = true;
 
     // Special attack handling for Taoist in transformed (Mino) form
@@ -540,6 +566,75 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
                   this.isAttacking = false;
                 }
               });
+            }
+          });
+        }
+      });
+    } else if (attackType === 'gun_fire') {
+      // Recoil attack (for guns/rifles)
+      // Fast kickback, slow return
+
+      // Recoil attack (for guns/rifles)
+
+      // Consume ammo if Player 1
+      if (this.characterType === CharacterTypes.PLAYER_1) {
+        if (this.currentAmmo > 0) {
+          this.currentAmmo--;
+          // Update HUD if exists
+          if (this.scene.resourceUI) {
+            this.scene.resourceUI.updatePlayerHUD();
+          }
+        }
+      }
+
+      // Find nearest enemy within range
+      const projectileRange = this.characterConfig.weapon?.projectile?.range || 250;
+      const nearestEnemy = this.findNearestEnemy(projectileRange);
+
+      if (nearestEnemy) {
+        // Enemy in range, aim at them
+        this.lastAttackAngle = Phaser.Math.Angle.Between(this.x, this.y, nearestEnemy.x, nearestEnemy.y);
+
+        // Face the target
+        if (nearestEnemy.x < this.x) {
+          this.setFlipX(true);
+        } else {
+          this.setFlipX(false);
+        }
+      } else {
+        // No enemy in range, shoot straight in facing direction
+        this.lastAttackAngle = this.flipX ? Math.PI : 0;
+      }
+
+      // Launch projectile (shoot bullet)
+      this.shootArrow();
+
+      // Play rifle gunshot sound
+      try {
+        this.scene.sound.play('rifle_shot', {
+          volume: 0.5,
+          detune: Math.random() * 100 - 50
+        });
+      } catch (e) {
+        console.warn('Could not play rifle sound:', e);
+      }
+
+      // Show muzzle flash effect (effect_7) at gun barrel
+      this.showMuzzleFlash();
+
+      this.scene.tweens.add({
+        targets: this,
+        weaponKick: 6, // Kick back 6 pixels
+        duration: 20,   // Extremely fast kick (Rapid fire)
+        ease: 'Power2',
+        onComplete: () => {
+          this.scene.tweens.add({
+            targets: this,
+            weaponKick: 0, // Return to normal
+            duration: 60, // Fast return (Total ~80ms cycle)
+            ease: 'Power1',
+            onComplete: () => {
+              this.isAttacking = false;
             }
           });
         }
@@ -710,7 +805,43 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     });
   }
 
-  findNearestEnemy() {
+  showMuzzleFlash() {
+    // Calculate muzzle position at the gun barrel tip
+    // The weapon is positioned at an offset from the player
+    const weaponLength = 20; // Distance from player to gun barrel tip
+
+    // Calculate muzzle position based on attack angle
+    const muzzleX = this.x + Math.cos(this.lastAttackAngle) * weaponLength;
+    const muzzleY = this.y + Math.sin(this.lastAttackAngle) * weaponLength;
+
+    // Create muzzle flash sprite
+    const muzzleFlash = this.scene.add.sprite(muzzleX, muzzleY, 'effect_7');
+    muzzleFlash.setScale(0.5); // Adjust size as needed
+    muzzleFlash.setDepth(this.depth + 100);
+
+    // Rotate to match gun angle
+    const angleDegrees = Phaser.Math.RadToDeg(this.lastAttackAngle);
+    muzzleFlash.setAngle(angleDegrees);
+
+    // Play animation - the key is 'shoot' from effect_7_anim.json
+    if (this.scene.anims.exists('shoot')) {
+      muzzleFlash.play('shoot');
+    }
+
+    // Auto-destroy after animation completes
+    muzzleFlash.on('animationcomplete', () => {
+      muzzleFlash.destroy();
+    });
+
+    // Fallback destroy in case animation doesn't complete
+    this.scene.time.delayedCall(400, () => {
+      if (muzzleFlash && muzzleFlash.active) {
+        muzzleFlash.destroy();
+      }
+    });
+  }
+
+  findNearestEnemy(maxRange = Infinity) {
     const enemyGroups = [
       this.scene.bears,
       this.scene.treeMen,
@@ -720,7 +851,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.scene.wolves,
       this.scene.golems,
       this.scene.mushrooms,
-      this.scene.smallMushrooms
+      this.scene.smallMushrooms,
+      this.scene.chests
     ];
 
     let nearestEnemy = null;
@@ -732,7 +864,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         if (!enemy || enemy.isDead) return;
 
         const distance = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
-        if (distance < nearestDistance) {
+        if (distance <= maxRange && distance < nearestDistance) {
           nearestDistance = distance;
           nearestEnemy = enemy;
         }
@@ -1073,6 +1205,169 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     });
   }
 
+  reloadWeapon() {
+    if (this.isReloading || this.currentAmmo === this.maxAmmo) {
+      console.log('Already reloading or full ammo.');
+      return;
+    }
+
+    console.log('Reloading weapon...');
+    this.isReloading = true;
+    this.isAttacking = false; // Stop attacking while reloading
+
+    // Play reload sound immediately
+    try {
+      this.scene.sound.play('reload_sound', {
+        volume: 0.3
+      });
+    } catch (e) {
+      console.warn('Could not play reload sound:', e);
+    }
+
+    // Play ammo bounce animation
+    this.playReloadAnimation();
+
+    // Clear any existing reload timer if R is pressed again
+    if (this.reloadTimer) {
+      this.reloadTimer.remove();
+    }
+
+    // Clear any existing reload indicator
+    if (this.reloadIndicator) {
+      this.reloadIndicator.destroy();
+      this.reloadIndicator = null;
+    }
+
+    const reloadTime = this.characterConfig.weapon?.ammo?.reloadTime || 1500; // Default 1.5 seconds
+
+    // Create loading circle indicator above player
+    this.reloadIndicator = this.scene.add.graphics();
+    this.reloadIndicator.setDepth(this.depth + 100);
+
+    // Draw a circular loading indicator
+    const circleRadius = 8;
+    const circleY = -40; // Above player's head
+
+    // Background circle (gray)
+    this.reloadIndicator.lineStyle(3, 0x666666, 0.5);
+    this.reloadIndicator.strokeCircle(this.x, this.y + circleY, circleRadius);
+
+    // Progress circle (white/yellow)
+    this.reloadIndicator.lineStyle(3, 0xffff00, 1);
+
+    // Animate the progress circle
+    let progress = 0;
+    const progressInterval = 50; // Update every 50ms
+    const totalSteps = reloadTime / progressInterval;
+
+    const progressTimer = this.scene.time.addEvent({
+      delay: progressInterval,
+      repeat: totalSteps - 1,
+      callback: () => {
+        progress += (1 / totalSteps);
+
+        // Clear and redraw
+        this.reloadIndicator.clear();
+
+        // Background circle
+        this.reloadIndicator.lineStyle(3, 0x666666, 0.5);
+        this.reloadIndicator.strokeCircle(this.x, this.y + circleY, circleRadius);
+
+        // Progress arc
+        this.reloadIndicator.lineStyle(3, 0xffff00, 1);
+        this.reloadIndicator.beginPath();
+        this.reloadIndicator.arc(
+          this.x,
+          this.y + circleY,
+          circleRadius,
+          Phaser.Math.DegToRad(-90), // Start from top
+          Phaser.Math.DegToRad(-90 + (360 * progress)), // Progress
+          false
+        );
+        this.reloadIndicator.strokePath();
+      }
+    });
+
+    // Store progress timer for cleanup
+    this.reloadProgressTimer = progressTimer;
+
+    this.reloadTimer = this.scene.time.delayedCall(reloadTime, () => {
+      this.currentAmmo = this.maxAmmo;
+      this.isReloading = false;
+      this.reloadTimer = null;
+
+      // Clean up reload indicator
+      if (this.reloadIndicator) {
+        this.reloadIndicator.destroy();
+        this.reloadIndicator = null;
+      }
+
+      // Clean up progress timer
+      if (this.reloadProgressTimer) {
+        this.reloadProgressTimer.remove();
+        this.reloadProgressTimer = null;
+      }
+
+      console.log('Reload complete! Ammo: ' + this.currentAmmo);
+
+      // Update UI
+      if (this.scene.resourceUI) {
+        this.scene.resourceUI.updatePlayerHUD();
+      }
+    });
+  }
+
+  playReloadAnimation() {
+    // Create 1 slightly smaller ammo pack sprite
+    const ammo = this.scene.add.image(this.x, this.y - 10, 'ammo_pickup');
+    ammo.setScale(0.7); // Slightly smaller as requested
+    ammo.setDepth(this.depth + 10);
+    ammo.setAlpha(0.8);
+
+    // Calculate target position (near the player)
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 15 + Math.random() * 10;
+    const targetX = this.x + Math.cos(angle) * distance;
+    const targetY = this.y + Math.sin(angle) * distance;
+
+    // Bounce effect - fly up then drop down (matches Chest.js)
+    this.scene.tweens.add({
+      targets: ammo,
+      x: targetX,
+      y: targetY - 30, // Peak height
+      alpha: 1,
+      duration: 300,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: ammo,
+          y: targetY,
+          duration: 450,
+          ease: 'Bounce.easeOut',
+          onComplete: () => {
+            // Fade out and destroy after landing
+            this.scene.time.delayedCall(500, () => {
+              this.scene.tweens.add({
+                targets: ammo,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => ammo.destroy()
+              });
+            });
+          }
+        });
+      }
+    });
+
+    // Rotation effect
+    this.scene.tweens.add({
+      targets: ammo,
+      angle: 360,
+      duration: 750,
+      ease: 'Linear'
+    });
+  }
+
   createPortalEffect(x, y, onComplete) {
     console.log(`🌀 Creating portal at (${Math.floor(x)}, ${Math.floor(y)})`);
 
@@ -1269,6 +1564,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.backstabCooldown = false;
     this.transformCooldown = false;
     this.isTransformed = false;
+    this.isReloading = false; // Reset reloading state
+    if (this.reloadTimer) { // Clear reload timer if any
+      this.reloadTimer.remove();
+      this.reloadTimer = null;
+    }
+    this.currentAmmo = this.maxAmmo; // Restore full ammo
 
     // Restore UI visibility
     if (this.weapon) this.weapon.setVisible(true);
@@ -1313,6 +1614,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const blockMovementForMino = this.characterType === CharacterTypes.TAOIST && this.isTransformed && this.isAttacking;
     if (blockMovementForMino) return;
 
+    // Check for auto-fire (Space held down)
+    if (this.characterType === CharacterTypes.PLAYER_1 && this.keySpace?.isDown) {
+      if (this.currentAmmo > 0 && !this.isReloading) {
+        this.attack();
+      }
+    }
+
     const speed = this.characterConfig.stats.speed || 2.5;
     const vel = new Phaser.Math.Vector2(0, 0);
 
@@ -1337,24 +1645,67 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       ? this.transformConfig.idleAnim || this.characterConfig.idleAnim
       : this.characterConfig.idleAnim;
 
-    if (vel.length() > 0 && !this.isDashing) {
-      vel.normalize().scale(speed);
-      this.setVelocity(vel.x, vel.y);
-      // Do not override attack animation while transformed and attacking
-      if (!(useTransformAnim && this.isAttacking)) {
-        this.anims.play(walkAnimKey, true);
+    if (this.characterType === CharacterTypes.PLAYER_1) {
+      // --- PLAYER 1 SPECIFIC DIRECTIONAL ANIMATION LOGIC ---
+      if (vel.length() > 0 && !this.isDashing) {
+        vel.normalize().scale(speed);
+        this.setVelocity(vel.x, vel.y);
+
+        // Determine animation based on direction
+        let animToPlay = 'run_front'; // Default
+
+        if (vel.y < 0) {
+          animToPlay = 'run_top';
+          this.setFlipX(false);
+        } else if (vel.y > 0) {
+          animToPlay = 'run_front';
+          this.setFlipX(false);
+        } else if (vel.x > 0) {
+          animToPlay = 'run_right_left';
+          this.setFlipX(false);
+        } else if (vel.x < 0) {
+          animToPlay = 'run_right_left';
+          this.setFlipX(true); // Flip for left
+        }
+
+        // Prioritize vertical movement if moving diagonally? 
+        // Let's refine: if moving vertically, use top/front. If mostly horizontal, use right/left.
+        if (Math.abs(vel.y) >= Math.abs(vel.x)) {
+          if (vel.y < 0) animToPlay = 'run_top';
+          else animToPlay = 'run_front';
+          this.setFlipX(false); // Reset flip for vertical
+        } else {
+          animToPlay = 'run_right_left';
+          if (vel.x < 0) this.setFlipX(true);
+          else this.setFlipX(false);
+        }
+
+        this.anims.play(animToPlay, true);
+      } else if (!this.isDashing) {
+        this.setVelocity(0, 0);
+        this.anims.play('idle', true);
       }
-      // Flip logic: invert for Mino since sprite faces opposite direction
-      if (useTransformAnim) {
-        this.setFlipX(vel.x > 0); // Ngược lại với Taoist
-      } else {
-        this.setFlipX(vel.x < 0); // Bình thường cho Taoist
-      }
-    } else if (!this.isDashing) {
-      this.setVelocity(0, 0);
-      // Do not override attack animation while transformed and attacking
-      if (!(useTransformAnim && this.isAttacking)) {
-        this.anims.play(idleAnimKey, true);
+    } else {
+      // --- EXISTING LOGIC FOR OTHER CHARACTERS ---
+      if (vel.length() > 0 && !this.isDashing) {
+        vel.normalize().scale(speed);
+        this.setVelocity(vel.x, vel.y);
+        // Do not override attack animation while transformed and attacking
+        if (!(useTransformAnim && this.isAttacking)) {
+          this.anims.play(walkAnimKey, true);
+        }
+        // Flip logic: invert for Mino since sprite faces opposite direction
+        if (useTransformAnim) {
+          this.setFlipX(vel.x > 0); // Ngược lại với Taoist
+        } else {
+          this.setFlipX(vel.x < 0); // Bình thường cho Taoist
+        }
+      } else if (!this.isDashing) {
+        this.setVelocity(0, 0);
+        // Do not override attack animation while transformed and attacking
+        if (!(useTransformAnim && this.isAttacking)) {
+          this.anims.play(idleAnimKey, true);
+        }
       }
     }
 
@@ -1363,7 +1714,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.weapon?.visible) {
       // Use weapon config offsets or defaults
       const weaponConfig = this.characterConfig.weapon || {};
-      const offsetX = this.flipX ? -(weaponConfig.offsetX || 10) : (weaponConfig.offsetX || 10);
+      const baseOffsetX = weaponConfig.offsetX || 10;
+      // Apply kickback opposite to facing direction (recoil pushes weapon back)
+      // weaponKick is positive value, we subtract it from offset relative to player
+      const kickOffset = this.weaponKick;
+
+      const offsetX = this.flipX
+        ? -(baseOffsetX - kickOffset)
+        : (baseOffsetX - kickOffset);
+
       const offsetY = weaponConfig.offsetY !== undefined ? weaponConfig.offsetY : 2;
 
       this.weapon.setPosition(this.x + offsetX, this.y + offsetY);
@@ -1412,6 +1771,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.isSpinning && this.spinEffectSprite && this.spinEffectSprite.active) {
       this.spinEffectSprite.setPosition(this.x, this.y + 5);
       this.spinEffectSprite.setDepth(this.depth + 10);
+    }
+
+    // Update reload indicator position if active
+    if (this.isReloading && this.reloadIndicator) {
+      // The reload indicator is redrawn each frame in the progress timer
+      // but we need to ensure it's positioned correctly if player moves
+      // Since we're using graphics.arc with absolute coordinates,
+      // the position is already updated in the progress callback
     }
   }
 

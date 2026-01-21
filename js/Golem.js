@@ -375,6 +375,11 @@ export default class Golem {
   }
 
   dropItems() {
+    // Drop 3-6 coins
+    const coinCount = Phaser.Math.Between(3, 6);
+    if (this.scene.dropLoot) {
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
+    }
   }
 
   get x() { return this.sprite.x; }

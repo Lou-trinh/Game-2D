@@ -23,9 +23,8 @@ export default class SceneLoading extends Phaser.Scene {
         // -----------------------------------
 
         // 1. Characters (Manual Load)
-        // Mage
-        this.load.atlas('mage', 'assets/images/mage/mage.png', 'assets/images/mage/mage_atlas.json');
-        this.load.animation('mage_anim', 'assets/images/mage/mage_anim.json');
+        // 1. Characters (Manual Load)
+        // Mage removed
         // Archer
         this.load.atlas('archer', 'assets/images/archer/archer.png', 'assets/images/archer/archer_atlas.json');
         this.load.animation('archer_anim', 'assets/images/archer/archer_anim.json');
@@ -41,6 +40,9 @@ export default class SceneLoading extends Phaser.Scene {
         // Taoist
         this.load.atlas('taoist', 'assets/images/taoist/taoist.png', 'assets/images/taoist/taoist_atlas.json');
         this.load.animation('taoist_anim', 'assets/images/taoist/taoist_anim.json');
+        // Player 1
+        this.load.atlas('player_1', 'assets/images/player_1/player_1.png', 'assets/images/player_1/player_1_atlas.json');
+        this.load.animation('player_1_anim', 'assets/images/player_1/player_1_anim.json');
 
         // 2. Weapons & Effects (Manually copied from Player.js preload)
         this.load.image('scepter', 'assets/images/weapons/scepter.png');
@@ -52,6 +54,8 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.image('knife', 'assets/images/weapons/knife.png');
         this.load.image('magic_circle', 'assets/images/weapons/magic_circle.png');
         this.load.image('magic_circle_1', 'assets/images/weapons/magic_circle_1.png');
+        this.load.image('m4a1', 'assets/images/weapons/M4A1.png');
+        this.load.image('ammo_pickup', 'assets/images/weapons/ammo_pickup.png');
         this.load.image('ghost', 'assets/images/die/ghost.png');
 
         // Effects
@@ -64,6 +68,8 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.animation('effect_5_anim', 'assets/images/effects/effect_5/effect_5_anim.json');
         this.load.atlas('effect_6', 'assets/images/effects/effect_6/effect_6.png', 'assets/images/effects/effect_6/effect_6_atlas.json');
         this.load.animation('effect_6_anim', 'assets/images/effects/effect_6/effect_6_anim.json');
+        this.load.atlas('effect_7', 'assets/images/effects/effect_7/effect_7.png', 'assets/images/effects/effect_7/effect_7_atlas.json');
+        this.load.animation('effect_7_anim', 'assets/images/effects/effect_7/effect_7_anim.json');
 
         // Wizard Skills
         this.load.atlas('ice_monster', 'assets/images/skill/ice_monster/ice_monster.png', 'assets/images/skill/ice_monster/ice_monster_atlas.json');
@@ -123,6 +129,9 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.atlas('gate', 'assets/images/skill/skill_3/gate.png', 'assets/images/skill/skill_3/gate_atlas.json');
         this.load.animation('gate_anim', 'assets/images/skill/skill_3/gate_anim.json');
 
+        // Sounds - Load rifle gunshot sound
+        this.load.audio('rifle_shot', 'assets/sounds/rifle.mp3');
+
         // Map
         this.load.image('tiles', 'assets/images/RPG Nature Tileset.png');
         this.load.tilemapTiledJSON('map', 'assets/images/map.json');
@@ -130,6 +139,14 @@ export default class SceneLoading extends Phaser.Scene {
         // UI Asset Correction (SceneLoad specific or Menu)
         this.load.image('button_play', 'assets/images/inventory/button/button_play.png');
         this.load.image('button_settings', 'assets/images/inventory/button/button_settings.png');
+
+        // Dashboard assets
+        this.load.image('coin', 'assets/images/ui/coin.png');
+        this.load.image('map_1', 'assets/images/ui/map_1.jpg');
+        this.load.image('map_2', 'assets/images/ui/map_2.jpg');
+        this.load.image('map_3', 'assets/images/ui/map_3.jpg');
+        this.load.image('map_4', 'assets/images/ui/map_4.jpg');
+        this.load.image('map_5', 'assets/images/ui/map_5.jpg');
 
         // Trigger the load
         this.load.start();

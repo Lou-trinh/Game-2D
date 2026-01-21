@@ -434,8 +434,11 @@ export default class LargeMushRoom {
   }
 
   dropItems() {
-    // Item drops disabled - blood, meat, and diamonds no longer drop
-    return;
+    // Drop 2-3 coins
+    const coinCount = Phaser.Math.Between(2, 3);
+    if (this.scene.dropLoot) {
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
+    }
   }
 
   get x() {

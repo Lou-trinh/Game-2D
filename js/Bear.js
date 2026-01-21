@@ -398,10 +398,11 @@ export default class Bear {
   }
 
   dropItems() {
-    // Item drops disabled - blood, meat, and diamonds no longer drop
-    // Item drops disabled - no longer drops blood, meat, or diamonds
-    return;
-    return;
+    // Drop 1-3 coins
+    const coinCount = Phaser.Math.Between(1, 3);
+    if (this.scene.dropLoot) {
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
+    }
   }
 
   get x() {

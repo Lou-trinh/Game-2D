@@ -14,6 +14,7 @@ import SmallMushRoom from './SmallMushRoom';
 import Golem from './Golem';
 import IceMonster from './IceMonster';
 import Chest from './Chest';
+import { Economy } from './utils/Economy';
 import ResourceUI from './ResourceUI';
 
 export default class MainScene extends Phaser.Scene {
@@ -215,6 +216,8 @@ export default class MainScene extends Phaser.Scene {
     this.golems = [];
     this.summonedMonsters = [];
     this.items = [];
+    this.diamondCount = 0; // Track session diamonds
+    this.coinCount = 0;    // Track session coins
 
     const map = this.make.tilemap({ key: 'map' });
 
@@ -281,6 +284,8 @@ export default class MainScene extends Phaser.Scene {
       frame: charConfig.idleFrame,
       characterType: selectedCharKey
     });
+    this.player.diamondCount = 0;
+    this.player.coinCount = 0;
 
     // Gate 1 (Left)
     this.gate1 = this.add.sprite(100, 260, 'gate');
@@ -706,6 +711,8 @@ export default class MainScene extends Phaser.Scene {
           this.pickupBlood();
         } else if (itemType === 'meat') {
           this.pickupMeat();
+        } else if (itemType === 'coin') {
+          this.pickupCoin();
         }
 
         this.items.splice(i, 1);
@@ -797,17 +804,91 @@ export default class MainScene extends Phaser.Scene {
     }
 
     this.player.diamondCount += 1;
-    console.log(`💎 Picked up diamond! Total: ${this.player.diamondCount}`);
+    Economy.addDiamonds(1); // Persistent save
+    console.log(`💎 Picked up diamond! Total: ${this.player.diamondCount} (Persistent: ${Economy.getDiamonds()})`);
 
-    // Update UI if exists (you might need to update ResourceUI to show diamonds later)
-    if (this.resourceUI && this.resourceUI.updateResources) {
+    // Update UI
+    if (this.resourceUI) {
       this.resourceUI.updateResources();
     }
 
-    this.player.setTint(0x00ffff); // Cyan tint for diamond
+    this.player.setTint(0x00ffff);
     this.time.delayedCall(150, () => {
       this.player.clearTint();
     });
+  }
+
+  pickupCoin() {
+    if (!this.player.coinCount) {
+      this.player.coinCount = 0;
+    }
+
+    this.player.coinCount += 1;
+    Economy.addCoins(1); // Persistent save
+    console.log(`💰 Picked up coin! Total: ${this.player.coinCount} (Persistent: ${Economy.getCoins()})`);
+
+    // Update UI
+    if (this.resourceUI) {
+      this.resourceUI.updateResources();
+    }
+
+    this.player.setTint(0xffff00); // Yellow tint for coin
+    this.time.delayedCall(150, () => {
+      this.player.clearTint();
+    });
+  }
+
+  dropLoot(x, y, count = 1, type = 'coin') {
+    for (let i = 0; i < count; i++) {
+      // Random target offset for the bounce
+      const offsetX = Phaser.Math.Between(-30, 30);
+      const offsetY = Phaser.Math.Between(-30, 30);
+      const targetX = x + offsetX;
+      const targetY = y + offsetY;
+
+      const item = this.add.sprite(x, y, type);
+      item.setData('itemType', type);
+
+      // Much smaller scale for coins
+      if (type === 'coin') {
+        item.setScale(0.15);
+      } else {
+        item.setScale(0.8);
+      }
+
+      item.setAlpha(0.8);
+      item.setDepth(y + offsetY);
+
+      // Bounce effect - fly up then drop down (matched from Chest.js)
+      this.tweens.add({
+        targets: item,
+        x: targetX,
+        y: targetY - 30,
+        alpha: 1,
+        duration: 250,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          this.tweens.add({
+            targets: item,
+            y: targetY,
+            duration: 400,
+            ease: 'Bounce.easeOut',
+            onComplete: () => {
+              // Only push to collection list after landing
+              this.items.push(item);
+            }
+          });
+        }
+      });
+
+      // Added rotation for dynamic feel
+      this.tweens.add({
+        targets: item,
+        angle: 360,
+        duration: 650,
+        ease: 'Linear'
+      });
+    }
   }
 
   /* ===============================

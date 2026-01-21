@@ -396,8 +396,11 @@ export default class TreeMan {
   }
 
   dropItems() {
-    // Item drops disabled - blood, meat, and diamonds no longer drop
-    return;
+    // Drop 2-5 coins
+    const coinCount = Phaser.Math.Between(2, 5);
+    if (this.scene.dropLoot) {
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
+    }
   }
 
   get x() {
