@@ -41,7 +41,7 @@ export default class MenuScene extends Phaser.Scene {
 
         // 2. LEFT PANELS (Characters & Weapons)
         this.createCharacterPanel(padding, topBarHeight + padding, leftPanelWidth);
-        this.createWeaponPanel(padding, topBarHeight + padding + 160, 130);
+        this.createWeaponPanel(padding, topBarHeight + padding + 160, 140);
 
         // 3. RIGHT COLUMN (Map, Shop, Start)
         const rightPanelX = width - rightPanelWidth - padding;
@@ -87,7 +87,8 @@ export default class MenuScene extends Phaser.Scene {
 
         // Diamonds
         const diaBar = this.createPanel(width - 240, 10, 110, 30, 0x2c3e50, 0.8);
-        this.add.text(width - 230, 16, '💎', { fontSize: '16px' });
+        const diaIcon = this.add.image(width - 225, 25, 'diamond');
+        diaIcon.setScale(1.1);
 
         const diamonds = Economy.getDiamonds();
         this.add.text(width - 155, 17, diamonds.toLocaleString(), { fontSize: '14px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(1, 0);
@@ -433,7 +434,7 @@ export default class MenuScene extends Phaser.Scene {
         this.weaponContainer.removeAll(true);
         const config = getCharacterConfig(this.selectedCharacterKey);
 
-        const slotSize = 45;
+        const slotSize = 55;
         const spacing = 10;
 
         // Draw 4 slots in 2x2 grid
@@ -448,7 +449,7 @@ export default class MenuScene extends Phaser.Scene {
             if (i === 0 && config.weapon) {
                 wBg.setStrokeStyle(2, this.colors.highlight);
                 const wIcon = this.add.image(sx, sy, config.weapon.texture);
-                wIcon.setDisplaySize(35, 35);
+                wIcon.setDisplaySize(48, 30); // Compact but maintains aspect ratio
                 this.weaponContainer.add([wBg, wIcon]);
             } else {
                 wBg.setStrokeStyle(1, 0x555555);

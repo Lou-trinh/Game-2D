@@ -7,11 +7,16 @@ export default class ResourceUI {
         const startX = scene.cameras.main.width - 15;
         const startY = 75; // Move below HUD (which starts at Y=10 and height=60)
 
-        // Diamond icon and text (only resource displayed)
+        // Diamond icon and text
+        this.diamondIcon = scene.add.image(startX - 65, startY + 12, 'diamond');
+        this.diamondIcon.setScale(1.2);
+        this.diamondIcon.setScrollFactor(0);
+        this.diamondIcon.setDepth(2005);
+
         this.diamondText = scene.add.text(
             startX,
             startY,
-            '💎 0',
+            '0',
             {
                 fontSize: '18px',
                 fontStyle: 'bold',
@@ -124,7 +129,7 @@ export default class ResourceUI {
         const weaponY = hudY + 43;
 
         // Weapon Icon (LARGER, with background)
-        this.weaponBg = this.scene.add.circle(healthX + 18, weaponY, 14, 0x1a1a1a, 0.8);
+        this.weaponBg = this.scene.add.circle(healthX + 18, weaponY, 20, 0x1a1a1a, 0.8);
         this.weaponBg.setScrollFactor(0);
         this.weaponBg.setDepth(2000);
         this.weaponBg.setStrokeStyle(1, 0x555555, 1);
@@ -132,7 +137,7 @@ export default class ResourceUI {
         this.weaponIcon = this.scene.add.image(healthX + 18, weaponY, 'm4a1');
         this.weaponIcon.setScrollFactor(0);
         this.weaponIcon.setDepth(2001);
-        this.weaponIcon.setScale(0.7); // LARGER weapon icon
+        this.weaponIcon.setScale(1.4); // Slightly smaller scale to fit compact frame
 
         // If player has weapon config
         if (this.player.characterConfig && this.player.characterConfig.weapon) {
@@ -337,13 +342,14 @@ export default class ResourceUI {
     }
 
     updateResources() {
-        this.diamondText.setText(`💎 ${this.player.diamondCount || 0}`);
+        this.diamondText.setText(`${this.player.diamondCount || 0}`);
         this.coinText.setText(`💰 ${this.player.coinCount || 0}`);
         this.updatePlayerHUD();
     }
 
     destroy() {
         // Cleanup all UI elements
+        if (this.diamondIcon) this.diamondIcon.destroy();
         if (this.diamondText) this.diamondText.destroy();
         if (this.coinText) this.coinText.destroy();
         if (this.exitButton) this.exitButton.destroy();
