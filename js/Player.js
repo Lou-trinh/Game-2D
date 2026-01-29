@@ -359,7 +359,11 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
       // Create projectile sprite
       const projectile = this.scene.add.sprite(this.x, this.y, textureOverride || projectileConfig.texture || 'bullet');
-      projectile.setScale(projectileConfig.scale || 0.4);
+
+      // Rocket bullets are larger for visibility
+      const defaultScale = weapon?.key === 'Rocket' ? 0.8 : 0.4;
+      projectile.setScale(projectileConfig.scale || defaultScale);
+
       if (projectileConfig.tint) {
         projectile.setTint(projectileConfig.tint);
       }
@@ -372,8 +376,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         y: Math.sin(projectileAngle) * speed
       };
 
-      // Rotate projectile to face flight direction (add 90° offset for vertical bullet sprite)
-      projectile.setAngle(Phaser.Math.RadToDeg(projectileAngle) + 90);
+      // Rotate projectile to face flight direction
+      // Rocket bullets point horizontally by default, so no 90° offset needed
+      // Regular bullets are vertical sprites and need 90° offset
+      const isRocket = weapon?.key === 'Rocket';
+      const rotationOffset = isRocket ? 0 : 90;
+      projectile.setAngle(Phaser.Math.RadToDeg(projectileAngle) + rotationOffset);
 
       // Store projectile data
       projectile.setData('velocity', velocity);
@@ -382,6 +390,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       projectile.setData('damage', projectileConfig.damage + (this.bonusDamage || 0));
       projectile.setData('range', weapon?.range || projectileConfig.range);
       projectile.setData('isExplosive', !!weapon?.isExplosive);
+      projectile.setData('weaponKey', weapon?.key); // Store weapon type for explosion sound
 
       this.activeArrows.push(projectile);
     }
@@ -551,14 +560,17 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       // Launch projectile (shoot bullet)
       this.shootArrow();
 
-      // Play rifle gunshot sound
-      try {
-        this.scene.sound.play('rifle_shot', {
-          volume: 0.5,
-          detune: Math.random() * 100 - 50
-        });
-      } catch (e) {
-        console.warn('Could not play rifle sound:', e);
+      // Play rifle gunshot sound (skip for rocket launcher)
+      const isRocketWeapon = weapon?.key === 'Rocket';
+      if (!isRocketWeapon) {
+        try {
+          this.scene.sound.play('rifle_shot', {
+            volume: 0.5,
+            detune: Math.random() * 100 - 50
+          });
+        } catch (e) {
+          console.warn('Could not play rifle sound:', e);
+        }
       }
 
       // Show muzzle flash effect (effect_7) at gun barrel
@@ -590,6 +602,16 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       } else {
         // Default to facing direction
         this.lastAttackAngle = this.flipX ? Math.PI : 0;
+      }
+
+      // Play shovel swing sound
+      try {
+        this.scene.sound.play('shovel_swing', {
+          volume: 0.4,
+          detune: Math.random() * 50 - 25
+        });
+      } catch (e) {
+        console.warn('Could not play shovel sound:', e);
       }
 
       // Shovel swing: Raised up then slammed down (vụt lên vụt xuống)
@@ -789,9 +811,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     });
   }
 
-  explodeGrenade(grenade) {
+  explodeGrenade(grenade, weaponKey = null) {
     const ex = grenade.x;
     const ey = grenade.y;
+
+    // Get weapon key from projectile data if not provided
+    const explosiveWeapon = weaponKey || grenade.getData?.('weaponKey');
+
     grenade.destroy();
 
     // Explosion Effect (effect_4)
@@ -804,11 +830,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       explosion.destroy();
     });
 
-    // Play explosion sound
+    // Play explosion sound based on weapon type
     try {
-      this.scene.sound.play('grenade_explosion', { volume: 0.6 });
+      // Rocket uses grenade sound for now (can be changed when rocket-specific sound is added)
+      // But we keep the logic separate for future customization
+      const soundKey = explosiveWeapon === 'Rocket' ? 'grenade_explosion' : 'grenade_explosion';
+      this.scene.sound.play(soundKey, { volume: 0.6 });
     } catch (e) {
-      console.warn('Could not play grenade explosion sound:', e);
+      console.warn('Could not play explosion sound:', e);
     }
 
     // Auto-destroy fallback

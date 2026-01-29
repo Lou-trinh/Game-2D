@@ -502,7 +502,7 @@ export default class MenuScene extends Phaser.Scene {
         });
     }
 
-    showWeaponSelection(categoryId, slotKey) {
+    showWeaponSelection(categoryId, slotKey, initialScrollY = 0) {
         if (this.selectionPopup) {
             this.selectionPopup.destroy();
             this.selectionPopup = null;
@@ -510,15 +510,15 @@ export default class MenuScene extends Phaser.Scene {
 
         const { width, height } = this.scale;
 
-        // Root container for everything (overlay + panel)
+        // Root container
         this.selectionPopup = this.add.container(0, 0).setDepth(100);
 
-        // 1. Overlay (full screen)
+        // 1. Overlay
         const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
         overlay.setInteractive();
         this.selectionPopup.add(overlay);
 
-        // 2. Panel Container (centered)
+        // 2. Panel
         const pW = 340;
         const pH = 300;
         const pX = (width - pW) / 2;
@@ -527,36 +527,19 @@ export default class MenuScene extends Phaser.Scene {
         const panel = this.add.container(pX, pY);
         this.selectionPopup.add(panel);
 
-        // Graphics for background and border
+        // Graphics
         const bgGraphics = this.add.graphics();
-        // Inner Glow / Shadow
         bgGraphics.lineStyle(10, this.colors.highlight, 0.1);
         bgGraphics.strokeRoundedRect(-5, -5, pW + 10, pH + 10, 15);
-
-        // Main Panel
         bgGraphics.fillStyle(0x1a2533, 0.98);
         bgGraphics.fillRoundedRect(0, 0, pW, pH, 15);
-
-        // Border
         bgGraphics.lineStyle(2, this.colors.highlight, 1);
         bgGraphics.strokeRoundedRect(0, 0, pW, pH, 15);
-
-        // Title Bar Area (subtle background for title)
         bgGraphics.fillStyle(0xffffff, 0.05);
         bgGraphics.fillRoundedRect(10, 10, pW - 20, 35, 8);
-
         panel.add(bgGraphics);
 
-        // Close logic
-        const closePopup = () => {
-            if (this.selectionPopup) {
-                this.selectionPopup.destroy();
-                this.selectionPopup = null;
-            }
-        };
-        overlay.on('pointerdown', closePopup);
-
-        // Title
+        // Title logic
         let titleText = '';
         let titleSymbol = '';
         let allowedCategories = [];
@@ -564,7 +547,7 @@ export default class MenuScene extends Phaser.Scene {
         switch (categoryId) {
             case 1:
                 titleText = 'CHỌN VŨ KHÍ Ô 1 (LỤC / CẬN CHIẾN)';
-                titleSymbol = '�';
+                titleSymbol = '🔫';
                 allowedCategories = [WeaponCategories.HANDGUNS, WeaponCategories.MELEE];
                 break;
             case 2:
@@ -593,75 +576,134 @@ export default class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
         panel.add(title);
 
-        // Close button
-        const close = this.add.text(pW - 20, 20, '✕', { fontSize: '20px', color: '#aaaaaa' })
-            .setOrigin(0.5).setInteractive({ useHandCursor: true });
-        close.on('pointerdown', closePopup);
-        panel.add(close);
-
-        // 3. Scrolling Weapon List Area
+        // --- SCROLLING LOGIC (MATCHING SceneShop) ---
         const listX = 20;
-        const listY = 50;
+        const listY = 60;
         const listW = pW - 40;
-        const listH = pH - 70;
+        const listH = pH - 80;
 
-        const listClip = this.add.container(listX, listY);
-        panel.add(listClip);
+        // Scroll State
+        let currentScrollY = initialScrollY; // Use passed value
 
-        const scrollContainer = this.add.container(0, 0);
-        listClip.add(scrollContainer);
-
-        // Mask (absolute coordinates needed for mask)
-        const maskShape = this.make.graphics();
-        maskShape.fillStyle(0xffffff);
-        maskShape.fillRect(pX + listX, pY + listY, listW, listH);
-        const mask = maskShape.createGeometryMask();
-        listClip.setMask(mask);
-
-        // Drag to scroll logic
-        // Drag to scroll logic
+        let maxScrollY = 0;
+        let isDownOnList = false;
         let isDragging = false;
         let startY = 0;
         let startScrollY = 0;
         const dragThreshold = 10;
 
-        overlay.on('pointerdown', (pointer) => {
+        // Input Zone (Captures drag start) - Added BEFORE scrollContainer to be behind it
+        const inputZone = this.add.zone(listX + listW / 2, listY + listH / 2, listW, listH);
+        inputZone.setInteractive();
+        panel.add(inputZone);
+
+        // Container
+        const scrollContainer = this.add.container(listX, listY);
+        panel.add(scrollContainer);
+
+        // Mask
+        const maskShape = this.make.graphics();
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillRect(pX + listX, pY + listY, listW, listH);
+        const mask = maskShape.createGeometryMask();
+        scrollContainer.setMask(mask);
+
+
+        // Update Scroll Helper
+        const updateScroll = (y) => {
+            currentScrollY = Phaser.Math.Clamp(y, -maxScrollY, 0);
+            scrollContainer.y = listY + currentScrollY; // Relative to panel? No, scrollContainer is child of panel at (listX, listY)
+            // Wait, if scrollContainer is at (listX, listY), then modifying y moves it relative to that?
+            // SceneShop: this.gridContainer.y = this.currentScrollY; (assuming gridContainer was at 0,0 relative to parent or handled differently)
+            // Here: scrollContainer is added at (listX, listY). If we blindly set y = currentScrollY (negative), it jumps up.
+            // Correct: scrollContainer.y = listY + currentScrollY;
+        };
+        // Correction: In SceneShop logic, gridContainer usually sits at (0,0) inside a clip container, or we modify y directly.
+        // Let's stick to: scrollContainer initial Y is listY.
+        // So new Y = listY + scrollOffset.
+
+        inputZone.on('pointerdown', (pointer) => {
+            isDownOnList = true;
             startY = pointer.y;
-            startScrollY = scrollContainer.y;
+            startScrollY = currentScrollY; // Track offset, not absolute y
             isDragging = false;
         });
 
-        overlay.on('pointermove', (pointer) => {
-            if (pointer.isDown) {
+        // Global Handlers
+        const onPointerMove = (pointer) => {
+            if (pointer.isDown && isDownOnList) {
                 const diff = pointer.y - startY;
                 if (Math.abs(diff) > dragThreshold) {
                     isDragging = true;
-                    const maxScroll = Math.max(0, scrollContainer.height - listH);
-                    scrollContainer.y = Phaser.Math.Clamp(startScrollY + diff, -maxScroll, 0);
+                    updateScroll(startScrollY + diff);
                 }
+            }
+        };
+
+        const onPointerUp = () => {
+            isDownOnList = false;
+            isDragging = false;
+        };
+
+        const onWheel = (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
+            // Only scroll if active scene?
+            // Since we add/remove listeners, it's fine.
+            const scrollSpeed = 30;
+            updateScroll(currentScrollY - deltaY * scrollSpeed / 100);
+        };
+
+        this.input.on('pointermove', onPointerMove);
+        this.input.on('pointerup', onPointerUp);
+        this.input.on('wheel', onWheel);
+
+        // Cleanup
+        const cleanupListeners = () => {
+            this.input.off('pointermove', onPointerMove);
+            this.input.off('pointerup', onPointerUp);
+            this.input.off('wheel', onWheel);
+        };
+
+        const safeClose = () => {
+            cleanupListeners();
+            if (this.selectionPopup) {
+                this.selectionPopup.destroy();
+                this.selectionPopup = null;
+            }
+        };
+
+        // Close Button
+        const close = this.add.text(pW - 20, 20, '✕', { fontSize: '20px', color: '#aaaaaa' })
+            .setOrigin(0.5).setInteractive({ useHandCursor: true });
+        close.on('pointerdown', safeClose);
+        panel.add(close);
+
+        // Overlay close (check boundaries)
+        overlay.on('pointerdown', (pointer) => {
+            if (pointer.x < pX || pointer.x > pX + pW || pointer.y < pY || pointer.y > pY + pH) {
+                safeClose();
             }
         });
 
-        // For testing: consider all weapons owned.
+        // --- POPULATE ITEMS ---
         const weapons = getWeaponsByCategories(allowedCategories);
 
         if (weapons.length === 0) {
             const empty = this.add.text(listW / 2, listH / 2, 'CHƯA SỞ HỮU VŨ KHÍ NÀO', {
-                fontSize: '14px',
-                color: '#888888',
-                fontStyle: 'bold'
+                fontSize: '14px', color: '#888888', fontStyle: 'bold'
             }).setOrigin(0.5);
-            scrollContainer.add(empty);
+            scrollContainer.add(empty); // Add to container so it scrolls (or not?)
+            // Actually nice if it doesn't scroll, but let's just add it.
+            // Adjust maxScrollY
+            maxScrollY = 0;
+            updateScroll(0); // Ensure reset
         } else {
-            const spacing = 20; // Increased spacing
-            const gridW = listW - 40; // Narrower grid area
+            const spacing = 10;
+            const gridW = listW - 20;
             const itemW = (gridW - spacing * 2) / 3;
-            const itemXOffset = 20; // Internal padding
-            const itemH = 105; // Slightly shorter
+            const itemXOffset = 10;
+            const itemH = 110;
 
-            // Get currently equipped weapon for this slot
             const equipped = JSON.parse(localStorage.getItem('equipped_weapons') || '{}');
-            // If nothing is equipped in this slot, use the default weapon for that category
             let currentWeaponKey = equipped[slotKey];
             if (!currentWeaponKey) {
                 if (slotKey === 'slot1') currentWeaponKey = 'Glock_17';
@@ -671,99 +713,139 @@ export default class MenuScene extends Phaser.Scene {
 
             weapons.forEach((w, i) => {
                 const col = i % 3;
-                const row = Math.floor(i / 3);
-                const x = itemXOffset + col * (itemW + spacing);
-                const y = row * (itemH + spacing);
+                const rows = Math.floor(i / 3);
+                const x = itemXOffset + col * (itemW + spacing) + itemW / 2; // Center anchor
+                const y = rows * (itemH + spacing) + itemH / 2; // Center anchor
 
                 const item = this.add.container(x, y);
                 scrollContainer.add(item);
 
                 const isEquipped = w.key === currentWeaponKey;
 
-                // Premium Card Background
+                // Card bg
                 const cardGraphics = this.add.graphics();
                 const drawCard = (bgColor, borderColor, borderAlpha) => {
                     cardGraphics.clear();
                     cardGraphics.fillStyle(bgColor, 0.4);
-                    cardGraphics.fillRoundedRect(0, 0, itemW, itemH, 10);
+                    cardGraphics.fillRoundedRect(-itemW / 2, -itemH / 2, itemW, itemH, 10);
                     cardGraphics.lineStyle(2, borderColor, borderAlpha);
-                    cardGraphics.strokeRoundedRect(1, 1, itemW - 2, itemH - 2, 9);
+                    cardGraphics.strokeRoundedRect(-itemW / 2 + 1, -itemH / 2 + 1, itemW - 2, itemH - 2, 9);
                 };
-
                 const baseBorder = isEquipped ? this.colors.highlight : 0x4a5a6a;
                 drawCard(0x000000, baseBorder, 0.8);
                 item.add(cardGraphics);
 
-                const itemInteract = this.add.rectangle(itemW / 2, itemH / 2, itemW, itemH, 0x000000, 0);
+                // Interact zone for item
+                const itemInteract = this.add.rectangle(0, 0, itemW, itemH, 0x000000, 0);
                 itemInteract.setInteractive({ useHandCursor: true });
                 item.add(itemInteract);
 
-                const wIcon = this.add.image(itemW / 2, itemH / 2 - 20, w.texture);
-                wIcon.setDisplaySize(itemW * 0.8, itemH * 0.35);
+                // Pass drag event to parent logic
+                itemInteract.on('pointerdown', (pointer) => {
+                    isDownOnList = true;
+                    startY = pointer.y;
+                    startScrollY = currentScrollY;
+                    isDragging = false;
+                });
 
-                const wName = this.add.text(itemW / 2, itemH / 2 + 10, w.name, {
+                // Content
+                const wIcon = this.add.image(0, -15, w.texture);
+                wIcon.setDisplaySize(itemW * 0.7, itemH * 0.35);
+
+                const wName = this.add.text(0, 15, w.name, {
                     fontSize: '9px',
                     fontStyle: 'bold',
                     color: '#ffffff',
                     align: 'center',
-                    wordWrap: { width: itemW - 10 }
+                    wordWrap: { width: itemW - 8 }
                 }).setOrigin(0.5);
 
-                // "CHỌN" Button
-                const btnH = 22;
-                const btnW = itemW - 16;
-                const btnY = itemH - 20;
+                const btnY = 40;
+                const btnW = itemW - 10;
+                const btnH = 20;
 
-                const btnBg = this.add.rectangle(itemW / 2, btnY, btnW, btnH, isEquipped ? 0x27ae60 : 0x3498db, 1);
-                btnBg.setStrokeStyle(1, 0xffffff, 0.3);
-
-                const btnText = this.add.text(itemW / 2, btnY, isEquipped ? 'ĐÃ CHỌN' : 'CHỌN', {
-                    fontSize: '9px',
-                    fontStyle: 'bold',
-                    color: '#ffffff'
+                const btnBg = this.add.rectangle(0, btnY, btnW, btnH, isEquipped ? 0x27ae60 : 0x3498db, 1);
+                const btnText = this.add.text(0, btnY, isEquipped ? 'ĐÃ CHỌN' : 'CHỌN', {
+                    fontSize: '9px', fontStyle: 'bold', color: '#ffffff'
                 }).setOrigin(0.5);
 
                 item.add([wIcon, wName, btnBg, btnText]);
 
-                // Item card listeners should also handle drag start
-                itemInteract.on('pointerdown', (pointer) => {
-                    startY = pointer.y;
-                    startScrollY = scrollContainer.y;
-                    isDragging = false;
-                });
-
-                // Hover Effects
-                itemInteract.on('pointerover', () => {
-                    if (!isEquipped) {
-                        drawCard(0x34495e, this.colors.highlight, 1);
-                        btnBg.setFillStyle(0x2980b9);
-                    }
-                    item.setScale(1.05);
-                });
-
-                itemInteract.on('pointerout', () => {
-                    if (!isEquipped) {
-                        drawCard(0x000000, 0x4a5a6a, 0.8);
-                        btnBg.setFillStyle(0x3498db);
-                    } else {
-                        drawCard(0x000000, this.colors.highlight, 0.8);
-                    }
-                    item.setScale(1.0);
-                });
-
+                // Hover/Click Logic
                 itemInteract.on('pointerup', (pointer) => {
                     const diff = Math.abs(pointer.y - startY);
                     if (diff < dragThreshold && !isDragging) {
                         if (!isEquipped) {
+                            // Select weapon but DO NOT close
                             this.equipWeapon(slotKey, w.key);
-                            closePopup();
+
+                            // Visual feedback: Flash effect or just immediate update
+                            this.tweens.add({
+                                targets: item,
+                                scaleX: 0.95,
+                                scaleY: 0.95,
+                                duration: 50,
+                                yoyo: true,
+                                onComplete: () => {
+                                    // Refresh the entire popup to reflect new state (easy way)
+                                    // But to keep scroll position, maybe just re-render items?
+                                    // Since we rewrite the whole content in showWeaponSelection, calling it again might reset scroll.
+                                    // Better: Update ALL buttons in current scrollContainer manually.
+
+                                    // Or simply recall showWeaponSelection but restore scroll?
+                                    // Let's try simple update of UI elements first.
+
+                                    // 1. Update localStorage done in equipWeapon
+                                    // 2. We need to visually update ALL items because previous equipped needs to un-equip
+
+                                    // Re-draw logic is complex inside loop.
+                                    // Easiest robust way: Re-open popup but keep scroll value.
+                                    const savedScroll = currentScrollY;
+                                    this.showWeaponSelection(categoryId, slotKey);
+
+                                    // We need to access the new scrollContainer / context to restore scroll
+                                    // But showWeaponSelection resets everything.
+                                    // We can pass an optional 3rd arg for 'initialScroll' or set it after.
+
+                                    // To allow this, let's just use the fact that we can access the variable if we modify the function signature? 
+                                    // Or attached to instance?
+
+                                    // Actually, let's just hack it for now: 
+                                    if (this.selectionPopup) {
+                                        // We need to find the scroll logic inside the new instance... 
+                                        // This is tricky without refactoring showWeaponSelection to accept startScroll.
+                                    }
+                                }
+                            });
+
+                            // BETTER APPROACH: Just re-call showWeaponSelection with 3rd argument?
+                            // Let's modify showWeaponSelection signature in next step if needed, or just persist scroll in a class property?
+
+                            // For this specific replacement, let's assume we simply want to refresh.
+                            // The user said "don't exit", so we must refresh state.
+                            // If we don't refresh, the button says "SELECT" still.
+
+                            // Let's modify the standard 'update' to not close.
+                            // And triggers a refresh.
+
+                            // To keep it simple and robust:
+                            // We will simply re-call showWeaponSelection(categoryId, slotKey, currentScrollY)
+                            // But we need to update the definition of showWeaponSelection first?
+                            // No, JS allows extra args. We just need to use it.
+
+                            this.showWeaponSelection(categoryId, slotKey, currentScrollY);
                         }
                     }
                 });
             });
 
-            const rows = Math.ceil(weapons.length / 3);
-            scrollContainer.height = rows * (itemH + spacing);
+            // Calc Height
+            const totalRows = Math.ceil(weapons.length / 3);
+            const totalHeight = totalRows * (itemH + spacing) + spacing + 60; // Padding
+            maxScrollY = Math.max(0, totalHeight - listH);
+
+            // Initial update
+            updateScroll(0);
         }
     }
 

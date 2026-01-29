@@ -30,7 +30,12 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.image('M4A1', 'assets/images/weapons/M4A1.png');
         this.load.image('AK47', 'assets/images/weapons/AK47.png');
         this.load.image('Glock_17', 'assets/images/weapons/Glock_17.png');
-        this.load.image('PDW', 'assets/images/weapons/PDW.png');
+        this.load.image('Astra_680', 'assets/images/weapons/Astra_680.png');
+        this.load.image('Charter_Arms_Bulldog', 'assets/images/weapons/Charter_Arms_Bulldog.png');
+        this.load.image('Colt_1911', 'assets/images/weapons/Colt_1911.png');
+        this.load.image('Mark_23', 'assets/images/weapons/Mark_23.png');
+        this.load.image('SIG_P250', 'assets/images/weapons/SIG_P250.png');
+        this.load.image('P90', 'assets/images/weapons/P90.png');
         this.load.image('Pump_Shotgun', 'assets/images/weapons/Pump_Shotgun.png');
         this.load.image('SKS', 'assets/images/weapons/SKS.png');
         this.load.image('Grenade', 'assets/images/weapons/Grenade.png');
@@ -113,6 +118,7 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.audio('rifle_shot', 'assets/sounds/rifle.mp3');
         this.load.audio('reload_sound', 'assets/sounds/reload.mp3');
         this.load.audio('grenade_explosion', 'assets/sounds/grenade.wav');
+        this.load.audio('shovel_swing', 'assets/sounds/shovels.wav');
 
         // Map
         this.load.image('tiles', 'assets/images/RPG Nature Tileset.png');
