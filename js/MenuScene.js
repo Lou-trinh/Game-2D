@@ -764,7 +764,9 @@ export default class MenuScene extends Phaser.Scene {
                 const btnW = itemW - 10;
                 const btnH = 20;
 
-                const btnBg = this.add.rectangle(0, btnY, btnW, btnH, isEquipped ? 0x27ae60 : 0x3498db, 1);
+                const btnBg = this.add.graphics();
+                btnBg.fillStyle(isEquipped ? 0x27ae60 : 0x3498db, 1);
+                btnBg.fillRoundedRect(-btnW / 2, btnY - btnH / 2, btnW, btnH, 5);
                 const btnText = this.add.text(0, btnY, isEquipped ? 'ĐÃ CHỌN' : 'CHỌN', {
                     fontSize: '9px', fontStyle: 'bold', color: '#ffffff'
                 }).setOrigin(0.5);
@@ -780,6 +782,7 @@ export default class MenuScene extends Phaser.Scene {
                             this.equipWeapon(slotKey, w.key);
 
                             // Visual feedback: Flash effect or just immediate update
+                            // Visual feedback: Flash effect or just immediate update
                             this.tweens.add({
                                 targets: item,
                                 scaleX: 0.95,
@@ -787,53 +790,9 @@ export default class MenuScene extends Phaser.Scene {
                                 duration: 50,
                                 yoyo: true,
                                 onComplete: () => {
-                                    // Refresh the entire popup to reflect new state (easy way)
-                                    // But to keep scroll position, maybe just re-render items?
-                                    // Since we rewrite the whole content in showWeaponSelection, calling it again might reset scroll.
-                                    // Better: Update ALL buttons in current scrollContainer manually.
-
-                                    // Or simply recall showWeaponSelection but restore scroll?
-                                    // Let's try simple update of UI elements first.
-
-                                    // 1. Update localStorage done in equipWeapon
-                                    // 2. We need to visually update ALL items because previous equipped needs to un-equip
-
-                                    // Re-draw logic is complex inside loop.
-                                    // Easiest robust way: Re-open popup but keep scroll value.
-                                    const savedScroll = currentScrollY;
-                                    this.showWeaponSelection(categoryId, slotKey);
-
-                                    // We need to access the new scrollContainer / context to restore scroll
-                                    // But showWeaponSelection resets everything.
-                                    // We can pass an optional 3rd arg for 'initialScroll' or set it after.
-
-                                    // To allow this, let's just use the fact that we can access the variable if we modify the function signature? 
-                                    // Or attached to instance?
-
-                                    // Actually, let's just hack it for now: 
-                                    if (this.selectionPopup) {
-                                        // We need to find the scroll logic inside the new instance... 
-                                        // This is tricky without refactoring showWeaponSelection to accept startScroll.
-                                    }
+                                    this.showWeaponSelection(categoryId, slotKey, currentScrollY);
                                 }
                             });
-
-                            // BETTER APPROACH: Just re-call showWeaponSelection with 3rd argument?
-                            // Let's modify showWeaponSelection signature in next step if needed, or just persist scroll in a class property?
-
-                            // For this specific replacement, let's assume we simply want to refresh.
-                            // The user said "don't exit", so we must refresh state.
-                            // If we don't refresh, the button says "SELECT" still.
-
-                            // Let's modify the standard 'update' to not close.
-                            // And triggers a refresh.
-
-                            // To keep it simple and robust:
-                            // We will simply re-call showWeaponSelection(categoryId, slotKey, currentScrollY)
-                            // But we need to update the definition of showWeaponSelection first?
-                            // No, JS allows extra args. We just need to use it.
-
-                            this.showWeaponSelection(categoryId, slotKey, currentScrollY);
                         }
                     }
                 });
@@ -845,7 +804,7 @@ export default class MenuScene extends Phaser.Scene {
             maxScrollY = Math.max(0, totalHeight - listH);
 
             // Initial update
-            updateScroll(0);
+            updateScroll(initialScrollY);
         }
     }
 

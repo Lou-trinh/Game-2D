@@ -167,6 +167,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.inputKeys.slot3.on('down', () => this.switchWeapon(3));
     this.inputKeys.slot4.on('down', () => this.switchWeapon(4));
     this.keySpace = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // Fire rate tracking
+    this.lastFireTime = 0;
   }
 
   static preload(scene) {
@@ -207,8 +210,16 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     // Setup weapon sprite
     this.weapon = scene.add.image(0, 0, texture);
-    this.weapon.setScale(0.6);
-    this.weapon.setOrigin(0.5, 0.9);
+    const weaponScale = weapon?.scale || 0.6;
+    this.weapon.setScale(weaponScale);
+
+    // Set origin based on weapon type to hold at handle/stock
+    if (weapon && weapon.category === WeaponCategories.MELEE) {
+      this.weapon.setOrigin(0.0, 1.0); // Held at bottom-left handle end for melee
+    } else {
+      this.weapon.setOrigin(0.3, 0.7); // Held at handle/grip for guns
+    }
+
     this.weapon.setDepth(this.depth + 1);
 
     // Synchronize weapon stats and projectiles from Character configuration or WeaponData
@@ -334,9 +345,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       }
     }
 
-    // Get number of projectiles (default to 1 for archer)
-    const projectileCount = projectileConfig.count || 1;
-    const spreadAngle = projectileConfig.spread || 0; // degrees
+    // Get weapon specific properties
+    const weaponKey = this.weaponSlots[this.activeSlot];
+    const weapon = getWeaponByKey(weaponKey);
+
+    // Get number of projectiles - prioritize weapon data over character config
+    const projectileCount = weapon?.projectileCount || projectileConfig.count || 1;
+    const spreadAngle = weapon?.spread || projectileConfig.spread || 0; // degrees
 
     // Calculate starting angle for spread
     const baseAngle = this.lastAttackAngle;
@@ -353,8 +368,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       const projectileAngle = baseAngle + angleOffset;
 
       // Get weapon specific projectile texture override
-      const weaponKey = this.weaponSlots[this.activeSlot];
-      const weapon = getWeaponByKey(weaponKey);
       const textureOverride = weapon?.projectileTexture;
 
       // Create projectile sprite
@@ -383,14 +396,17 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       const rotationOffset = isRocket ? 0 : 90;
       projectile.setAngle(Phaser.Math.RadToDeg(projectileAngle) + rotationOffset);
 
-      // Store projectile data
+      // Store projectile data - prioritize weapon damage over character config
+      const baseDamage = weapon?.damage || projectileConfig.damage;
       projectile.setData('velocity', velocity);
       projectile.setData('startX', this.x);
       projectile.setData('startY', this.y);
-      projectile.setData('damage', projectileConfig.damage + (this.bonusDamage || 0));
+      projectile.setData('damage', baseDamage + (this.bonusDamage || 0));
       projectile.setData('range', weapon?.range || projectileConfig.range);
       projectile.setData('isExplosive', !!weapon?.isExplosive);
       projectile.setData('weaponKey', weapon?.key); // Store weapon type for explosion sound
+      projectile.setData('pierce', !!weapon?.pierce);
+      projectile.setData('hitEnemies', []); // Track hit enemies for piercing
 
       this.activeArrows.push(projectile);
     }
@@ -560,11 +576,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       // Launch projectile (shoot bullet)
       this.shootArrow();
 
-      // Play rifle gunshot sound (skip for rocket launcher)
+      // Play weapon sound (default to rifle_shot)
       const isRocketWeapon = weapon?.key === 'Rocket';
       if (!isRocketWeapon) {
         try {
-          this.scene.sound.play('rifle_shot', {
+          const soundKey = weapon?.audio || 'rifle_shot';
+          this.scene.sound.play(soundKey, {
             volume: 0.5,
             detune: Math.random() * 100 - 50
           });
@@ -604,37 +621,50 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.lastAttackAngle = this.flipX ? Math.PI : 0;
       }
 
-      // Play shovel swing sound
-      try {
-        this.scene.sound.play('shovel_swing', {
-          volume: 0.4,
-          detune: Math.random() * 50 - 25
-        });
-      } catch (e) {
-        console.warn('Could not play shovel sound:', e);
+      // Improved Realistic "Overhead Chop" (Simple Vertical)
+
+      // Ensure we have the weapon data for audio
+      const weaponKey = this.weaponSlots[this.activeSlot];
+      const weapon = getWeaponByKey(weaponKey);
+
+      // Robust melee sound playback
+      let soundKey = 'shovel_swing';
+      if (weapon && weapon.audio) {
+        soundKey = weapon.audio;
       }
 
-      // Shovel swing: Raised up then slammed down (vụt lên vụt xuống)
+      // Check cache and play
+      if (this.scene.cache.audio.exists(soundKey)) {
+        this.scene.sound.play(soundKey, { volume: 0.8 });
+      } else {
+        // Fallback if specific sound missing
+        if (this.scene.cache.audio.exists('shovel_swing')) {
+          this.scene.sound.play('shovel_swing', { volume: 0.8 });
+        }
+      }
+
+      // 1. Raise High (Giơ thẳng lên trời)
       this.scene.tweens.add({
         targets: this,
-        weaponRotation: -60, // Raise high up
-        duration: 100,
+        weaponRotation: -90, // Giơ thẳng lên (-90 độ)
+        duration: 120,
         ease: 'Cubic.easeOut',
         onComplete: () => {
-          // Check for damage at the start of downswing/slam
-          this.checkAttackHit();
+          // 2. The Smash (Bổ thẳng xuống đất)
+          this.checkAttackHit(); // Gây dame
 
           this.scene.tweens.add({
             targets: this,
-            weaponRotation: 60, // Slam down past horizontal
-            duration: 80,
-            ease: 'Back.easeIn',
+            weaponRotation: 0, // Bổ xuống ngang người (0 độ)
+            duration: 80, // Bổ nhanh dứt khoát
+            ease: 'Bounce.easeOut', // Hiệu ứng nảy nhẹ khi dừng lại
             onComplete: () => {
+              // 3. Recovery
               this.scene.tweens.add({
                 targets: this,
-                weaponRotation: 0, // Return to normal
-                duration: 120,
-                ease: 'Power1',
+                weaponRotation: 0,
+                duration: 200,
+                ease: 'Cubic.easeOut',
                 onComplete: () => {
                   this.isAttacking = false;
                 }
@@ -806,7 +836,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         grenade.angle += 15;
       },
       onComplete: () => {
-        this.explodeGrenade(grenade);
+        this.explodeGrenade(grenade, weaponKey);
       }
     });
   }
@@ -816,9 +846,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const ey = grenade.y;
 
     // Get weapon key from projectile data if not provided
-    const explosiveWeapon = weaponKey || grenade.getData?.('weaponKey');
+    const explosiveWeapon = weaponKey || grenade.getData('weaponKey');
 
     grenade.destroy();
+
+    if (explosiveWeapon === 'Gasoline_Bomb') {
+      this.explodeGasolineBomb(ex, ey);
+      return;
+    }
 
     // Explosion Effect (effect_4)
     const explosion = this.scene.add.sprite(ex, ey, 'effect_4');
@@ -874,6 +909,219 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           }
         }
       });
+    });
+
+    // AOE Logic for Player (Self damage)
+    if (!this.isDead) {
+      const playerDist = Phaser.Math.Distance.Between(ex, ey, this.x, this.y);
+      if (playerDist <= aoeRadius) {
+        this.takeDamage(aoeDamage);
+      }
+    }
+  }
+
+  explodeGasolineBomb(ex, ey) {
+    // 1. Play glass broken sound
+    try {
+      this.scene.sound.play('glass_broken', { volume: 0.8 });
+    } catch (e) {
+      console.warn('Could not play glass_broken sound:', e);
+    }
+
+    // 2. Show effect_5 (Burst/Explosion)
+    const explosion = this.scene.add.sprite(ex, ey, 'effect_5');
+    explosion.setScale(1.2);
+    explosion.setDepth(this.depth + 100);
+
+    // Play once (repeat: 0)
+    explosion.play({ key: 'effect_5', repeat: 0 });
+
+    explosion.on('animationcomplete', () => {
+      explosion.destroy();
+    });
+
+    // Fallback destroy just in case
+    this.scene.time.delayedCall(1500, () => {
+      if (explosion && explosion.active) explosion.destroy();
+    });
+
+    // 3. Play fire.wav sound
+    try {
+      this.scene.sound.play('fire_sound', { volume: 0.6 });
+    } catch (e) {
+      console.warn('Could not play fire_sound:', e);
+    }
+
+    // 4. Create Fire Zone (effect_6) for 7 seconds
+    this.createFireZone(ex, ey, 7000);
+  }
+
+  createFireZone(x, y, duration) {
+    const fireRadius = 90; // Increased from 60
+    const damagePerTick = 10;
+    const tickInterval = 500; // Damage every 0.5s
+
+    // Add visual effect for the zone (can be multiple effect_6 sprites for density)
+    const fireSprites = [];
+    const spriteCount = 10; // Increased from 5
+    for (let i = 0; i < spriteCount; i++) {
+      const offsetX = (Math.random() - 0.5) * 80; // Increased spread
+      const offsetY = (Math.random() - 0.5) * 80;
+      const fire = this.scene.add.sprite(x + offsetX, y + offsetY, 'effect_6');
+      fire.setScale(1.8 + Math.random() * 0.7); // Increased size
+      fire.setDepth(y + offsetY);
+      fire.play('effect_6');
+      fireSprites.push(fire);
+    }
+
+    const startTime = this.scene.time.now;
+
+    // Timer for periodic damage and visual persistence
+    const zoneTimer = this.scene.time.addEvent({
+      delay: tickInterval,
+      repeat: Math.floor(duration / tickInterval),
+      callback: () => {
+        const elapsed = this.scene.time.now - startTime;
+
+        // Damage enemies in zone
+        this.damageEnemiesInArea(x, y, fireRadius, damagePerTick, true);
+
+        // Check if finished
+        if (elapsed >= duration) {
+          fireSprites.forEach(s => {
+            this.scene.tweens.add({
+              targets: s,
+              alpha: 0,
+              duration: 500,
+              onComplete: () => s.destroy()
+            });
+          });
+          zoneTimer.remove();
+        }
+      }
+    });
+  }
+
+  damageEnemiesInArea(x, y, radius, damage, applyBurn = false) {
+    const enemyGroups = [
+      this.scene.bears,
+      this.scene.treeMen,
+      this.scene.forestGuardians,
+      this.scene.gnollBrutes,
+      this.scene.gnollShamans,
+      this.scene.wolves,
+      this.scene.golems,
+      this.scene.mushrooms,
+      this.scene.smallMushrooms,
+      this.scene.stones,
+      this.scene.trees,
+      this.scene.chests
+    ];
+
+    // 1. Check Enemies
+    enemyGroups.forEach(group => {
+      if (!group) return;
+      const enemies = Array.isArray(group) ? group : [];
+      enemies.forEach(enemy => {
+        if (enemy && enemy.sprite && enemy.sprite.active && !enemy.isDead) {
+          const dist = Phaser.Math.Distance.Between(x, y, enemy.sprite.x, enemy.sprite.y);
+          if (dist <= radius) {
+            enemy.takeDamage(damage);
+            if (applyBurn) {
+              this.applyBurningEffect(enemy);
+            }
+          }
+        }
+      });
+    });
+
+    // 2. Check Player (Self damage)
+    if (!this.isDead) {
+      const distToPlayer = Phaser.Math.Distance.Between(x, y, this.x, this.y);
+      if (distToPlayer <= radius) {
+        this.takeDamage(damage);
+        if (applyBurn) {
+          this.applyBurningEffect(this);
+        }
+      }
+    }
+  }
+
+  applyBurningEffect(enemy) {
+    // Prevent multiple burning effects if already burning
+    if (enemy.isBurning) return;
+
+    enemy.isBurning = true;
+    const scene = this.scene;
+    if (!scene) return;
+
+    // Visual effect: attach effect_6 to enemy
+    const burnSprite = scene.add.sprite(0, 0, 'effect_6');
+    burnSprite.setScale(1.2);
+    burnSprite.play('effect_6');
+
+    // Determine the sprite to track (enemy.sprite for monsters, this for player)
+    const isPlayer = (enemy === this);
+    const targetSprite = isPlayer ? this : enemy.sprite;
+
+    if (!targetSprite) {
+      enemy.isBurning = false;
+      return;
+    }
+    burnSprite.setDepth(targetSprite.depth + 1);
+
+    // SMOTH TRACKING: Update position every frame
+    const updateListener = () => {
+      // Defensive check: if scene is gone
+      if (!scene || !scene.events) return;
+
+      const isDead = isPlayer ? enemy.isDead : (enemy.isDead || !enemy.sprite || !enemy.sprite.active);
+      if (isDead || !burnSprite.active) {
+        scene.events.off('update', updateListener);
+        if (burnSprite.active) burnSprite.destroy();
+        return;
+      }
+      burnSprite.setPosition(targetSprite.x, targetSprite.y - 10);
+      burnSprite.setDepth(targetSprite.depth + 1);
+    };
+    scene.events.on('update', updateListener);
+
+    // Duration: 7 seconds
+    const burnDuration = 7000;
+    const damagePerTick = isPlayer ? 1 : 5; // Reduced damage for player
+    const tickInterval = 1000;
+
+    const burnTimer = scene.time.addEvent({
+      delay: tickInterval,
+      repeat: Math.floor(burnDuration / tickInterval),
+      callback: () => {
+        const isDead = isPlayer ? enemy.isDead : (enemy.isDead || !enemy.sprite || !enemy.sprite.active);
+        if (isDead) {
+          burnTimer.remove();
+          enemy.isBurning = false;
+          return;
+        }
+
+        enemy.takeDamage(damagePerTick);
+      }
+    });
+
+    // Cleanup after duration
+    scene.time.delayedCall(burnDuration, () => {
+      if (scene && scene.events) scene.events.off('update', updateListener);
+      if (burnSprite && burnSprite.active) {
+        scene.tweens.add({
+          targets: burnSprite,
+          alpha: 0,
+          duration: 500,
+          onComplete: () => {
+            burnSprite.destroy();
+            enemy.isBurning = false;
+          }
+        });
+      } else {
+        enemy.isBurning = false;
+      }
     });
   }
 
@@ -968,6 +1216,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
 
   reloadWeapon() {
+    // Check if weapon allows reload
+    const weaponKey = this.weaponSlots[this.activeSlot];
+    const weapon = getWeaponByKey(weaponKey);
+    if (weapon && weapon.category === WeaponCategories.BOMB) {
+      return; // Bombs cannot be reloaded
+    }
+
     const ammo = this.ammoData[this.activeSlot];
     if (!ammo || this.isReloading || ammo.current === ammo.max) {
       console.log('Already reloading or full ammo.');
@@ -1387,9 +1642,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const isMelee = weapon && weapon.category === WeaponCategories.MELEE;
         const ammo = this.ammoData[this.activeSlot];
 
-        // Allow attack if it's Melee OR if we have ammo and not reloading
-        if ((isMelee || (ammo && ammo.current > 0)) && !this.isReloading) {
+        // Check fire rate cooldown
+        const currentTime = this.scene.time.now;
+        const fireRate = weapon?.fireRate || 100; // Default 100ms for rapid fire
+        const canFire = (currentTime - this.lastFireTime) >= fireRate;
+
+        // Allow attack if it's Melee OR if we have ammo and not reloading AND fire rate allows
+        if ((isMelee || (ammo && ammo.current > 0)) && !this.isReloading && canFire) {
           this.attack();
+          this.lastFireTime = currentTime;
         }
       } else {
         // Other characters also use Space to attack
@@ -1490,7 +1751,22 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.weapon?.visible) {
       // Use weapon config offsets or defaults
       const weaponConfig = this.characterConfig.weapon || {};
-      const baseOffsetX = weaponConfig.offsetX || 10;
+
+      // Determine if current weapon is melee to adjust offset
+      const currentWeaponKey = this.weaponSlots[this.activeSlot];
+      const currentWeapon = getWeaponByKey(currentWeaponKey);
+      const isMeleeWeapon = currentWeapon && currentWeapon.category === WeaponCategories.MELEE;
+
+      // Melee weapons start at center (0 offset), Guns offset by 10
+      const baseOffsetX = isMeleeWeapon ? 0 : (weaponConfig.offsetX || 10);
+
+      // Dynamic Origin for Melee to handle flip correctly
+      if (isMeleeWeapon) {
+        // If facing left (flipX), handle is at bottom-right of flipped texture -> Origin (1, 1)
+        // If facing right, handle is at bottom-left -> Origin (0, 1)
+        this.weapon.setOrigin(this.flipX ? 1.0 : 0.0, 1.0);
+      }
+
       // Apply kickback opposite to facing direction (recoil pushes weapon back)
       // weaponKick is positive value, we subtract it from offset relative to player
       const kickOffset = this.weaponKick;
@@ -1620,6 +1896,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             new Phaser.Geom.Rectangle(enemy.x - 12, enemy.y - 12, 24, 24);
 
           if (Phaser.Geom.Rectangle.Overlaps(arrowRect, enemyHitbox)) {
+            // Check if already hit (for piercing projectiles)
+            const hitEnemies = arrow.getData('hitEnemies');
+            if (hitEnemies && hitEnemies.includes(enemy)) {
+              continue;
+            }
+
             // Get arrow velocity to calculate direction
             const velocity = arrow.getData('velocity');
 
@@ -1628,15 +1910,22 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
             enemy.takeDamage(damage);
 
-            if (arrow.getData('isExplosive')) {
-              this.explodeGrenade(arrow);
+            // Handle Piercing vs Normal
+            if (arrow.getData('pierce')) {
+              if (hitEnemies) hitEnemies.push(enemy);
+              hitEnemy = true;
+              // Do NOT destroy, do NOT break loop (can hit multiple in one frame)
             } else {
-              arrow.destroy();
-            }
+              if (arrow.getData('isExplosive')) {
+                this.explodeGrenade(arrow);
+              } else {
+                arrow.destroy();
+              }
 
-            this.activeArrows.splice(i, 1);
-            hitEnemy = true;
-            break;
+              this.activeArrows.splice(i, 1);
+              hitEnemy = true;
+              break; // Stop checking enemies for this arrow
+            }
           }
         }
       }

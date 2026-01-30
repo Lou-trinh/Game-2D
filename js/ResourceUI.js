@@ -240,6 +240,23 @@ export default class ResourceUI {
             this.ammoIcon.setVisible(false);
             this.ammoBg.setVisible(false);
             return;
+        } else if (weapon && (weapon.category === WeaponCategories.BOMB)) {
+            // Bombs: Show quantity AND icon
+            this.ammoText.setVisible(true);
+            this.ammoIcon.setVisible(true); // Show icon
+            this.ammoBg.setVisible(false);
+
+            // Set icon to Grenade (Large)
+            this.ammoIcon.setTexture('Grenade');
+            this.ammoIcon.setScale(1.2);
+
+            const ammo = this.player.ammoData[this.player.activeSlot] || { current: 0, max: 0 };
+            this.ammoText.setText(`${ammo.current}/${ammo.max}`);
+
+            if (ammo.current === 0) this.ammoText.setColor('#ff0000');
+            else this.ammoText.setColor('#ffff00');
+
+            return;
         } else if (this.player.characterType === 'player_1') {
             // Re-show for other guns (only if Player 1)
             this.ammoText.setVisible(true);

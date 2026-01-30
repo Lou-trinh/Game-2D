@@ -37,12 +37,30 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.image('SIG_P250', 'assets/images/weapons/SIG_P250.png');
         this.load.image('P90', 'assets/images/weapons/P90.png');
         this.load.image('Pump_Shotgun', 'assets/images/weapons/Pump_Shotgun.png');
+        this.load.image('DBS', 'assets/images/weapons/DBS.png');
         this.load.image('SKS', 'assets/images/weapons/SKS.png');
         this.load.image('Grenade', 'assets/images/weapons/Grenade.png');
         this.load.image('Minigun', 'assets/images/weapons/Minigun.png');
         this.load.image('Shovel', 'assets/images/weapons/Shovel.png');
+        this.load.image('Knife', 'assets/images/weapons/knife.png');
+        this.load.image('Katana', 'assets/images/weapons/katana.png');
         this.load.image('Rocket', 'assets/images/weapons/Rocket.png');
+        this.load.image('AWM', 'assets/images/weapons/AWM.png');
+        this.load.image('MP5', 'assets/images/weapons/MP5.png');
+        this.load.image('MPK5', 'assets/images/weapons/MPK5.png');
+        this.load.image('SMG', 'assets/images/weapons/SMG.png');
+        this.load.image('M762', 'assets/images/weapons/M762.png');
+        this.load.image('MK14', 'assets/images/weapons/MK14.png');
+        this.load.image('AWP', 'assets/images/weapons/AWP.png');
+        this.load.image('M24', 'assets/images/weapons/M24.png');
+        this.load.image('Kar98K', 'assets/images/weapons/Kar98K.png');
+        this.load.image('Win94', 'assets/images/weapons/Win94.png');
+        this.load.image('SCAR-L', 'assets/images/weapons/SCAR-L.png');
+        this.load.image('Vector', 'assets/images/weapons/Vector.png');
+        this.load.image('MP9', 'assets/images/weapons/MP9.png');
+        this.load.image('Thompson', 'assets/images/weapons/Thompson.png');
         this.load.image('Rocket_Bullet', 'assets/images/weapons/Rocket_Bullet.png');
+        this.load.image('gasoline_bombs', 'assets/images/weapons/gasoline_bombs.png');
         this.load.image('ammo_pickup', 'assets/images/weapons/ammo_pickup.png');
         this.load.image('bullet_1', 'assets/images/weapons/bullet_1.png');
         this.load.image('bullet_2', 'assets/images/weapons/bullet_2.png');
@@ -58,6 +76,14 @@ export default class SceneLoading extends Phaser.Scene {
         // Explosion effect for bombs
         this.load.atlas('effect_4', 'assets/images/effects/effect_4/effect_4.png', 'assets/images/effects/effect_4/effect_4_atlas.json');
         this.load.animation('effect_4_anim', 'assets/images/effects/effect_4/effect_4_anim.json');
+
+        // Burst effect for gasoline bomb
+        this.load.atlas('effect_5', 'assets/images/effects/effect_5/fire.png', 'assets/images/effects/effect_5/fire_atlas.json');
+        this.load.animation('effect_5_anim', 'assets/images/effects/effect_5/fire_anim.json');
+
+        // Fire effect for gasoline bomb
+        this.load.atlas('effect_6', 'assets/images/effects/effect_6/fire.png', 'assets/images/effects/effect_6/fire_atlas.json');
+        this.load.animation('effect_6_anim', 'assets/images/effects/effect_6/fire_anim.json');
 
         // Blood splatter effect
         this.load.atlas('effect_3', 'assets/images/effects/effect_3/blood.png', 'assets/images/effects/effect_3/blood_atlas.json');
@@ -118,7 +144,17 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.audio('rifle_shot', 'assets/sounds/rifle.mp3');
         this.load.audio('reload_sound', 'assets/sounds/reload.mp3');
         this.load.audio('grenade_explosion', 'assets/sounds/grenade.wav');
+        this.load.audio('glass_broken', 'assets/sounds/glass_broken.mp3');
+        this.load.audio('fire_sound', 'assets/sounds/fire.wav');
         this.load.audio('shovel_swing', 'assets/sounds/shovels.wav');
+        this.load.audio('pistol', 'assets/sounds/pistol.wav');
+        this.load.audio('DMR', 'assets/sounds/DMR.wav');
+        this.load.audio('minigun', 'assets/sounds/minigun.wav');
+        this.load.audio('sniper', 'assets/sounds/sniper.wav');
+        this.load.audio('SMG', 'assets/sounds/SMG.wav');
+        this.load.audio('shotgun', 'assets/sounds/shotgun.wav');
+        this.load.audio('MK14', 'assets/sounds/MK14.wav');
+        this.load.audio('katana', 'assets/sounds/katana.wav');
 
         // Map
         this.load.image('tiles', 'assets/images/RPG Nature Tileset.png');
