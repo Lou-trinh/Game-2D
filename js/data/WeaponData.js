@@ -40,11 +40,12 @@ export const WeaponData = [
     { key: 'MK14', name: 'MK14', price: 900, texture: 'MK14', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 20, speed: 1400, range: 280, audio: 'MK14', fireRate: 1000, damage: 35, pierce: true, scale: 0.5 },
     { key: 'M24', name: 'M24', price: 950, texture: 'M24', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 350, audio: 'sniper', fireRate: 1400, damage: 48, pierce: true, scale: 0.28 },
     { key: 'Kar98K', name: 'Kar98K', price: 900, texture: 'Kar98K', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 340, audio: 'sniper', fireRate: 1500, damage: 45, pierce: true, scale: 0.7 },
-    { key: 'Win94', name: 'Win94', price: 700, texture: 'Win94', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 8, speed: 1400, range: 280, audio: 'sniper', fireRate: 800, damage: 40, pierce: true, scale: 0.7 },
+    { key: 'Win94', name: 'Win94', price: 700, texture: 'Win94', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 8, speed: 1500, range: 340, audio: 'sniper', fireRate: 1500, damage: 45, pierce: true, scale: 0.7 },
     { key: 'SCAR-L', name: 'SCAR-L', price: 650, texture: 'SCAR-L', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 40, speed: 1000, range: 190, audio: 'rifle_shot', scale: 0.45 },
     { key: 'Vector', name: 'Vector', price: 500, texture: 'Vector', category: WeaponCategories.SMG, maxAmmo: 30, speed: 1200, range: 130, audio: 'SMG', scale: 0.45 },
     { key: 'MP9', name: 'MP9', price: 450, texture: 'MP9', category: WeaponCategories.SMG, maxAmmo: 30, speed: 1150, range: 140, audio: 'SMG' },
     { key: 'Gasoline_Bomb', name: 'Bom xăng', price: 150, texture: 'gasoline_bombs', category: WeaponCategories.BOMB, maxAmmo: 3 },
+    { key: 'Electric_Bomb', name: 'Bom điện', price: 200, texture: 'electric_bomb', category: WeaponCategories.BOMB, maxAmmo: 3, scale: 0.1 },
 
     // ── Assault Rifles ──
     { key: 'AUG', name: 'AUG', price: 700, texture: 'AUG', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 40, speed: 1050, range: 195, audio: 'rifle_shot', fireRate: 100, damage: 30, scale: 0.25 },
@@ -63,9 +64,9 @@ export const WeaponData = [
     { key: 'Desert_Eagle', name: 'Desert Eagle', price: 450, texture: 'Desert_Eagle', category: WeaponCategories.HANDGUNS, maxAmmo: 10, speed: 1000, range: 170, audio: 'pistol', fireRate: 500, damage: 35, scale: 0.35 },
 
     // ── Sniper Rifles ──
-    { key: 'QBU', name: 'QBU', price: 850, texture: 'QBU', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 320, audio: 'sniper', fireRate: 800, damage: 38, pierce: true, scale: 0.45 },
-    { key: 'SLR', name: 'SLR', price: 880, texture: 'SLR', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 330, audio: 'sniper', fireRate: 700, damage: 40, pierce: true, scale: 0.4 },
-    { key: 'VSS', name: 'VSS', price: 900, texture: 'VSS', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 20, speed: 1300, range: 280, audio: 'sniper', fireRate: 350, damage: 33, pierce: true, scale: 0.45 },
+    { key: 'QBU', name: 'QBU', price: 850, texture: 'QBU', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 20, speed: 1400, range: 300, audio: 'DMR', fireRate: 300, damage: 35, pierce: true, scale: 0.45 },
+    { key: 'SLR', name: 'SLR', price: 880, texture: 'SLR', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 20, speed: 1400, range: 300, audio: 'DMR', fireRate: 300, damage: 35, pierce: true, scale: 0.4 },
+    { key: 'VSS', name: 'VSS', price: 900, texture: 'VSS', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 20, speed: 1400, range: 300, audio: 'DMR', fireRate: 100, damage: 33, pierce: true, scale: 0.45 },
 
     // ── SMG ──
     { key: 'GER_MP5', name: 'GER MP5', price: 580, texture: 'GER_MP5', category: WeaponCategories.SMG, maxAmmo: 40, speed: 1100, range: 155, audio: 'SMG', fireRate: 80, damage: 22, scale: 0.5 }

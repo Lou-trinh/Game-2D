@@ -799,7 +799,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const texture = weapon ? weapon.texture : 'Grenade';
 
     const grenade = this.scene.add.sprite(this.x, this.y, texture);
-    grenade.setScale(0.6);
+    const throwScale = weapon?.scale || 0.6;
+    grenade.setScale(throwScale);
     grenade.setDepth(this.depth + 50);
 
     // Dynamic target: Land on nearest enemy or fixed distance
@@ -850,8 +851,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     grenade.destroy();
 
-    if (explosiveWeapon === 'Gasoline_Bomb') {
-      this.explodeGasolineBomb(ex, ey);
+    if (explosiveWeapon === 'Gasoline_Bomb' || explosiveWeapon === 'Electric_Bomb') {
+      this.explodeGasolineBomb(ex, ey, explosiveWeapon);
       return;
     }
 
@@ -920,7 +921,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     }
   }
 
-  explodeGasolineBomb(ex, ey) {
+  explodeGasolineBomb(ex, ey, weaponKey = 'Gasoline_Bomb') {
     // 1. Play glass broken sound
     try {
       this.scene.sound.play('glass_broken', { volume: 0.8 });
@@ -945,32 +946,41 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       if (explosion && explosion.active) explosion.destroy();
     });
 
-    // 3. Play fire.wav sound
+    // 3. Play fire/electric sound
     try {
-      this.scene.sound.play('fire_sound', { volume: 0.6 });
+      const soundKey = weaponKey === 'Electric_Bomb' ? 'electric_sound' : 'fire_sound';
+      this.scene.sound.play(soundKey, { volume: 0.6 });
     } catch (e) {
-      console.warn('Could not play fire_sound:', e);
+      console.warn('Could not play area damage sound:', e);
     }
 
-    // 4. Create Fire Zone (effect_6) for 7 seconds
-    this.createFireZone(ex, ey, 7000);
+    // 4. Create Zone — Electric_Bomb dùng effect_8, các bomb khác dùng effect_6
+    const fireEffect = weaponKey === 'Electric_Bomb' ? 'effect_8' : 'effect_6';
+    this.createFireZone(ex, ey, 7000, fireEffect);
   }
 
-  createFireZone(x, y, duration) {
+  createFireZone(x, y, duration, fireEffect = 'effect_6') {
     const fireRadius = 90; // Increased from 60
     const damagePerTick = 10;
     const tickInterval = 500; // Damage every 0.5s
 
-    // Add visual effect for the zone (can be multiple effect_6 sprites for density)
+    // Add visual effect for the zone
     const fireSprites = [];
     const spriteCount = 10; // Increased from 5
     for (let i = 0; i < spriteCount; i++) {
       const offsetX = (Math.random() - 0.5) * 80; // Increased spread
       const offsetY = (Math.random() - 0.5) * 80;
-      const fire = this.scene.add.sprite(x + offsetX, y + offsetY, 'effect_6');
-      fire.setScale(1.8 + Math.random() * 0.7); // Increased size
+      const fire = this.scene.add.sprite(x + offsetX, y + offsetY, fireEffect);
+
+      // Giảm kích thước effect_8 vì sprite tia sét gốc rất to
+      if (fireEffect === 'effect_8') {
+        fire.setScale(0.5 + Math.random() * 0.3);
+      } else {
+        fire.setScale(1.8 + Math.random() * 0.7);
+      }
+
       fire.setDepth(y + offsetY);
-      fire.play('effect_6');
+      fire.play(fireEffect);
       fireSprites.push(fire);
     }
 
@@ -983,8 +993,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       callback: () => {
         const elapsed = this.scene.time.now - startTime;
 
-        // Damage enemies in zone
-        this.damageEnemiesInArea(x, y, fireRadius, damagePerTick, true);
+        // Damage enemies in zone, truyền tên effect vào thay vì biến boolean true
+        this.damageEnemiesInArea(x, y, fireRadius, damagePerTick, fireEffect);
 
         // Check if finished
         if (elapsed >= duration) {
@@ -1002,7 +1012,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     });
   }
 
-  damageEnemiesInArea(x, y, radius, damage, applyBurn = false) {
+  damageEnemiesInArea(x, y, radius, damage, applyBurnEffect = false) {
     const enemyGroups = [
       this.scene.bears,
       this.scene.treeMen,
@@ -1027,8 +1037,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           const dist = Phaser.Math.Distance.Between(x, y, enemy.sprite.x, enemy.sprite.y);
           if (dist <= radius) {
             enemy.takeDamage(damage);
-            if (applyBurn) {
-              this.applyBurningEffect(enemy);
+            if (applyBurnEffect) {
+              const effectKey = typeof applyBurnEffect === 'string' ? applyBurnEffect : 'effect_6';
+              this.applyBurningEffect(enemy, effectKey);
             }
           }
         }
@@ -1040,14 +1051,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       const distToPlayer = Phaser.Math.Distance.Between(x, y, this.x, this.y);
       if (distToPlayer <= radius) {
         this.takeDamage(damage);
-        if (applyBurn) {
-          this.applyBurningEffect(this);
+        if (applyBurnEffect) {
+          const effectKey = typeof applyBurnEffect === 'string' ? applyBurnEffect : 'effect_6';
+          this.applyBurningEffect(this, effectKey);
         }
       }
     }
   }
 
-  applyBurningEffect(enemy) {
+  applyBurningEffect(enemy, effectKey = 'effect_6') {
     // Prevent multiple burning effects if already burning
     if (enemy.isBurning) return;
 
@@ -1055,10 +1067,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const scene = this.scene;
     if (!scene) return;
 
-    // Visual effect: attach effect_6 to enemy
-    const burnSprite = scene.add.sprite(0, 0, 'effect_6');
-    burnSprite.setScale(1.2);
-    burnSprite.play('effect_6');
+    // Nếu đứng trong vùng nổ điện (effect_8), hiệu ứng bám trên người là tia sét (effect_9)
+    const bodyEffectKey = effectKey === 'effect_8' ? 'effect_9' : effectKey;
+
+    // Visual effect: attach bodyEffectKey to enemy
+    const burnSprite = scene.add.sprite(0, 0, bodyEffectKey);
+    // Increase scale slightly based on effect type to be visible but not overwhelming
+    const scale = bodyEffectKey === 'effect_9' ? 0.8 : 1.2;
+    burnSprite.setScale(scale);
+    burnSprite.play(bodyEffectKey);
 
     // Determine the sprite to track (enemy.sprite for monsters, this for player)
     const isPlayer = (enemy === this);

@@ -61,6 +61,7 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.image('Thompson', 'assets/images/weapons/Thompson.png');
         this.load.image('Rocket_Bullet', 'assets/images/weapons/Rocket_Bullet.png');
         this.load.image('gasoline_bombs', 'assets/images/weapons/gasoline_bombs.png');
+        this.load.image('electric_bomb', 'assets/images/weapons/electric_bomb.png');
         // New weapons
         this.load.image('AUG', 'assets/images/weapons/AUG.png');
         this.load.image('FAMAS', 'assets/images/weapons/FAMAS.png');
@@ -99,6 +100,14 @@ export default class SceneLoading extends Phaser.Scene {
         // Fire effect for gasoline bomb
         this.load.atlas('effect_6', 'assets/images/effects/effect_6/fire.png', 'assets/images/effects/effect_6/fire_atlas.json');
         this.load.animation('effect_6_anim', 'assets/images/effects/effect_6/fire_anim.json');
+
+        // Load effect 8 (Electric Bomb Explosion)
+        this.load.atlas('effect_8', 'assets/images/effects/effect_8/electric.png', 'assets/images/effects/effect_8/electric_atlas.json');
+        this.load.animation('effect_8_anim', 'assets/images/effects/effect_8/electric_anim.json');
+
+        // Load effect 9 (Electric Bomb Burning)
+        this.load.atlas('effect_9', 'assets/images/effects/effect_9/electron.png', 'assets/images/effects/effect_9/electron_atlas.json');
+        this.load.animation('effect_9_anim', 'assets/images/effects/effect_9/electron_anim.json');
 
         // Blood splatter effect
         this.load.atlas('effect_3', 'assets/images/effects/effect_3/blood.png', 'assets/images/effects/effect_3/blood_atlas.json');
@@ -167,6 +176,7 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.audio('minigun', 'assets/sounds/minigun.wav');
         this.load.audio('sniper', 'assets/sounds/sniper.wav');
         this.load.audio('SMG', 'assets/sounds/SMG.wav');
+        this.load.audio('electric_sound', 'assets/sounds/electric.mp3');
         this.load.audio('shotgun', 'assets/sounds/shotgun.wav');
         this.load.audio('MK14', 'assets/sounds/MK14.wav');
         this.load.audio('katana', 'assets/sounds/katana.wav');

@@ -1,0 +1,56 @@
+{
+    "anims": [
+        {
+            "key": "effect_9",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "effect_9",
+                    "frame": "electron23"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron26"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron24"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron25"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron27"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron28"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron26"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron24"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron25"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron27"
+                },
+                {
+                    "key": "effect_9",
+                    "frame": "electron28"
+                }
+            ]
+        }
+    ]
+}
