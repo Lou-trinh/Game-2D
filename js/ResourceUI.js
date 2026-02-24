@@ -325,6 +325,14 @@ export default class ResourceUI {
                 if (texture && this.scene.textures.exists(texture)) {
                     slot.icon.setTexture(texture);
                     slot.icon.setVisible(true);
+
+                    // Auto-scale icon to fit inside slot (max 36x36)
+                    slot.icon.setScale(1);
+                    const maxSize = 36;
+                    const imgW = slot.icon.width;
+                    const imgH = slot.icon.height;
+                    const fitScale = Math.min(maxSize / imgW, maxSize / imgH, 1);
+                    slot.icon.setScale(fitScale);
                 } else {
                     slot.icon.setVisible(false);
                 }

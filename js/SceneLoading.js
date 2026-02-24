@@ -61,6 +61,21 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.image('Thompson', 'assets/images/weapons/Thompson.png');
         this.load.image('Rocket_Bullet', 'assets/images/weapons/Rocket_Bullet.png');
         this.load.image('gasoline_bombs', 'assets/images/weapons/gasoline_bombs.png');
+        // New weapons
+        this.load.image('AUG', 'assets/images/weapons/AUG.png');
+        this.load.image('FAMAS', 'assets/images/weapons/FAMAS.png');
+        this.load.image('Mini14', 'assets/images/weapons/Mini14.png');
+        this.load.image('QBZ', 'assets/images/weapons/QBZ.png');
+        this.load.image('UK_SA80', 'assets/images/weapons/UK_SA80.png');
+        this.load.image('ISR_TAR21', 'assets/images/weapons/ISR_TAR21.png');
+        this.load.image('Benelli_M3', 'assets/images/weapons/Benelli_M3.png');
+        this.load.image('S1897', 'assets/images/weapons/S1897.png');
+        this.load.image('SPAS-12', 'assets/images/weapons/SPAS-12.png');
+        this.load.image('Desert_Eagle', 'assets/images/weapons/Desert_Eagle.png');
+        this.load.image('QBU', 'assets/images/weapons/QBU.png');
+        this.load.image('SLR', 'assets/images/weapons/SLR.png');
+        this.load.image('VSS', 'assets/images/weapons/VSS.png');
+        this.load.image('GER_MP5', 'assets/images/weapons/GER_MP5.png');
         this.load.image('ammo_pickup', 'assets/images/weapons/ammo_pickup.png');
         this.load.image('bullet_1', 'assets/images/weapons/bullet_1.png');
         this.load.image('bullet_2', 'assets/images/weapons/bullet_2.png');

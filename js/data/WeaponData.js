@@ -37,14 +37,38 @@ export const WeaponData = [
     { key: 'SMG', name: 'SMG', price: 500, texture: 'SMG', category: WeaponCategories.SMG, maxAmmo: 30, speed: 1000, range: 150, audio: 'SMG' },
     { key: 'Thompson', name: 'Thompson', price: 600, texture: 'Thompson', category: WeaponCategories.SMG, maxAmmo: 50, speed: 1000, range: 150, audio: 'SMG' },
     { key: 'M762', name: 'M762', price: 700, texture: 'M762', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 40, speed: 1050, range: 200, audio: 'rifle_shot' },
-    { key: 'MK14', name: 'MK14', price: 900, texture: 'MK14', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 20, speed: 1400, range: 280, audio: 'MK14', fireRate: 1000, damage: 35, pierce: true },
-    { key: 'M24', name: 'M24', price: 950, texture: 'M24', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 350, audio: 'sniper', fireRate: 1400, damage: 48, pierce: true },
-    { key: 'Kar98K', name: 'Kar98K', price: 900, texture: 'Kar98K', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 340, audio: 'sniper', fireRate: 1500, damage: 45, pierce: true },
-    { key: 'Win94', name: 'Win94', price: 700, texture: 'Win94', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 8, speed: 1400, range: 280, audio: 'sniper', fireRate: 800, damage: 40, pierce: true },
+    { key: 'MK14', name: 'MK14', price: 900, texture: 'MK14', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 20, speed: 1400, range: 280, audio: 'MK14', fireRate: 1000, damage: 35, pierce: true, scale: 0.5 },
+    { key: 'M24', name: 'M24', price: 950, texture: 'M24', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 350, audio: 'sniper', fireRate: 1400, damage: 48, pierce: true, scale: 0.28 },
+    { key: 'Kar98K', name: 'Kar98K', price: 900, texture: 'Kar98K', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 340, audio: 'sniper', fireRate: 1500, damage: 45, pierce: true, scale: 0.7 },
+    { key: 'Win94', name: 'Win94', price: 700, texture: 'Win94', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 8, speed: 1400, range: 280, audio: 'sniper', fireRate: 800, damage: 40, pierce: true, scale: 0.7 },
     { key: 'SCAR-L', name: 'SCAR-L', price: 650, texture: 'SCAR-L', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 40, speed: 1000, range: 190, audio: 'rifle_shot', scale: 0.45 },
     { key: 'Vector', name: 'Vector', price: 500, texture: 'Vector', category: WeaponCategories.SMG, maxAmmo: 30, speed: 1200, range: 130, audio: 'SMG', scale: 0.45 },
     { key: 'MP9', name: 'MP9', price: 450, texture: 'MP9', category: WeaponCategories.SMG, maxAmmo: 30, speed: 1150, range: 140, audio: 'SMG' },
-    { key: 'Gasoline_Bomb', name: 'Bom xăng', price: 150, texture: 'gasoline_bombs', category: WeaponCategories.BOMB, maxAmmo: 3 }
+    { key: 'Gasoline_Bomb', name: 'Bom xăng', price: 150, texture: 'gasoline_bombs', category: WeaponCategories.BOMB, maxAmmo: 3 },
+
+    // ── Assault Rifles ──
+    { key: 'AUG', name: 'AUG', price: 700, texture: 'AUG', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 40, speed: 1050, range: 195, audio: 'rifle_shot', fireRate: 100, damage: 30, scale: 0.25 },
+    { key: 'FAMAS', name: 'FAMAS', price: 680, texture: 'FAMAS', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 30, speed: 1100, range: 190, audio: 'rifle_shot', fireRate: 90, damage: 28, scale: 0.8 },
+    { key: 'Mini14', name: 'Mini14', price: 720, texture: 'Mini14', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 20, speed: 1200, range: 220, audio: 'rifle_shot', fireRate: 350, damage: 34, scale: 0.55 },
+    { key: 'QBZ', name: 'QBZ', price: 650, texture: 'QBZ', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 40, speed: 1050, range: 185, audio: 'rifle_shot', fireRate: 100, damage: 29, scale: 0.3 },
+    { key: 'UK_SA80', name: 'UK SA80', price: 750, texture: 'UK_SA80', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 30, speed: 1080, range: 200, audio: 'rifle_shot', fireRate: 100, damage: 32, scale: 0.8 },
+    { key: 'ISR_TAR21', name: 'ISR TAR-21', price: 800, texture: 'ISR_TAR21', category: WeaponCategories.ASSAULT_RIFLES, maxAmmo: 30, speed: 1100, range: 200, audio: 'rifle_shot', fireRate: 100, damage: 33, scale: 0.8 },
+
+    // ── Shotguns ──
+    { key: 'Benelli_M3', name: 'Benelli M3', price: 700, texture: 'Benelli_M3', category: WeaponCategories.SHOTGUNS, maxAmmo: 8, speed: 900, range: 110, audio: 'shotgun', fireRate: 900, projectileCount: 6, spread: 10, damage: 18, scale: 0.28 },
+    { key: 'S1897', name: 'S1897', price: 550, texture: 'S1897', category: WeaponCategories.SHOTGUNS, maxAmmo: 5, speed: 850, range: 100, audio: 'shotgun', fireRate: 1200, projectileCount: 8, spread: 12, damage: 14 },
+    { key: 'SPAS_12', name: 'SPAS-12', price: 750, texture: 'SPAS-12', category: WeaponCategories.SHOTGUNS, maxAmmo: 8, speed: 920, range: 115, audio: 'shotgun', fireRate: 800, projectileCount: 7, spread: 10, damage: 20, scale: 0.3 },
+
+    // ── Handguns ──
+    { key: 'Desert_Eagle', name: 'Desert Eagle', price: 450, texture: 'Desert_Eagle', category: WeaponCategories.HANDGUNS, maxAmmo: 10, speed: 1000, range: 170, audio: 'pistol', fireRate: 500, damage: 35, scale: 0.35 },
+
+    // ── Sniper Rifles ──
+    { key: 'QBU', name: 'QBU', price: 850, texture: 'QBU', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 320, audio: 'sniper', fireRate: 800, damage: 38, pierce: true, scale: 0.45 },
+    { key: 'SLR', name: 'SLR', price: 880, texture: 'SLR', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 10, speed: 1500, range: 330, audio: 'sniper', fireRate: 700, damage: 40, pierce: true, scale: 0.4 },
+    { key: 'VSS', name: 'VSS', price: 900, texture: 'VSS', category: WeaponCategories.SNIPER_RIFLES, maxAmmo: 20, speed: 1300, range: 280, audio: 'sniper', fireRate: 350, damage: 33, pierce: true, scale: 0.45 },
+
+    // ── SMG ──
+    { key: 'GER_MP5', name: 'GER MP5', price: 580, texture: 'GER_MP5', category: WeaponCategories.SMG, maxAmmo: 40, speed: 1100, range: 155, audio: 'SMG', fireRate: 80, damage: 22, scale: 0.5 }
 ];
 
 export function getWeaponsByCategory(category) {

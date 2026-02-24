@@ -1,0 +1,44 @@
+{
+    "anims": [
+        {
+            "key": "effect_6",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "fire",
+                    "frame": "fire1"
+                },
+                {
+                    "key": "fire",
+                    "frame": "fire2"
+                },
+                {
+                    "key": "fire",
+                    "frame": "fire3"
+                },
+                {
+                    "key": "fire",
+                    "frame": "fire4"
+                },
+                {
+                    "key": "fire",
+                    "frame": "fire5"
+                },
+                {
+                    "key": "fire",
+                    "frame": "fire6"
+                },
+                {
+                    "key": "fire",
+                    "frame": "fire7"
+                },
+                {
+                    "key": "fire",
+                    "frame": "fire8"
+                }
+            ]
+        }
+    ]
+}
