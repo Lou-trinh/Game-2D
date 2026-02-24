@@ -486,7 +486,12 @@ export default class MenuScene extends Phaser.Scene {
 
             if (weapon) {
                 const wIcon = this.add.image(sx, sy, weapon.texture);
-                wIcon.setDisplaySize(slotSize * 0.8, slotSize * 0.5);
+                const maxW = slotSize * 0.8;
+                const maxH = slotSize * 0.6;
+                const imgW = wIcon.width;
+                const imgH = wIcon.height;
+                const fitScale = Math.min(maxW / imgW, maxH / imgH, 1);
+                wIcon.setScale(fitScale * (weapon.hudScale || 1));
                 this.weaponContainer.add(wIcon);
             } else {
                 const plus = this.add.text(sx, sy, '+', { fontSize: '20px', color: '#555555' }).setOrigin(0.5);
@@ -750,7 +755,12 @@ export default class MenuScene extends Phaser.Scene {
 
                 // Content
                 const wIcon = this.add.image(0, -15, w.texture);
-                wIcon.setDisplaySize(itemW * 0.7, itemH * 0.35);
+                const maxW = itemW * 0.7;
+                const maxH = itemH * 0.45;
+                const imgW = wIcon.width;
+                const imgH = wIcon.height;
+                const fitScale = Math.min(maxW / imgW, maxH / imgH, 1);
+                wIcon.setScale(fitScale * (w.popupScale || w.hudScale || 1));
 
                 const wName = this.add.text(0, 15, w.name, {
                     fontSize: '9px',

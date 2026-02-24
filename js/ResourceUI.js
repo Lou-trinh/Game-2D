@@ -5,18 +5,19 @@ export default class ResourceUI {
         this.scene = scene;
         this.player = player;
 
-        // Position in top-right corner - only diamonds now
+        // Position in top-right corner - below HUD
         const startX = scene.cameras.main.width - 15;
-        const startY = 75; // Move below HUD (which starts at Y=10 and height=60)
+        const startY = 75; // Same Y for both
 
-        // Diamond icon and text
-        this.diamondIcon = scene.add.image(startX - 65, startY + 12, 'diamond');
+        // Diamond Icon (Left side)
+        this.diamondIcon = scene.add.image(startX - 130, startY + 12, 'diamond');
         this.diamondIcon.setScale(1.2);
         this.diamondIcon.setScrollFactor(0);
         this.diamondIcon.setDepth(2005);
 
+        // Diamond Text
         this.diamondText = scene.add.text(
-            startX,
+            startX - 75,
             startY,
             '0',
             {
@@ -29,13 +30,19 @@ export default class ResourceUI {
         );
         this.diamondText.setOrigin(1, 0); // Align to right
         this.diamondText.setScrollFactor(0);
-        this.diamondText.setDepth(2005); // Above HUD panel
+        this.diamondText.setDepth(2005);
 
-        // Coin icon and text
+        // Coin Icon (Right side)
+        this.coinIcon = scene.add.image(startX - 50, startY + 12, 'coin');
+        this.coinIcon.setScale(0.25);
+        this.coinIcon.setScrollFactor(0);
+        this.coinIcon.setDepth(2005);
+
+        // Coin Text
         this.coinText = scene.add.text(
             startX,
-            startY + 30, // Position below diamonds
-            '💰 0',
+            startY,
+            '0',
             {
                 fontSize: '18px',
                 fontStyle: 'bold',
@@ -133,7 +140,7 @@ export default class ResourceUI {
         const slotMargin = 8;
 
         const slotX = 20; // Left offset
-        this.bottomOffset = 150; // Reference for other methods
+        this.bottomOffset = 80; // Reference for other methods
         const slotY = this.scene.cameras.main.height - slotH - this.bottomOffset;
 
         this.hudWeaponSlots = [];
@@ -331,8 +338,9 @@ export default class ResourceUI {
                     const maxSize = 36;
                     const imgW = slot.icon.width;
                     const imgH = slot.icon.height;
-                    const fitScale = Math.min(maxSize / imgW, maxSize / imgH, 1);
-                    slot.icon.setScale(fitScale);
+                    const baseScale = Math.min(maxSize / imgW, maxSize / imgH, 1);
+                    const hudScale = weapon?.hudScale || 1;
+                    slot.icon.setScale(baseScale * hudScale);
                 } else {
                     slot.icon.setVisible(false);
                 }
@@ -462,7 +470,7 @@ export default class ResourceUI {
 
     updateResources() {
         this.diamondText.setText(`${this.player.diamondCount || 0}`);
-        this.coinText.setText(`💰 ${this.player.coinCount || 0}`);
+        this.coinText.setText(`${this.player.coinCount || 0}`);
         this.updatePlayerHUD();
     }
 

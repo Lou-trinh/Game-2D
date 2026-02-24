@@ -1087,6 +1087,40 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     }
     burnSprite.setDepth(targetSprite.depth + 1);
 
+    // XỬ LÝ STUN CHO BOM ĐIỆN (effect_9)
+    if (bodyEffectKey === 'effect_9' && !enemy.isStunned) {
+      enemy.isStunned = true;
+      const targetObj = isPlayer ? this : enemy;
+      const originalUpdate = targetObj.update;
+
+      // Ghi đè hàm update để đóng băng (không di chuyển, không tấn công)
+      targetObj.update = function () {
+        // Nếu đã chết thì không làm gì cả
+        if (this.isDead) return;
+
+        if (typeof this.setVelocity === 'function' && this.body) {
+          this.setVelocity(0, 0);
+          if (this.anims) this.anims.pause();
+        } else if (this.sprite && typeof this.sprite.setVelocity === 'function' && this.sprite.body) {
+          this.sprite.setVelocity(0, 0);
+          if (this.sprite.anims) this.sprite.anims.pause();
+        }
+      };
+
+      // Hết 4 giây thì phục hồi lại
+      scene.time.delayedCall(4000, () => {
+        const isDead = isPlayer ? targetObj.isDead : (targetObj.isDead || !targetObj.sprite || !targetObj.sprite.active);
+        if (isDead) return;
+
+        targetObj.update = originalUpdate;
+        targetObj.isStunned = false;
+        if (typeof targetObj.resume === 'function') targetObj.resume();
+        else if (targetObj.sprite && targetObj.sprite.anims) targetObj.sprite.anims.resume();
+        else if (targetObj.anims) targetObj.anims.resume();
+        console.log('⚡ Hết bị điện giật!');
+      });
+    }
+
     // SMOTH TRACKING: Update position every frame
     const updateListener = () => {
       // Defensive check: if scene is gone

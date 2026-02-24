@@ -264,7 +264,12 @@ export default class SceneShop extends Phaser.Scene {
 
         // Weapon Image - Adjusted position and scale
         const img = this.add.image(0, -20, weapon.texture);
-        img.setDisplaySize(w * 0.65, w * 0.4); // Slightly smaller scale
+        const maxW = w * 0.65;
+        const maxH = w * 0.45;
+        const imgW = img.width;
+        const imgH = img.height;
+        const fitScale = Math.min(maxW / imgW, maxH / imgH, 1);
+        img.setScale(fitScale * (weapon.popupScale || weapon.hudScale || 1));
 
         // Name
         const name = this.add.text(0, 15, weapon.name, { // Moved up from 20
