@@ -69,6 +69,7 @@ export default class LargeMushRoom {
 
     // Sử dụng chung blood và meat
     scene.load.image('blood', 'assets/images/item/blood.png');
+    scene.load.image('blood2', 'assets/images/item/blood2.png');
     scene.load.image('meat', 'assets/images/item/meat.png');
   }
 
@@ -329,6 +330,7 @@ export default class LargeMushRoom {
 
     // Hiệu ứng nhấp nháy khi bị tấn công
     this.sprite.setTint(0xff0000);
+    this.spawnBloodPuddle();
     this.scene.time.delayedCall(100, () => {
       if (!this.isDead) {
         this.sprite.clearTint();
@@ -343,6 +345,24 @@ export default class LargeMushRoom {
     if (this.health <= 0) {
       this.die();
     }
+  }
+
+  spawnBloodPuddle() {
+    if (!this.scene || !this.sprite) return;
+    const blood = this.scene.add.image(this.sprite.x + Phaser.Math.Between(-10, 10), this.sprite.y + 15, 'blood2');
+    blood.setDepth(0);
+    blood.setScale(Phaser.Math.FloatBetween(0.2, 0.4));
+    // blood.setRotation(Phaser.Math.FloatBetween(0, Math.PI * 2));
+
+    this.scene.tweens.add({
+      targets: blood,
+      alpha: 0,
+      duration: 5000,
+      ease: 'Power2',
+      onComplete: () => {
+        blood.destroy();
+      }
+    });
   }
 
   die() {

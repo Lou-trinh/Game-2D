@@ -148,6 +148,8 @@ export default class SceneLoading extends Phaser.Scene {
         // 4. Resources & Items
         this.load.image('stone', 'assets/images/item/stone.png'); // Stone.js
         this.load.atlas('chest', 'assets/images/item/chest/chest.png', 'assets/images/item/chest/chest_atlas.json');
+        this.load.image('blood', 'assets/images/item/blood.png');
+        this.load.image('blood2', 'assets/images/item/blood2.png');
         this.load.animation('chest_anim', 'assets/images/item/chest/chest_anim.json');
         this.load.image('wood', 'assets/images/item/wood.png');
         this.load.image('meat', 'assets/images/item/meat.png');
