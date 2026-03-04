@@ -16,8 +16,13 @@ const config = {
   parent: 'survival-game',
   scene: [SceneLoading, MenuScene, CharacterSelectScene, MainScene, GameOverScene, ReviveScene, SceneShop],
   scale: {
-    zoom: 2,
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: 512,
+    height: 512
   },
+  pixelArt: true,
+  roundPixels: true,
   physics: {
     default: 'matter',
     matter: {
