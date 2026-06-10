@@ -134,15 +134,16 @@ export default class ResourceUI {
         this.healthText.setScrollFactor(0);
         this.healthText.setDepth(2002);
 
-        // Weapon Slots Section (Bottom-Left)
+        // Weapon Slots Section
         const slotW = 40; // Smaller squares
         const slotH = 40;
         const slotMargin = 8;
 
-        const slotX = 20; // Left offset
         const os = this.scene.sys.game.device.os;
         const isMobile = os.android || os.iOS || window.innerWidth <= 900 || 'ontouchstart' in window;
-        this.bottomOffset = isMobile ? 155 : 80; // Reference for other methods
+        const totalSlotsWidth = (slotW * 4) + (slotMargin * 3);
+        const slotX = isMobile ? (this.scene.cameras.main.width - totalSlotsWidth) / 2 : 20;
+        this.bottomOffset = isMobile ? 24 : 80; // Reference for other methods
         const slotY = this.scene.cameras.main.height - slotH - this.bottomOffset;
 
         this.hudWeaponSlots = [];
@@ -173,8 +174,8 @@ export default class ResourceUI {
         // Initialize icons from player data
         this.updateIcons();
 
-        // Ammo Section (above slots)
-        const ammoX = slotX + 12;
+        // Ammo Section
+        const ammoX = isMobile ? slotX + (totalSlotsWidth / 2) - 34 : slotX + 12;
         const ammoY = slotY - 18;
 
         // Ammo Icon (bullet_1.png) - MINI
@@ -304,16 +305,16 @@ export default class ResourceUI {
     updateActiveSlot(slotIndex) {
         this.hudWeaponSlots.forEach((slot, i) => {
             const isActive = (i === slotIndex - 1);
-            const sy = this.scene.cameras.main.height - slot.sh - (this.bottomOffset || 150);
+            const sy = slot.sy;
             slot.bg.clear();
             slot.bg.fillStyle(0x1a1a1a, 0.8);
             slot.bg.fillRoundedRect(slot.sx, sy, slot.sw, slot.sh, 6);
             slot.bg.lineStyle(isActive ? 2 : 1, isActive ? 0x00ff00 : 0x555555, 1);
             slot.bg.strokeRoundedRect(slot.sx, sy, slot.sw, slot.sh, 6);
+            slot.icon.setPosition(slot.sx + slot.sw / 2, sy + slot.sh / 2);
 
             // Add a subtle glow to active slot
             if (isActive) {
-                const sy = this.scene.cameras.main.height - slot.sh - (this.bottomOffset || 150);
                 slot.bg.lineStyle(4, 0x00ff00, 0.2);
                 slot.bg.strokeRoundedRect(slot.sx - 2, sy - 2, slot.sw + 4, slot.sh + 4, 8);
             }
