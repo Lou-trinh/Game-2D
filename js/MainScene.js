@@ -16,6 +16,7 @@ import IceMonster from './IceMonster';
 import Chest from './Chest';
 import { Economy } from './utils/Economy';
 import ResourceUI from './ResourceUI';
+import MobileControls from './MobileControls';
 
 export default class MainScene extends Phaser.Scene {
   constructor() {
@@ -546,6 +547,7 @@ export default class MainScene extends Phaser.Scene {
        RESOURCE UI
     =============================== */
     this.resourceUI = new ResourceUI(this, this.player);
+    this.mobileControls = new MobileControls(this, this.player);
 
     /* ===============================
        SPAWN CHESTS

@@ -1686,7 +1686,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (blockMovementForMino) return;
 
     // Check for attack input (Space held down)
-    if (this.keySpace?.isDown) {
+    if (this.keySpace?.isDown || this.mobileFireHeld) {
       if (this.characterType === CharacterTypes.PLAYER_1) {
         const weaponKey = this.weaponSlots[this.activeSlot];
         const weapon = getWeaponByKey(weaponKey);
@@ -1716,6 +1716,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     else if (this.inputKeys?.right?.isDown) vel.x = 1;
     if (this.inputKeys?.up?.isDown) vel.y = -1;
     else if (this.inputKeys?.down?.isDown) vel.y = 1;
+
+    if (this.mobileMoveVector?.lengthSq() > 0) {
+      vel.copy(this.mobileMoveVector);
+    }
 
     // Check for dash skill (Shift key for Assassin)
     // Note: SPACE and R keys are handled by keyboard event listeners

@@ -140,7 +140,9 @@ export default class ResourceUI {
         const slotMargin = 8;
 
         const slotX = 20; // Left offset
-        this.bottomOffset = 80; // Reference for other methods
+        const os = this.scene.sys.game.device.os;
+        const isMobile = os.android || os.iOS || window.innerWidth <= 900 || 'ontouchstart' in window;
+        this.bottomOffset = isMobile ? 155 : 80; // Reference for other methods
         const slotY = this.scene.cameras.main.height - slotH - this.bottomOffset;
 
         this.hudWeaponSlots = [];
