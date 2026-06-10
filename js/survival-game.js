@@ -9,17 +9,20 @@ import SceneLoading from './SceneLoading.js';
 import SceneShop from './SceneShop.js';
 
 const config = {
-  width: 512,
-  height: 512,
+  width: 960,
+  height: 540,
   backgroundColor: '#ffffff',
   type: Phaser.AUTO,
   parent: 'survival-game',
   scene: [SceneLoading, MenuScene, CharacterSelectScene, MainScene, GameOverScene, ReviveScene, SceneShop],
+  input: {
+    activePointers: 5
+  },
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 512,
-    height: 512
+    width: 960,
+    height: 540
   },
   pixelArt: true,
   roundPixels: true,

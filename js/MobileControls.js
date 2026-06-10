@@ -14,6 +14,7 @@ export default class MobileControls {
 
     if (!this.shouldShow()) return;
 
+    this.scene.input.addPointer(4);
     this.createJoystick();
     this.createActionButtons();
   }
@@ -75,21 +76,21 @@ export default class MobileControls {
     const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
 
-    this.createButton(width - 72, height - 78, 52, 'FIRE', () => {
+    this.createButton(width - 76, height - 82, 56, 'FIRE', () => {
       this.player.mobileFireHeld = true;
     }, () => {
       this.player.mobileFireHeld = false;
     });
 
-    this.createButton(width - 142, height - 76, 34, 'R', () => {
+    this.createButton(width - 158, height - 82, 36, 'R', () => {
       this.player.reloadWeapon?.();
     });
 
-    this.createButton(width - 72, height - 150, 34, 'SW', () => {
+    this.createButton(width - 76, height - 166, 36, 'SW', () => {
       this.switchToNextWeapon();
     });
 
-    this.createButton(width - 142, height - 146, 34, 'D', () => {
+    this.createButton(width - 158, height - 166, 36, 'D', () => {
       const direction = this.player.mobileMoveVector?.clone() || new Phaser.Math.Vector2(0, 0);
       this.player.performDash?.(direction);
     });
