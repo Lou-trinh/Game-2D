@@ -145,7 +145,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.setupMouseInput(scene);
 
     // =====================
-    // KEYBOARD INPUT (F key for dash, 1-4 for slots)
+    // KEYBOARD INPUT (1-4 for slots, R for reload)
     // =====================
     this.setupKeyboardInput(scene);
     // Track space key for auto-fire
@@ -154,7 +154,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       down: Phaser.Input.Keyboard.KeyCodes.S,
       left: Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
-      dash: Phaser.Input.Keyboard.KeyCodes.F,
       skillR: Phaser.Input.Keyboard.KeyCodes.R,
       slot1: Phaser.Input.Keyboard.KeyCodes.ONE,
       slot2: Phaser.Input.Keyboard.KeyCodes.TWO,
@@ -282,27 +281,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   }
 
   setupKeyboardInput(scene) {
-    // Setup SPACE key for dash (Assassin only)
-    scene.input.keyboard.on('keydown-SPACE', () => {
-      // Assassin Dash Logic
-      if (this.characterType === CharacterTypes.ASSASSIN) {
-        if (this.isDashing || this.dashCooldown || this.isDead || this.isAttacking) return;
-
-        console.log('⌨️ SPACE key pressed - triggering dash!');
-
-        // Get current movement direction
-        const vel = new Phaser.Math.Vector2(0, 0);
-        if (this.inputKeys?.left?.isDown) vel.x = -1;
-        else if (this.inputKeys?.right?.isDown) vel.x = 1;
-        if (this.inputKeys?.up?.isDown) vel.y = -1;
-        else if (this.inputKeys?.down?.isDown) vel.y = 1;
-
-        this.performDash(vel);
-      }
-      // Player 1 shooting is handled in update() method for auto-fire
-    });
-
-    // Setup R key for Assassin backstab, Wizard summon, Taoist transform AND Reload
+    // Setup R key for reload.
     scene.input.keyboard.on('keydown-R', () => {
       // Player 1 Reload
       if (this.characterType === CharacterTypes.PLAYER_1) {
@@ -1721,12 +1700,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       vel.copy(this.mobileMoveVector);
     }
 
-    // Check for dash skill (Shift key for Assassin)
-    // Note: SPACE and R keys are handled by keyboard event listeners
-    if (this.inputKeys?.shift?.isDown && this.characterType === CharacterTypes.ASSASSIN) {
-      this.performDash(vel);
-    }
-
     // Determine current animation set (normal vs transformed Taoist)
     const isTaoist = this.characterType === CharacterTypes.TAOIST;
     const useTransformAnim = isTaoist && this.isTransformed && this.transformConfig;
@@ -1800,8 +1773,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
       }
     }
-
-    // Space key now used for dash (removed attack on space)
 
     if (this.weapon?.visible) {
       // Use weapon config offsets or defaults

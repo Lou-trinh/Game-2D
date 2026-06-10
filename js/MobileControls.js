@@ -90,10 +90,6 @@ export default class MobileControls {
       this.switchToNextWeapon();
     });
 
-    this.createButton(width - 158, height - 166, 36, 'D', () => {
-      const direction = this.player.mobileMoveVector?.clone() || new Phaser.Math.Vector2(0, 0);
-      this.player.performDash?.(direction);
-    });
   }
 
   createButton(x, y, radius, label, onDown, onUp = null) {

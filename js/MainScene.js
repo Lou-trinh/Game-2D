@@ -523,9 +523,7 @@ export default class MainScene extends Phaser.Scene {
       down: Phaser.Input.Keyboard.KeyCodes.S,
       left: Phaser.Input.Keyboard.KeyCodes.A,
       right: Phaser.Input.Keyboard.KeyCodes.D,
-      space: Phaser.Input.Keyboard.KeyCodes.SPACE,
-      shift: Phaser.Input.Keyboard.KeyCodes.SHIFT,
-      f: Phaser.Input.Keyboard.KeyCodes.F
+      space: Phaser.Input.Keyboard.KeyCodes.SPACE
     });
 
     // Shooting is handled exclusively by the Space bar in Player.js update()
