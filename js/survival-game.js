@@ -7,6 +7,9 @@ import GameOverScene from "./GameOverScene.js";
 import ReviveScene from './ReviveScene.js';
 import SceneLoading from './SceneLoading.js';
 import SceneShop from './SceneShop.js';
+import { setupLandscapeOrientation } from './orientation.js';
+
+setupLandscapeOrientation();
 
 const config = {
   width: 960,
