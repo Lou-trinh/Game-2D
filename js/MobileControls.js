@@ -5,9 +5,9 @@ export default class MobileControls {
     this.scene = scene;
     this.player = player;
     this.pointerId = null;
-    this.radius = 54;
-    this.knobRadius = 22;
-    this.center = new Phaser.Math.Vector2(78, scene.cameras.main.height - 78);
+    this.radius = 72;
+    this.knobRadius = 30;
+    this.center = new Phaser.Math.Vector2(96, scene.cameras.main.height - 96);
 
     this.player.mobileMoveVector = new Phaser.Math.Vector2(0, 0);
     this.player.mobileFireHeld = false;
@@ -76,17 +76,17 @@ export default class MobileControls {
     const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
 
-    this.createButton(width - 76, height - 82, 56, 'FIRE', () => {
+    this.createButton(width - 88, height - 86, 60, 'FIRE', () => {
       this.player.mobileFireHeld = true;
     }, () => {
       this.player.mobileFireHeld = false;
     });
 
-    this.createButton(width - 158, height - 82, 36, 'R', () => {
+    this.createButton(width - 205, height - 88, 40, 'R', () => {
       this.player.reloadWeapon?.();
     });
 
-    this.createButton(width - 76, height - 166, 36, 'SW', () => {
+    this.createButton(width - 118, height - 210, 40, 'SW', () => {
       this.switchToNextWeapon();
     });
 
@@ -100,7 +100,7 @@ export default class MobileControls {
     button.setInteractive();
 
     const text = this.scene.add.text(x, y, label, {
-      fontSize: radius > 40 ? '13px' : '11px',
+      fontSize: radius > 50 ? '14px' : '12px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000000',
