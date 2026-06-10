@@ -1,0 +1,104 @@
+{
+    "anims": [
+        {
+            "key": "skill_2",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port9"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port10"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port11"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port12"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port13"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port14"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port15"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port16"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port17"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port1"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port2"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port3"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port4"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port5"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port6"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port7"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port8"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port18"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port19"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port20"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port21"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port22"
+                },
+                {
+                    "key": "tele_port",
+                    "frame": "tele_port23"
+                }
+            ]
+        }
+    ]
+}

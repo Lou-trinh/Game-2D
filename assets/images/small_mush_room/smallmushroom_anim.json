@@ -1,0 +1,52 @@
+{
+  "anims": [
+    {
+      "key": "smallmushroom_walk",
+      "type": "frames",
+      "repeat": -1,
+      "frameRate": 12,
+      "frames": [
+        {
+          "key": "smallmushroom",
+          "frame": "smallmushroom_walk_1"
+        },
+        {
+          "key": "smallmushroom",
+          "frame": "smallmushroom_walk_2"
+        },
+        {
+          "key": "smallmushroom",
+          "frame": "smallmushroom_walk_3"
+        },
+        {
+          "key": "smallmushroom",
+          "frame": "smallmushroom_walk_4"
+        }
+      ]
+    },
+    {
+      "key": "smallmushroom_idle",
+      "type": "frames",
+      "repeat": -1,
+      "frameRate": 12,
+      "frames": [
+        {
+          "key": "smallmushroom",
+          "frame": "smallmushroom_idle_1"
+        },
+        {
+          "key": "smallmushroom",
+          "frame": "smallmushroom_idle_2"
+        },
+        {
+          "key": "smallmushroom",
+          "frame": "smallmushroom_idle_3"
+        },
+        {
+          "key": "smallmushroom",
+          "frame": "smallmushroom_idle_4"
+        }
+      ]
+    }
+  ]
+}

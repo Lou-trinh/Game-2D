@@ -1,0 +1,48 @@
+{
+    "anims": [
+        {
+            "key": "blood",
+            "type": "frames",
+            "repeat": 0,
+            "frameRate": 15,
+            "frames": [
+                {
+                    "key": "effect_3",
+                    "frame": "blood15"
+                },
+                {
+                    "key": "effect_3",
+                    "frame": "blood16"
+                },
+                {
+                    "key": "effect_3",
+                    "frame": "blood17"
+                },
+                {
+                    "key": "effect_3",
+                    "frame": "blood18"
+                },
+                {
+                    "key": "effect_3",
+                    "frame": "blood19"
+                },
+                {
+                    "key": "effect_3",
+                    "frame": "blood20"
+                },
+                {
+                    "key": "effect_3",
+                    "frame": "blood21"
+                },
+                {
+                    "key": "effect_3",
+                    "frame": "blood22"
+                },
+                {
+                    "key": "effect_3",
+                    "frame": "blood23"
+                }
+            ]
+        }
+    ]
+}

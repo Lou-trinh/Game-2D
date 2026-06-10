@@ -1,0 +1,192 @@
+{
+    "anims": [
+        {
+            "key": "effect_5",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 20,
+            "frames": [
+                {
+                    "key": "effect_5",
+                    "frame": "1_5"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_6"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_7"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_8"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_9"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_10"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_11"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_12"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_13"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_14"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_15"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_16"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_17"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_18"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_19"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_20"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_21"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_22"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_23"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_24"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_25"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_26"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_27"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_28"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_29"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_30"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_31"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_32"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_33"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_34"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_35"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_36"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_37"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_38"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_39"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_40"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_41"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_42"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_43"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_44"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_45"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_46"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_47"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_48"
+                },
+                {
+                    "key": "effect_5",
+                    "frame": "1_49"
+                }
+            ]
+        }
+    ]
+}

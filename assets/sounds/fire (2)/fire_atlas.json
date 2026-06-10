@@ -1,0 +1,112 @@
+{
+    "frames": [
+        {
+            "filename": "fire2",
+            "frame": {
+                "w": 24,
+                "h": 32,
+                "x": 1,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "fire1",
+            "frame": {
+                "w": 24,
+                "h": 32,
+                "x": 26,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "fire4",
+            "frame": {
+                "w": 24,
+                "h": 32,
+                "x": 1,
+                "y": 34
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "fire5",
+            "frame": {
+                "w": 24,
+                "h": 32,
+                "x": 26,
+                "y": 34
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "fire6",
+            "frame": {
+                "w": 24,
+                "h": 32,
+                "x": 51,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "fire3",
+            "frame": {
+                "w": 24,
+                "h": 32,
+                "x": 51,
+                "y": 34
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "fire7",
+            "frame": {
+                "w": 24,
+                "h": 32,
+                "x": 1,
+                "y": 67
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "fire8",
+            "frame": {
+                "w": 24,
+                "h": 32,
+                "x": 26,
+                "y": 67
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        }
+    ],
+    "meta": {
+        "description": "Atlas generado con Atlas Packer Gamma V2",
+        "web": "https://gammafp.github.io/atlas-packer-phaser/"
+    }
+}

@@ -1,0 +1,28 @@
+{
+    "anims": [
+        {
+            "key": "shoot",
+            "type": "frames",
+            "repeat": 0,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "effect_7",
+                    "frame": "effect_71"
+                },
+                {
+                    "key": "effect_7",
+                    "frame": "effect_72"
+                },
+                {
+                    "key": "effect_7",
+                    "frame": "effect_73"
+                },
+                {
+                    "key": "effect_7",
+                    "frame": "effect_74"
+                }
+            ]
+        }
+    ]
+}
