@@ -3,12 +3,12 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBqqc2HC6wnMrXILnijjEXShv-bANRo-es",
-  authDomain: "survival-game-4c7b4.firebaseapp.com",
-  projectId: "survival-game-4c7b4",
-  storageBucket: "survival-game-4c7b4.firebasestorage.app",
-  messagingSenderId: "273751153126",
-  appId: "1:273751153126:web:6b73c7267cc98960601e27"
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);

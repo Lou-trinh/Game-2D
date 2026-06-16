@@ -1,6 +1,14 @@
 // @ts-nocheck
 /* eslint-disable */
 const path = require('path');
+const webpack = require('webpack');
+const dotenv = require('dotenv');
+
+const env = dotenv.config().parsed || {};
+const envKeys = Object.keys(env).reduce((acc, key) => {
+  acc[`process.env.${key}`] = JSON.stringify(env[key]);
+  return acc;
+}, {});
 
 module.exports = {
   entry: {
@@ -11,4 +19,7 @@ module.exports = {
     clean: true,
     filename: 'js/[name].js',
   },
+  plugins: [
+    new webpack.DefinePlugin(envKeys),
+  ],
 };
