@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Economy } from './utils/Economy';
 
 export default class IceMonster {
     constructor(data) {
@@ -333,6 +334,7 @@ export default class IceMonster {
         if (this.isDead) return;
 
         this.isDead = true;
+        Economy.addExp(45);
         console.log('💀 Ice Monster died!');
 
         // Hide health bar

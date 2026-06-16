@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { preloadCharacters, getCharacterConfig, CharacterTypes } from './Character';
 import { getWeaponByKey, WeaponCategories } from './data/WeaponData';
+import { Economy } from './utils/Economy';
 
 export default class Player extends Phaser.Physics.Matter.Sprite {
   constructor(data) {
@@ -1557,6 +1558,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.weapon) this.weapon.setVisible(false);
     if (this.healthBar) this.healthBar.setVisible(false);
     if (this.healthBarBg) this.healthBarBg.setVisible(false);
+
+    // Save progress to cloud on death
+    Economy.forceSave();
 
     console.log('💀 Player died! isTransformed:', this.isTransformed);
 

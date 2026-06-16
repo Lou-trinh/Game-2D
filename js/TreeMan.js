@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Economy } from './utils/Economy';
 
 export default class TreeMan {
   constructor(data) {
@@ -390,6 +391,7 @@ export default class TreeMan {
     if (this.isDead) return;
 
     this.isDead = true;
+    Economy.addExp(20);
     console.log('💀 Tree man died!');
 
     // Ẩn health bar

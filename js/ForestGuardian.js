@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Economy } from './utils/Economy';
 
 export default class ForestGuardian {
   constructor(data) {
@@ -509,6 +510,7 @@ export default class ForestGuardian {
     if (this.isDead) return;
 
     this.isDead = true;
+    Economy.addExp(100);
     console.log('💀 Forest Guardian died!');
 
     // Ẩn health bar

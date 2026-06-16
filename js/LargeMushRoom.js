@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Economy } from './utils/Economy';
 
 export default class LargeMushRoom {
   constructor(data) {
@@ -369,6 +370,7 @@ export default class LargeMushRoom {
     if (this.isDead) return;
 
     this.isDead = true;
+    Economy.addExp(20);
     console.log('💀 LargeMushRoom died!');
 
     // Ẩn health bar

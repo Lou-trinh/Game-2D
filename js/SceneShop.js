@@ -100,47 +100,26 @@ export default class SceneShop extends Phaser.Scene {
         this.startScrollY = 0;
         const dragThreshold = 10;
 
-        // Overlay & Area Input for Drag
-        // We use a transparent zone to capture drag start on the list area
-        const inputZone = this.add.zone(this.listX + this.listW / 2, this.listY + this.listH / 2, this.listW, this.listH);
-        inputZone.setInteractive();
-
-        inputZone.on('pointerdown', (pointer) => {
-            this.startY = pointer.y;
-            this.startScrollY = this.gridContainer.y;
-            this.isDragging = false;
+        // inputZone NOT made interactive — prevents it from blocking clicks on weapon buttons (Phaser topOnly).
+        // Instead, track scroll start via scene-level pointerdown with bounds check.
+        this.input.on('pointerdown', (pointer) => {
+            if (pointer.x >= this.listX && pointer.x <= this.listX + this.listW &&
+                pointer.y >= this.listY && pointer.y <= this.listY + this.listH) {
+                if (!this.isPointerDownOnList) {
+                    this.isPointerDownOnList = true;
+                    this.startY = pointer.y;
+                    this.startScrollY = this.gridContainer.y;
+                    this.isDragging = false;
+                }
+            }
         });
 
-        // Global move for smooth dragging
-        const onPointerMove = (pointer) => {
-            if (pointer.isDown) {
-                // Check if we started a drag on our list (simple check: if we are dragging)
-                // Since we don't have a reliable 'focus', we just check if we validly clicked startY
-                // But startY is reset on click.
-                // Better: check if we are in 'drag mode' initialized by inputZone
-
-                // Let's rely on the pointer diff.
-                const diff = pointer.y - this.startY;
-                // Only scroll if we clicked inside the list (which we track via inputZone listener above, implicit state)
-                // ISSUE: Global pointermove fires for everything. We need to know if this specific interaction started on the list.
-                // Simple fix: We'll implement dragging via scene.input 'pointermove' but limit it to active drag state.
-                // For now, let's keep it simple: inputZone tracks down.
-
-                // We need state 'isDownOnList'.
-            }
-        };
-
-        // Let's use specific listeners managed by scene
         this.input.on('pointermove', (pointer) => {
-            if (pointer.isDown) {
-                // We need to know if the DOWN event happened on our list.
-                // We can use a flag.
-                if (this.isPointerDownOnList) {
-                    const diff = pointer.y - this.startY;
-                    if (Math.abs(diff) > dragThreshold) {
-                        this.isDragging = true;
-                        this.updateScroll(this.startScrollY + diff);
-                    }
+            if (pointer.isDown && this.isPointerDownOnList) {
+                const diff = pointer.y - this.startY;
+                if (Math.abs(diff) > dragThreshold) {
+                    this.isDragging = true;
+                    this.updateScroll(this.startScrollY + diff);
                 }
             }
         });
@@ -148,12 +127,6 @@ export default class SceneShop extends Phaser.Scene {
         this.input.on('pointerup', () => {
             this.isPointerDownOnList = false;
             this.isDragging = false;
-        });
-
-        inputZone.on('pointerdown', (pointer) => {
-            this.isPointerDownOnList = true;
-            this.startY = pointer.y;
-            this.startScrollY = this.gridContainer.y;
         });
 
         // Mouse Wheel
@@ -319,30 +292,29 @@ export default class SceneShop extends Phaser.Scene {
     }
 
     isOwned(key) {
-        return true; // Unlocked all for testing
+        return Economy.isWeaponOwned(key);
     }
 
     buyWeapon(weapon, btn, btnText) {
         const currentDiamonds = Economy.getDiamonds();
         if (currentDiamonds >= weapon.price) {
-            Economy.addDiamonds(-weapon.price);
-
-            // Save ownership
-            const owned = JSON.parse(localStorage.getItem('owned_weapons') || '[]');
-            owned.push(weapon.key);
-            localStorage.setItem('owned_weapons', JSON.stringify(owned));
-
-            // Update UI
+            Economy.saveDiamonds(currentDiamonds - weapon.price);
+            Economy.ownWeapon(weapon.key);
             this.diaText.setText(`💎 ${Economy.getDiamonds()}`);
             btn.setFillStyle(0x27ae60);
             btnText.setText('ĐÃ CÓ');
-
-            // Notify MenuScene if needed, but registry is not used for specific weapon persistence here
-            console.log(`Bought ${weapon.name}!`);
         } else {
-            // Shake effect or feedback
-            this.cameras.main.shake(100, 0.005);
-            console.log('Not enough diamonds!');
+            if (this._noFundsText && this._noFundsText.active) this._noFundsText.destroy();
+            this._noFundsText = this.add.text(
+                this.listX + this.listW / 2,
+                this.listY - 12,
+                'Không đủ kim cương!',
+                { fontSize: '13px', color: '#ff4444', fontStyle: 'bold', stroke: '#000000', strokeThickness: 3 }
+            ).setOrigin(0.5, 1).setDepth(200);
+            this.tweens.add({
+                targets: this._noFundsText, alpha: 0, y: this.listY - 30, duration: 1200, ease: 'Power1',
+                onComplete: () => { if (this._noFundsText && this._noFundsText.active) this._noFundsText.destroy(); }
+            });
         }
     }
 

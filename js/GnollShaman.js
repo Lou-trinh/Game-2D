@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Economy } from './utils/Economy';
 
 export default class GnollShaman {
   constructor(data) {
@@ -416,6 +417,7 @@ export default class GnollShaman {
     if (this.isDead) return;
 
     this.isDead = true;
+    Economy.addExp(40);
     console.log('💀 Gnoll Shaman died!');
 
     if (this.healthBar) this.healthBar.setVisible(false);

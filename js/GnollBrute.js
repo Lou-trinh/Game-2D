@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Economy } from './utils/Economy';
 
 export default class GnollBrute {
   constructor(data) {
@@ -362,6 +363,7 @@ export default class GnollBrute {
     if (this.isDead) return;
 
     this.isDead = true;
+    Economy.addExp(35);
     console.log('💀 Gnoll Brute died!');
 
     // Ẩn health bar

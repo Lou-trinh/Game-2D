@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Economy } from './utils/Economy';
 
 export default class Golem {
   constructor(data) {
@@ -373,6 +374,7 @@ export default class Golem {
   die() {
     if (this.isDead) return;
     this.isDead = true;
+    Economy.addExp(50);
 
     this.healthBar?.setVisible(false);
     this.healthBarBg?.setVisible(false);

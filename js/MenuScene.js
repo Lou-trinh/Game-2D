@@ -1,6 +1,7 @@
 import { getAllCharacters, getCharacterConfig } from './Character';
 import { Economy } from './utils/Economy';
 import { WeaponData, WeaponCategories, getWeaponsByCategory, getWeaponByKey, getWeaponsByCategories } from './data/WeaponData';
+import { auth, onAuthChange, signInWithGoogle, signOutUser } from './firebase.js';
 
 export default class MenuScene extends Phaser.Scene {
     constructor() {
@@ -59,6 +60,9 @@ export default class MenuScene extends Phaser.Scene {
 
         // Fade in effect
         this.cameras.main.fadeIn(500, 0, 0, 0);
+
+        // Auth UI
+        this.setupAuthUI();
     }
 
     createTopBar(height) {
@@ -67,24 +71,21 @@ export default class MenuScene extends Phaser.Scene {
         // Background panel
         const bar = this.createPanel(10, 10, 180, 50, 0x2c3e50, 0.8);
 
-        // Player Info
-        const avatar = this.add.sprite(35, 35, 'player_1', 'player_1');
-        avatar.setScale(0.8);
+        // Avatar placeholder (circle, hiện khi chưa đăng nhập)
+        this.avatarBg = this.add.graphics();
+        this.avatarBg.fillStyle(0x3d4f61, 1);
+        this.avatarBg.fillCircle(35, 35, 18);
+        this.avatarBg.lineStyle(2, 0x4a5a6a, 1);
+        this.avatarBg.strokeCircle(35, 35, 18);
 
-        this.add.text(65, 18, 'Player info', {
-            fontSize: '14px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        });
-
-        // EXP Bar (mini)
+        // EXP Bar (dynamic — refs stored để refresh sau sync)
         const expBg = this.add.graphics();
         expBg.fillStyle(0x000000, 0.5);
         expBg.fillRect(65, 38, 110, 12);
-        const expFill = this.add.graphics();
-        expFill.fillStyle(0xe67e22, 1);
-        expFill.fillRect(66, 39, 62, 10);
-        this.add.text(120, 39, '62/130', { fontSize: '10px', color: '#ffffff' }).setOrigin(0.5, 0);
+
+        this.expFill = this.add.graphics();
+        this.expText = this.add.text(120, 39, '', { fontSize: '9px', color: '#ffffff' }).setOrigin(0.5, 0);
+        this.updateExpBar();
 
         // Diamonds
         const diaBar = this.createPanel(width - 240, 10, 110, 30, 0x2c3e50, 0.8);
@@ -92,7 +93,7 @@ export default class MenuScene extends Phaser.Scene {
         diaIcon.setScale(1.1);
 
         const diamonds = Economy.getDiamonds();
-        this.add.text(width - 155, 17, diamonds.toLocaleString(), { fontSize: '14px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(1, 0);
+        this.diamondText = this.add.text(width - 155, 17, diamonds.toLocaleString(), { fontSize: '14px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(1, 0);
         this.add.text(width - 145, 15, '+', { fontSize: '16px', color: '#76c442', fontStyle: 'bold' });
 
         // Coins
@@ -101,7 +102,7 @@ export default class MenuScene extends Phaser.Scene {
         coinIcon.setDisplaySize(20, 20);
 
         const coins = Economy.getCoins();
-        this.add.text(width - 35, 17, coins.toLocaleString(), { fontSize: '14px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(1, 0);
+        this.coinText = this.add.text(width - 35, 17, coins.toLocaleString(), { fontSize: '14px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(1, 0);
         this.add.text(width - 25, 15, '+', { fontSize: '16px', color: '#76c442', fontStyle: 'bold' });
     }
 
@@ -452,12 +453,18 @@ export default class MenuScene extends Phaser.Scene {
 
         // Load equipped weapons from localStorage
         const equipped = JSON.parse(localStorage.getItem('equipped_weapons') || '{}');
-        // Default for slots if nothing equipped
+        // Default slots for new players
         if (this.selectedCharacterKey === 'player_1') {
             if (!equipped.slot1) equipped.slot1 = 'Glock_17';
-            if (!equipped.slot2) equipped.slot2 = 'M4A1';
-            if (!equipped.slot3) equipped.slot3 = 'SKS';
+            if (!equipped.slot2) equipped.slot2 = 'MP5';
+            if (!equipped.slot4) equipped.slot4 = 'Grenade';
         }
+        // Clear any slot containing a weapon the player doesn't own
+        Object.keys(equipped).forEach(slot => {
+            if (equipped[slot] && !Economy.isWeaponOwned(equipped[slot])) {
+                delete equipped[slot];
+            }
+        });
 
         // Draw 4 slots in 2x2 grid
         categories.forEach((cat, i) => {
@@ -597,11 +604,6 @@ export default class MenuScene extends Phaser.Scene {
         let startScrollY = 0;
         const dragThreshold = 10;
 
-        // Input Zone (Captures drag start) - Added BEFORE scrollContainer to be behind it
-        const inputZone = this.add.zone(listX + listW / 2, listY + listH / 2, listW, listH);
-        inputZone.setInteractive();
-        panel.add(inputZone);
-
         // Container
         const scrollContainer = this.add.container(listX, listY);
         panel.add(scrollContainer);
@@ -613,26 +615,26 @@ export default class MenuScene extends Phaser.Scene {
         const mask = maskShape.createGeometryMask();
         scrollContainer.setMask(mask);
 
-
-        // Update Scroll Helper
         const updateScroll = (y) => {
             currentScrollY = Phaser.Math.Clamp(y, -maxScrollY, 0);
-            scrollContainer.y = listY + currentScrollY; // Relative to panel? No, scrollContainer is child of panel at (listX, listY)
-            // Wait, if scrollContainer is at (listX, listY), then modifying y moves it relative to that?
-            // SceneShop: this.gridContainer.y = this.currentScrollY; (assuming gridContainer was at 0,0 relative to parent or handled differently)
-            // Here: scrollContainer is added at (listX, listY). If we blindly set y = currentScrollY (negative), it jumps up.
-            // Correct: scrollContainer.y = listY + currentScrollY;
+            scrollContainer.y = listY + currentScrollY;
         };
-        // Correction: In SceneShop logic, gridContainer usually sits at (0,0) inside a clip container, or we modify y directly.
-        // Let's stick to: scrollContainer initial Y is listY.
-        // So new Y = listY + scrollOffset.
 
-        inputZone.on('pointerdown', (pointer) => {
-            isDownOnList = true;
-            startY = pointer.y;
-            startScrollY = currentScrollY; // Track offset, not absolute y
-            isDragging = false;
-        });
+        // Track scroll start from empty space via scene-level handler (bounds check).
+        // inputZone is NOT made interactive so item rectangles are topmost and receive clicks.
+        const listAbsX = pX + listX;
+        const listAbsY = pY + listY;
+        const onListPointerDown = (pointer) => {
+            if (pointer.x >= listAbsX && pointer.x <= listAbsX + listW &&
+                pointer.y >= listAbsY && pointer.y <= listAbsY + listH) {
+                if (!isDownOnList) {
+                    isDownOnList = true;
+                    startY = pointer.y;
+                    startScrollY = currentScrollY;
+                    isDragging = false;
+                }
+            }
+        };
 
         // Global Handlers
         const onPointerMove = (pointer) => {
@@ -651,18 +653,18 @@ export default class MenuScene extends Phaser.Scene {
         };
 
         const onWheel = (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
-            // Only scroll if active scene?
-            // Since we add/remove listeners, it's fine.
             const scrollSpeed = 30;
             updateScroll(currentScrollY - deltaY * scrollSpeed / 100);
         };
 
+        this.input.on('pointerdown', onListPointerDown);
         this.input.on('pointermove', onPointerMove);
         this.input.on('pointerup', onPointerUp);
         this.input.on('wheel', onWheel);
 
         // Cleanup
         const cleanupListeners = () => {
+            this.input.off('pointerdown', onListPointerDown);
             this.input.off('pointermove', onPointerMove);
             this.input.off('pointerup', onPointerUp);
             this.input.off('wheel', onWheel);
@@ -712,8 +714,8 @@ export default class MenuScene extends Phaser.Scene {
             let currentWeaponKey = equipped[slotKey];
             if (!currentWeaponKey) {
                 if (slotKey === 'slot1') currentWeaponKey = 'Glock_17';
-                else if (slotKey === 'slot2') currentWeaponKey = 'M4A1';
-                else if (slotKey === 'slot3') currentWeaponKey = 'SKS';
+                else if (slotKey === 'slot2') currentWeaponKey = 'MP5';
+                else if (slotKey === 'slot4') currentWeaponKey = 'Grenade';
             }
 
             weapons.forEach((w, i) => {
@@ -726,6 +728,7 @@ export default class MenuScene extends Phaser.Scene {
                 scrollContainer.add(item);
 
                 const isEquipped = w.key === currentWeaponKey;
+                const isOwned = Economy.isWeaponOwned(w.key);
 
                 // Card bg
                 const cardGraphics = this.add.graphics();
@@ -736,7 +739,7 @@ export default class MenuScene extends Phaser.Scene {
                     cardGraphics.lineStyle(2, borderColor, borderAlpha);
                     cardGraphics.strokeRoundedRect(-itemW / 2 + 1, -itemH / 2 + 1, itemW - 2, itemH - 2, 9);
                 };
-                const baseBorder = isEquipped ? this.colors.highlight : 0x4a5a6a;
+                const baseBorder = isOwned ? (isEquipped ? this.colors.highlight : 0x4a5a6a) : 0x333333;
                 drawCard(0x000000, baseBorder, 0.8);
                 item.add(cardGraphics);
 
@@ -761,11 +764,12 @@ export default class MenuScene extends Phaser.Scene {
                 const imgH = wIcon.height;
                 const fitScale = Math.min(maxW / imgW, maxH / imgH, 1);
                 wIcon.setScale(fitScale * (w.popupScale || w.hudScale || 1));
+                if (!isOwned) wIcon.setAlpha(0.35);
 
                 const wName = this.add.text(0, 15, w.name, {
                     fontSize: '9px',
                     fontStyle: 'bold',
-                    color: '#ffffff',
+                    color: isOwned ? '#ffffff' : '#888888',
                     align: 'center',
                     wordWrap: { width: itemW - 8 }
                 }).setOrigin(0.5);
@@ -775,11 +779,25 @@ export default class MenuScene extends Phaser.Scene {
                 const btnH = 20;
 
                 const btnBg = this.add.graphics();
-                btnBg.fillStyle(isEquipped ? 0x27ae60 : 0x3498db, 1);
-                btnBg.fillRoundedRect(-btnW / 2, btnY - btnH / 2, btnW, btnH, 5);
-                const btnText = this.add.text(0, btnY, isEquipped ? 'ĐÃ CHỌN' : 'CHỌN', {
+                let btnLabel;
+                if (!isOwned) {
+                    btnBg.fillStyle(0x92400e, 1);
+                    btnBg.fillRoundedRect(-btnW / 2, btnY - btnH / 2, btnW, btnH, 5);
+                    btnLabel = `💎 ${w.price}`;
+                } else {
+                    btnBg.fillStyle(isEquipped ? 0x27ae60 : 0x3498db, 1);
+                    btnBg.fillRoundedRect(-btnW / 2, btnY - btnH / 2, btnW, btnH, 5);
+                    btnLabel = isEquipped ? 'ĐÃ CHỌN' : 'CHỌN';
+                }
+                const btnText = this.add.text(0, btnY, btnLabel, {
                     fontSize: '9px', fontStyle: 'bold', color: '#ffffff'
                 }).setOrigin(0.5);
+
+                // Lock icon overlay for unowned weapons
+                if (!isOwned) {
+                    const lockIcon = this.add.text(0, -28, '🔒', { fontSize: '16px' }).setOrigin(0.5);
+                    item.add(lockIcon);
+                }
 
                 item.add([wIcon, wName, btnBg, btnText]);
 
@@ -787,21 +805,30 @@ export default class MenuScene extends Phaser.Scene {
                 itemInteract.on('pointerup', (pointer) => {
                     const diff = Math.abs(pointer.y - startY);
                     if (diff < dragThreshold && !isDragging) {
-                        if (!isEquipped) {
-                            // Select weapon but DO NOT close
+                        if (!isOwned) {
+                            // Buy with diamonds
+                            if (Economy.getDiamonds() >= w.price) {
+                                Economy.saveDiamonds(Economy.getDiamonds() - w.price);
+                                Economy.ownWeapon(w.key);
+                                if (this.diamondText) this.diamondText.setText(Economy.getDiamonds().toLocaleString());
+                                this.tweens.add({
+                                    targets: item, scaleX: 1.05, scaleY: 1.05, duration: 80, yoyo: true,
+                                    onComplete: () => this.showWeaponSelection(categoryId, slotKey, currentScrollY)
+                                });
+                            } else {
+                                const noFunds = this.add.text(0, btnY - 25, 'Không đủ kim cương!', {
+                                    fontSize: '9px', color: '#ff4444', fontStyle: 'bold'
+                                }).setOrigin(0.5).setDepth(999);
+                                item.add(noFunds);
+                                this.tweens.add({ targets: noFunds, alpha: 0, y: btnY - 40, duration: 1000, ease: 'Power1',
+                                    onComplete: () => { if (noFunds.active) noFunds.destroy(); }
+                                });
+                            }
+                        } else if (!isEquipped) {
                             this.equipWeapon(slotKey, w.key);
-
-                            // Visual feedback: Flash effect or just immediate update
-                            // Visual feedback: Flash effect or just immediate update
                             this.tweens.add({
-                                targets: item,
-                                scaleX: 0.95,
-                                scaleY: 0.95,
-                                duration: 50,
-                                yoyo: true,
-                                onComplete: () => {
-                                    this.showWeaponSelection(categoryId, slotKey, currentScrollY);
-                                }
+                                targets: item, scaleX: 0.95, scaleY: 0.95, duration: 50, yoyo: true,
+                                onComplete: () => this.showWeaponSelection(categoryId, slotKey, currentScrollY)
                             });
                         }
                     }
@@ -821,7 +848,7 @@ export default class MenuScene extends Phaser.Scene {
     equipWeapon(slotKey, weaponKey) {
         const equipped = JSON.parse(localStorage.getItem('equipped_weapons') || '{}');
         equipped[slotKey] = weaponKey;
-        localStorage.setItem('equipped_weapons', JSON.stringify(equipped));
+        Economy.saveEquippedWeapons(equipped);
         this.updateWeaponList();
     }
 
@@ -832,5 +859,158 @@ export default class MenuScene extends Phaser.Scene {
         graphics.lineStyle(2, 0x4a5a6a, 0.8);
         graphics.strokeRoundedRect(x, y, w, h, 8);
         return graphics;
+    }
+
+    updateExpBar() {
+        if (!this.expFill || !this.expText) return;
+        const level = Economy.getLevel();
+        const exp = Economy.getExp();
+        const required = Economy.getExpForLevel(level);
+        const ratio = Math.min(exp / required, 1);
+        this.expFill.clear();
+        this.expFill.fillStyle(0xe67e22, 1);
+        this.expFill.fillRect(66, 39, Math.floor(108 * ratio), 10);
+        this.expText.setText(`Lv${level}  ${exp}/${required}`);
+    }
+
+    setupAuthUI() {
+        this._authElements = [];
+        this._avatarEls = [];
+
+        // Dùng currentUser ngay để tránh flash "chưa đăng nhập"
+        this._renderAuthUI(auth.currentUser);
+
+        const unsubscribe = onAuthChange(async (user) => {
+            if (user) {
+                const prevUid = localStorage.getItem('current_uid');
+                if (prevUid !== user.uid) {
+                    localStorage.removeItem('total_coins');
+                    localStorage.removeItem('total_diamonds');
+                    localStorage.removeItem('equipped_weapons');
+                    localStorage.removeItem('player_exp');
+                    localStorage.removeItem('player_level');
+                    localStorage.removeItem('owned_weapons');
+                }
+                localStorage.setItem('current_uid', user.uid);
+                await Economy.syncFromCloud();
+                if (this.diamondText) this.diamondText.setText(Economy.getDiamonds().toLocaleString());
+                if (this.coinText) this.coinText.setText(Economy.getCoins().toLocaleString());
+                this.updateExpBar();
+                this._renderAuthUI(user);
+            } else {
+                // Đăng xuất → về màn hình login
+                unsubscribe();
+                this.cameras.main.fadeOut(400, 0, 0, 0);
+                this.time.delayedCall(400, () => this.scene.start('SceneLoading'));
+            }
+        });
+
+        this.events.once('destroy', () => unsubscribe());
+        this.events.once('shutdown', () => unsubscribe());
+    }
+
+    _renderAuthUI(user) {
+        this._authElements.forEach(el => el.destroy());
+        this._authElements = [];
+        this._updateAvatar(user);
+
+        // Tên căn giữa thanh EXP (x=65, w=110 → center=120), phía trên bar (y=38)
+        const nameX = 120;
+        const nameY = 24;
+        const logoutX = 322;
+        const logoutY = 48;
+
+        if (!user) {
+            const txt = this.add.text(nameX, nameY, 'Đăng nhập', {
+                fontSize: '12px', color: '#76c442', fontStyle: 'bold'
+            }).setOrigin(0.5, 0.5).setDepth(200);
+
+            const hint = this.add.text(nameX, logoutY, 'để sync tiến trình', {
+                fontSize: '9px', color: '#888888'
+            }).setOrigin(0.5, 0.5).setDepth(200);
+
+            const hitArea = this.add.rectangle(nameX, 35, 110, 50, 0x000000, 0)
+                .setInteractive({ useHandCursor: true }).setDepth(200);
+            hitArea.on('pointerdown', () => signInWithGoogle().catch(() => {}));
+            hitArea.on('pointerover', () => { txt.setAlpha(0.7); hint.setAlpha(0.7); });
+            hitArea.on('pointerout', () => { txt.setAlpha(1); hint.setAlpha(1); });
+
+            this._authElements = [txt, hint, hitArea];
+        } else {
+            const name = user.displayName || user.email || 'Player';
+
+            // Tên: trong frame, vùng phải
+            const nameTxt = this.add.text(nameX, nameY, name, {
+                fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+                wordWrap: { width: 130 }, align: 'center'
+            }).setOrigin(0.5, 0.5).setDepth(200);
+
+            // Nút vuông đỏ: bên phải frame (frame kết thúc x=190), căn giữa dọc y=35
+            const btnW = 36, btnH = 36;
+            const btnCX = 214, btnCY = 35;
+
+            const btnBg = this.add.graphics().setDepth(200);
+            const drawBtn = (col) => {
+                btnBg.clear();
+                btnBg.fillStyle(col, 1);
+                btnBg.fillRoundedRect(btnCX - btnW / 2, btnCY - btnH / 2, btnW, btnH, 5);
+                btnBg.lineStyle(1, 0xff9999, 0.6);
+                btnBg.strokeRoundedRect(btnCX - btnW / 2, btnCY - btnH / 2, btnW, btnH, 5);
+            };
+            drawBtn(0xc0392b);
+
+            const btnTxt = this.add.text(btnCX, btnCY, 'Đăng\nxuất', {
+                fontSize: '10px', color: '#ffffff', fontStyle: 'bold', align: 'center'
+            }).setOrigin(0.5, 0.5).setDepth(201);
+
+            const btnHit = this.add.rectangle(btnCX, btnCY, btnW, btnH, 0x000000, 0)
+                .setInteractive({ useHandCursor: true }).setDepth(202);
+            btnHit.on('pointerdown', () => signOutUser().catch(() => {}));
+            btnHit.on('pointerover', () => drawBtn(0xe74c3c));
+            btnHit.on('pointerout', () => drawBtn(0xc0392b));
+
+            this._authElements = [nameTxt, btnBg, btnTxt, btnHit];
+        }
+    }
+
+    _updateAvatar(user) {
+        // Dọn ảnh cũ
+        this._avatarEls.forEach(el => el.destroy());
+        this._avatarEls = [];
+
+        if (!user || !user.photoURL) {
+            if (this.avatarBg) this.avatarBg.setVisible(true);
+            return;
+        }
+
+        if (this.avatarBg) this.avatarBg.setVisible(false);
+
+        const texKey = 'avatar_' + user.uid;
+        const show = () => {
+            const img = this.add.image(35, 35, texKey)
+                .setDisplaySize(36, 36).setDepth(200);
+
+            const maskGfx = this.make.graphics({ add: false });
+            maskGfx.fillStyle(0xffffff);
+            maskGfx.fillCircle(35, 35, 18);
+            img.setMask(maskGfx.createGeometryMask());
+
+            const border = this.add.graphics().setDepth(201);
+            border.lineStyle(2, 0x76c442, 1);
+            border.strokeCircle(35, 35, 18);
+
+            this._avatarEls = [img, border];
+        };
+
+        if (this.textures.exists(texKey)) {
+            show();
+        } else {
+            this.load.image(texKey, user.photoURL);
+            this.load.once('complete', show);
+            this.load.once('loaderror', () => {
+                if (this.avatarBg) this.avatarBg.setVisible(true);
+            });
+            this.load.start();
+        }
     }
 }

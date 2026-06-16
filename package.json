@@ -22,6 +22,7 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
+    "firebase": "^12.14.0",
     "phaser": "^3.90.0",
     "phaser-matter-collision-plugin": "^1.0.0"
   }

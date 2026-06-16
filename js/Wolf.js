@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Economy } from './utils/Economy';
 
 export default class Wolf {
   constructor(data) {
@@ -416,6 +417,7 @@ export default class Wolf {
     if (this.isDead) return;
 
     this.isDead = true;
+    Economy.addExp(15);
     console.log('💀 Wolf died!');
 
     // Ẩn health bar
