@@ -133,9 +133,9 @@ export default class SceneLoading extends Phaser.Scene {
         const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
         if (isMobile) {
-            // Hide the Phaser canvas button — HTML overlay button replaces it
-            btnBg.setVisible(false);
-            btnTxt.setVisible(false);
+            // Destroy the Phaser canvas button — HTML overlay button replaces it entirely
+            btnBg.destroy();
+            btnTxt.destroy();
 
             // iOS Safari blocks window.open() from canvas touch events.
             // Use a real HTML button so the click event gives proper gesture trust.
@@ -178,7 +178,7 @@ export default class SceneLoading extends Phaser.Scene {
             overlay.appendChild(htmlBtn);
             document.body.appendChild(overlay);
             this._mobileOverlay = overlay;
-            this._loginElements = [glow, panel, title, sep, sub, btnBg, btnTxt];
+            this._loginElements = [glow, panel, title, sep, sub];
         } else {
             // On desktop: signInWithPopup needs touchend/click from a real DOM element
             // (window.open requires synchronous gesture trust in some browsers).
