@@ -149,7 +149,7 @@ export default class Chest {
     dropSingleItem(dropX, dropY, itemType, offsetX, offsetY) {
         const item = this.scene.add.image(dropX, dropY, itemType);
 
-        const scaleMap = { blood: 0.05, diamond: 0.8, blood: 0.65, frag_common: 0.7, frag_rare: 0.75 };
+        const scaleMap = { blood: 0.1, diamond: 0.8, frag_common: 0.7, frag_rare: 0.75 };
         item.setScale(scaleMap[itemType] ?? 0.8);
 
         item.setDepth(dropY - 1);
