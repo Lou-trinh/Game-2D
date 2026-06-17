@@ -828,7 +828,7 @@ export default class MainScene extends Phaser.Scene {
       const item = this.add.sprite(x, y, type);
       item.setData('itemType', type);
 
-      const scaleMap = { coin: 0.15, blood: 0.1, frag_common: 0.7, frag_rare: 0.75 };
+      const scaleMap = { coin: 0.15, blood: 0.06, frag_common: 0.7, frag_rare: 0.75 };
       item.setScale(scaleMap[type] ?? 0.8);
 
       item.setAlpha(0.8);
