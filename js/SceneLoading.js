@@ -141,7 +141,7 @@ export default class SceneLoading extends Phaser.Scene {
             const htmlBtn = document.createElement('button');
             htmlBtn.textContent = 'Đăng nhập với Google';
 
-            const syncPos = () => {
+            const doSync = () => {
                 const r = canvas.getBoundingClientRect();
                 const sx = r.width / this.scale.width;
                 const sy = r.height / this.scale.height;
@@ -153,6 +153,9 @@ export default class SceneLoading extends Phaser.Scene {
                     fontSize: `${Math.round(15 * Math.min(sx, sy))}px`,
                 });
             };
+            // Delay after resize/orientationchange so iOS Safari finishes layout before reading positions
+            const syncPos = () => { requestAnimationFrame(() => requestAnimationFrame(doSync)); };
+            const syncOrientation = () => { setTimeout(doSync, 350); };
 
             Object.assign(htmlBtn.style, {
                 position:   'fixed',
@@ -169,12 +172,14 @@ export default class SceneLoading extends Phaser.Scene {
                 webkitTapHighlightColor: 'transparent',
             });
 
-            syncPos();
+            doSync();
             window.addEventListener('resize', syncPos);
+            window.addEventListener('orientationchange', syncOrientation);
             document.body.appendChild(htmlBtn);
             this._mobileOverlay = null;
             this._htmlLoginBtn   = htmlBtn;
             this._resizeLoginBtn = syncPos;
+            this._orientationLoginBtn = syncOrientation;
 
             htmlBtn.addEventListener('click', () => {
                 htmlBtn.textContent = 'Đang đăng nhập...';
@@ -238,6 +243,7 @@ export default class SceneLoading extends Phaser.Scene {
         }
         if (this._htmlLoginBtn) {
             window.removeEventListener('resize', this._resizeLoginBtn);
+            window.removeEventListener('orientationchange', this._orientationLoginBtn);
             this._htmlLoginBtn.remove();
             this._htmlLoginBtn = null;
         }
