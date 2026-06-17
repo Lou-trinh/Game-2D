@@ -133,6 +133,10 @@ export default class SceneLoading extends Phaser.Scene {
         const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
         if (isMobile) {
+            // Hide the Phaser canvas button — HTML overlay button replaces it
+            btnBg.setVisible(false);
+            btnTxt.setVisible(false);
+
             // iOS Safari blocks window.open() from canvas touch events.
             // Use a real HTML button so the click event gives proper gesture trust.
             // Full-screen overlay avoids any coordinate calculation issues.
