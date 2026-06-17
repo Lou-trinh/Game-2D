@@ -1,4 +1,5 @@
 import { getWeaponByKey, WeaponCategories } from './data/WeaponData';
+import { Economy } from './utils/Economy';
 
 export default class ResourceUI {
     constructor(scene, player) {
@@ -207,6 +208,9 @@ export default class ResourceUI {
             this.ammoText.setVisible(false);
             this.ammoBg.setVisible(false);
         }
+
+        // Inventory button (right of weapon slots)
+        this.createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth);
 
         // Create Exit Button (top right corner)
         this.createExitButton();
@@ -436,6 +440,132 @@ export default class ResourceUI {
         });
     }
 
+    createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth) {
+        const bx = slotX + totalSlotsWidth + slotMargin;
+        const by = slotY;
+        this._invBtn = { bx, by, slotW, slotH };
+        this.invPanelOpen = false;
+
+        this.invBtnBg = this.scene.add.graphics();
+        this.invBtnBg.setScrollFactor(0).setDepth(2000);
+        this._redrawInvBtn(false);
+
+        if (this.scene.textures.exists('backpack')) {
+            this.invBtnIcon = this.scene.add.image(bx + slotW / 2, by + slotH / 2, 'backpack');
+            this.invBtnIcon.setScrollFactor(0).setDepth(2001).setScale(0.11);
+        } else {
+            this.invBtnIcon = this.scene.add.text(bx + slotW / 2, by + slotH / 2, '🎒', { fontSize: '18px' });
+            this.invBtnIcon.setScrollFactor(0).setDepth(2001).setOrigin(0.5);
+        }
+
+        const hit = this.scene.add.rectangle(bx + slotW / 2, by + slotH / 2, slotW, slotH, 0xffffff, 0);
+        hit.setScrollFactor(0).setDepth(2002).setInteractive({ useHandCursor: true });
+        hit.on('pointerover', () => this._redrawInvBtn(true));
+        hit.on('pointerout', () => this._redrawInvBtn(false));
+        hit.on('pointerdown', () => this.toggleInventoryPanel());
+        this.invBtnHit = hit;
+    }
+
+    _redrawInvBtn(hover) {
+        const { bx, by, slotW, slotH } = this._invBtn;
+        this.invBtnBg.clear();
+        this.invBtnBg.fillStyle(hover ? 0x2a2a2a : 0x1a1a1a, 0.9);
+        this.invBtnBg.fillRoundedRect(bx, by, slotW, slotH, 8);
+        this.invBtnBg.lineStyle(hover ? 2 : 1, hover ? 0xaaaaaa : 0x555555, 1);
+        this.invBtnBg.strokeRoundedRect(bx, by, slotW, slotH, 8);
+    }
+
+    toggleInventoryPanel() {
+        if (this.invPanelOpen) {
+            this.closeInventoryPanel();
+        } else {
+            this.openInventoryPanel();
+        }
+    }
+
+    openInventoryPanel() {
+        this.invPanelOpen = true;
+        const { bx, by } = this._invBtn;
+        const pw = 165;
+        const ph = 180;
+        const px = bx;
+        const py = by - ph - 8;
+
+        this._invEls = [];
+
+        const bg = this.scene.add.graphics();
+        bg.setScrollFactor(0).setDepth(2010);
+        bg.fillStyle(0x111111, 0.92);
+        bg.fillRoundedRect(px, py, pw, ph, 8);
+        bg.lineStyle(1, 0x555555, 1);
+        bg.strokeRoundedRect(px, py, pw, ph, 8);
+        this._invEls.push(bg);
+
+        const title = this.scene.add.text(px + pw / 2, py + 10, 'KHO ĐỒ', {
+            fontSize: '13px', fontStyle: 'bold', color: '#ffffff',
+            stroke: '#000000', strokeThickness: 2,
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(2011);
+        this._invEls.push(title);
+
+        const div = this.scene.add.graphics();
+        div.setScrollFactor(0).setDepth(2011);
+        div.lineStyle(1, 0x444444, 0.8);
+        div.lineBetween(px + 8, py + 28, px + pw - 8, py + 28);
+        this._invEls.push(div);
+
+        const closeBtn = this.scene.add.text(px + pw - 8, py + 8, '✕', {
+            fontSize: '12px', color: '#888888', stroke: '#000000', strokeThickness: 2,
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(2012)
+          .setInteractive({ useHandCursor: true });
+        closeBtn.on('pointerover', () => closeBtn.setColor('#ff4444'));
+        closeBtn.on('pointerout', () => closeBtn.setColor('#888888'));
+        closeBtn.on('pointerdown', () => this.closeInventoryPanel());
+        this._invEls.push(closeBtn);
+
+        const rows = [
+            { key: 'diamond', label: 'Kim cương',   iconScale: 0.85, getValue: () => Economy.getDiamonds() },
+            { key: 'coin',    label: 'Đồng xu',      iconScale: 0.2,  getValue: () => Economy.getCoins() },
+            { key: 'frag_common', label: 'Mảnh thường', iconScale: 0.55, getValue: () => Economy.getFragCommon() },
+            { key: 'frag_rare',   label: 'Mảnh hiếm',   iconScale: 0.55, getValue: () => Economy.getFragRare() },
+        ];
+
+        this._invValTexts = [];
+        let ry = py + 36;
+        rows.forEach(row => {
+            const icon = this.scene.add.image(px + 18, ry + 14, row.key);
+            icon.setScrollFactor(0).setDepth(2011).setScale(row.iconScale);
+            this._invEls.push(icon);
+
+            const lbl = this.scene.add.text(px + 34, ry + 7, row.label, {
+                fontSize: '11px', color: '#bbbbbb',
+            }).setScrollFactor(0).setDepth(2011);
+            this._invEls.push(lbl);
+
+            const val = this.scene.add.text(px + pw - 10, ry + 7, `${row.getValue()}`, {
+                fontSize: '13px', fontStyle: 'bold', color: '#ffffff',
+                stroke: '#000000', strokeThickness: 2,
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2011);
+            this._invEls.push(val);
+            this._invValTexts.push({ el: val, getValue: row.getValue });
+
+            ry += 35;
+        });
+    }
+
+    closeInventoryPanel() {
+        this.invPanelOpen = false;
+        if (this._invEls) {
+            this._invEls.forEach(e => e.destroy());
+            this._invEls = [];
+        }
+        this._invValTexts = [];
+    }
+
+    refreshInventoryPanel() {
+        if (!this.invPanelOpen || !this._invValTexts) return;
+        this._invValTexts.forEach(({ el, getValue }) => el.setText(`${getValue()}`));
+    }
+
     createBackpack() {
         const { width, height } = this.scene.cameras.main;
 
@@ -475,6 +605,7 @@ export default class ResourceUI {
         this.diamondText.setText(`${this.player.diamondCount || 0}`);
         this.coinText.setText(`${this.player.coinCount || 0}`);
         this.updatePlayerHUD();
+        this.refreshInventoryPanel();
     }
 
     destroy() {
@@ -502,6 +633,12 @@ export default class ResourceUI {
         if (this.ammoBg) this.ammoBg.destroy();
         if (this.ammoIcon) this.ammoIcon.destroy();
         if (this.ammoText) this.ammoText.destroy();
+
+        // Inventory button + panel
+        this.closeInventoryPanel();
+        if (this.invBtnBg) this.invBtnBg.destroy();
+        if (this.invBtnIcon) this.invBtnIcon.destroy();
+        if (this.invBtnHit) this.invBtnHit.destroy();
 
         // Backpack
         if (this.backpack) this.backpack.destroy();
