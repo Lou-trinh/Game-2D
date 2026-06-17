@@ -321,6 +321,8 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.atlas('chest', 'assets/images/item/chest/chest.png', 'assets/images/item/chest/chest_atlas.json');
         this.load.image('blood', 'assets/images/item/blood.png');
         this.load.image('blood2', 'assets/images/item/blood2.png');
+        this.load.image('frag_common', 'assets/images/item/common_weapon_fragments.png');
+        this.load.image('frag_rare', 'assets/images/item/rare_weapon_fragments.png');
         this.load.animation('chest_anim', 'assets/images/item/chest/chest_anim.json');
         this.load.image('button_out', 'assets/images/inventory/button/button_out.png');
         this.load.image('backpack', 'assets/images/inventory/backpack.png');

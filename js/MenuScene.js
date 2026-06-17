@@ -1,7 +1,7 @@
 import { getAllCharacters, getCharacterConfig } from './Character';
 import { Economy } from './utils/Economy';
 import { WeaponData, WeaponCategories, getWeaponsByCategory, getWeaponByKey, getWeaponsByCategories } from './data/WeaponData';
-import { auth, onAuthChange, signInWithGoogle, signOutUser } from './firebase.js';
+import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, addFriend } from './firebase.js';
 
 export default class MenuScene extends Phaser.Scene {
     constructor() {
@@ -54,10 +54,13 @@ export default class MenuScene extends Phaser.Scene {
         // 4. CENTER AREA (Spotlight & Start)
         this.createCenterSpotlight(width / 2, height / 2 + 20);
 
-        // 5. SHOP + INVENTORY + START BUTTONS
-        this.createShopButton(rightColumnCenter, height - 220);
-        this.createInventoryButton(rightColumnCenter, height - 160);
-        this.createStartButton(rightColumnCenter, height - 100);
+        // 5. SHOP + INVENTORY + START BUTTONS (horizontal, right-aligned)
+        const btnY = height - 55;
+        const btnGap = 130;
+        const rightBtnX = width - 70;
+        this.createShopButton(rightBtnX - btnGap * 2, btnY);
+        this.createInventoryButton(rightBtnX - btnGap, btnY);
+        this.createStartButton(rightBtnX, btnY);
 
         // Fade in effect
         this.cameras.main.fadeIn(500, 0, 0, 0);
@@ -108,62 +111,108 @@ export default class MenuScene extends Phaser.Scene {
     }
 
     createCharacterPanel(x, y, width) {
-        const charHeight = 140; // Slightly shorter
-        this.createPanel(x, y, width, charHeight, this.colors.panelBg, 0.9);
-        this.add.text(x + width / 2, y + 12, 'CHỌN NHÂN VẬT', {
-            fontSize: '13px', // Slightly smaller font
-            color: '#ffffff',
-            fontStyle: 'bold'
+        const charHeight = 150;
+
+        // Panel bg
+        const g = this.add.graphics();
+        g.fillStyle(0x0a1628, 0.97);
+        g.fillRoundedRect(x, y, width, charHeight, 10);
+        g.lineStyle(1, 0x1a3040, 1);
+        g.strokeRoundedRect(x, y, width, charHeight, 10);
+
+        // Header band
+        const accent = this.add.graphics();
+        accent.fillStyle(0x0e8a70, 1);
+        accent.fillRoundedRect(x + 1, y + 1, width - 2, 30, { tl: 9, tr: 9, bl: 0, br: 0 });
+
+        this.add.text(x + width / 2, y + 16, 'NHÂN VẬT', {
+            fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
         }).setOrigin(0.5);
 
-        // Character Grid
+        const div = this.add.graphics();
+        div.lineStyle(1, 0x1a3040, 1);
+        div.lineBetween(x + 10, y + 32, x + width - 10, y + 32);
+
         const chars = getAllCharacters();
-        const iconSize = 38; // Smaller icons
+        const iconSize = 42;
         const spacing = 8;
-        const gridWidth = 3 * iconSize + 2 * spacing;
+        const cols = 3;
+        const gridWidth = cols * iconSize + (cols - 1) * spacing;
         const startX = x + (width - gridWidth) / 2;
-        const startY = y + 38;
+        const startY = y + 40;
 
         this.charIcons = [];
         chars.forEach((char, i) => {
-            const col = i % 3;
-            const row = Math.floor(i / 3);
-            const ix = startX + col * (iconSize + spacing);
-            const iy = startY + row * (iconSize + spacing);
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const cx = startX + col * (iconSize + spacing) + iconSize / 2;
+            const cy = startY + row * (iconSize + spacing) + iconSize / 2;
 
-            const btn = this.add.container(ix + iconSize / 2, iy + iconSize / 2);
-            const bg = this.add.rectangle(0, 0, iconSize, iconSize, 0x000000, 0.4);
-            bg.setStrokeStyle(2, char.key === this.selectedCharacterKey ? this.colors.highlight : 0x555555);
+            const btn = this.add.container(cx, cy);
+            const glow = this.add.graphics();
+            const bg = this.add.graphics();
+
+            const drawState = (selected) => {
+                glow.clear(); bg.clear();
+                if (selected) {
+                    glow.fillStyle(0x1abc9c, 0.14);
+                    glow.fillRoundedRect(-iconSize / 2 - 4, -iconSize / 2 - 4, iconSize + 8, iconSize + 8, 9);
+                }
+                bg.fillStyle(selected ? 0x0d2535 : 0x071018, 1);
+                bg.fillRoundedRect(-iconSize / 2, -iconSize / 2, iconSize, iconSize, 6);
+                bg.lineStyle(selected ? 2 : 1, selected ? 0x1abc9c : 0x1a3040, 1);
+                bg.strokeRoundedRect(-iconSize / 2, -iconSize / 2, iconSize, iconSize, 6);
+            };
+            drawState(char.key === this.selectedCharacterKey);
 
             const isP1 = char.key === 'player_1';
-            const sprite = this.add.sprite(0, 14, char.texture);
+            const sprite = this.add.sprite(0, 12, char.texture);
             sprite.setOrigin(0.5, 1);
-            sprite.setDisplaySize(iconSize * (isP1 ? 0.9 : 0.8), iconSize * (isP1 ? 0.9 : 0.8));
+            sprite.setDisplaySize(iconSize * (isP1 ? 0.82 : 0.72), iconSize * (isP1 ? 0.82 : 0.72));
 
-            btn.add([bg, sprite]);
-            btn.setInteractive(new Phaser.Geom.Rectangle(-iconSize / 2, -iconSize / 2, iconSize, iconSize), Phaser.Geom.Rectangle.Contains);
+            const hit = this.add.rectangle(0, 0, iconSize, iconSize, 0, 0).setInteractive({ useHandCursor: true });
+            btn.add([glow, bg, sprite, hit]);
 
-            btn.on('pointerdown', () => this.selectCharacter(char.key));
-            btn.on('pointerover', () => { if (this.selectedCharacterKey !== char.key) bg.setStrokeStyle(2, 0xaaaaaa); });
-            btn.on('pointerout', () => { if (this.selectedCharacterKey !== char.key) bg.setStrokeStyle(2, 0x555555); });
+            hit.on('pointerdown', () => this.selectCharacter(char.key));
+            hit.on('pointerover', () => {
+                if (this.selectedCharacterKey !== char.key) {
+                    bg.clear();
+                    bg.fillStyle(0x0d2030, 1);
+                    bg.fillRoundedRect(-iconSize / 2, -iconSize / 2, iconSize, iconSize, 6);
+                    bg.lineStyle(1, 0x2a5060, 1);
+                    bg.strokeRoundedRect(-iconSize / 2, -iconSize / 2, iconSize, iconSize, 6);
+                }
+            });
+            hit.on('pointerout', () => {
+                if (this.selectedCharacterKey !== char.key) drawState(false);
+            });
 
-            this.charIcons.push({ key: char.key, bg: bg });
+            this.charIcons.push({ key: char.key, setSelected: (sel) => drawState(sel) });
         });
     }
 
     createWeaponPanel(x, y, width) {
-        const weaponHeight = 180; // Increased from 150 to fit 2x2 grid labels
-        this.createPanel(x, y, width, weaponHeight, this.colors.panelBg, 0.9);
+        const weaponHeight = 185;
 
-        // Horizontal Title
-        this.add.text(x + width / 2, y + 10, 'VŨ KHÍ', {
-            fontSize: '11px', // Smaller header
-            color: '#aaaaaa',
-            fontStyle: 'bold'
+        const g = this.add.graphics();
+        g.fillStyle(0x0a1628, 0.97);
+        g.fillRoundedRect(x, y, width, weaponHeight, 10);
+        g.lineStyle(1, 0x1a3040, 1);
+        g.strokeRoundedRect(x, y, width, weaponHeight, 10);
+
+        const accent = this.add.graphics();
+        accent.fillStyle(0x1a6fa8, 1);
+        accent.fillRoundedRect(x + 1, y + 1, width - 2, 30, { tl: 9, tr: 9, bl: 0, br: 0 });
+
+        this.add.text(x + width / 2, y + 16, 'VŨ KHÍ', {
+            fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
         }).setOrigin(0.5);
 
-        // Weapon Icons Container (grid alignment)
-        this.weaponContainer = this.add.container(x + width / 2, y + 95); // Moved down from 85 to 95
+        const div = this.add.graphics();
+        div.lineStyle(1, 0x1a3040, 1);
+        div.lineBetween(x + 10, y + 32, x + width - 10, y + 32);
+
+        this.weaponContainer = this.add.container(x + width / 2, y + 105);
         this.updateWeaponList();
     }
 
@@ -301,26 +350,6 @@ export default class MenuScene extends Phaser.Scene {
         btn.add([glow, bg, inner, icon, text]);
         bg.setInteractive({ useHandCursor: true });
 
-        // Pulsing animation (slightly different timing than start)
-        this.tweens.add({
-            targets: btn,
-            y: y - 3,
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        this.tweens.add({
-            targets: glow,
-            alpha: 0.8,
-            scale: 1.1,
-            duration: 1200,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
         bg.on('pointerover', () => {
             bg.setFillStyle(0xe67e22, 1);
             bg.setStrokeStyle(4, 0xffcc00, 1); // Gold highlight
@@ -361,15 +390,6 @@ export default class MenuScene extends Phaser.Scene {
 
         btn.add([glow, bg, inner, text]);
         bg.setInteractive({ useHandCursor: true });
-
-        this.tweens.add({
-            targets: btn,
-            y: y - 3,
-            duration: 2200,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
 
         bg.on('pointerover', () => {
             bg.setFillStyle(0x1abc9c, 1);
@@ -565,109 +585,80 @@ export default class MenuScene extends Phaser.Scene {
 
     _drawFragsContent(rx, ry, rw, rh) {
         const fragDefs = [
-            {
-                key: 'frag_common', label: 'Mảnh thường', subLabel: 'Dùng để nâng cấp vũ khí',
-                bg: 0x1a0a00, glowHex: 0xff8800, nameColor: '#ffaa44',
-                countStroke: '#aa4400', getValue: () => Economy.getFragCommon(),
-            },
-            {
-                key: 'frag_rare', label: 'Mảnh hiếm', subLabel: 'Chế tạo vũ khí đặc biệt',
-                bg: 0x0e0020, glowHex: 0xaa44ff, nameColor: '#cc88ff',
-                countStroke: '#660099', getValue: () => Economy.getFragRare(),
-            },
+            { key: 'frag_common', label: 'Mảnh thường', border: 0x1abc9c, getValue: () => Economy.getFragCommon() },
+            { key: 'frag_rare',   label: 'Mảnh hiếm',   border: 0x1abc9c, getValue: () => Economy.getFragRare() },
         ];
 
-        const cardH = 76;
-        const gap = 14;
-        const startY = ry + 16;
-        const iconX = rx + 54;
+        const sq = 72;
+        const gap = 20;
+        const totalW = fragDefs.length * sq + (fragDefs.length - 1) * gap;
+        const startX = rx + 16;
+        const cy = ry + sq / 2 + 16;
 
         fragDefs.forEach((frag, i) => {
-            const fy = startY + i * (cardH + gap);
-            const midY = fy + cardH / 2;
+            const fx = startX + i * (sq + gap);
 
-            // === Card background (2-pass for subtle top gradient) ===
-            const card = this.add.graphics().setDepth(502);
-            card.fillStyle(frag.bg, 1);
-            card.fillRoundedRect(rx + 14, fy, rw - 28, cardH, 10);
-            card.fillStyle(0xffffff, 0.025); // faint top sheen
-            card.fillRoundedRect(rx + 14, fy, rw - 28, cardH * 0.45, { tl: 10, tr: 10, bl: 0, br: 0 });
-            this.invPanel.push(card);
+            // Frame
+            const frame = this.add.graphics().setDepth(502);
+            frame.fillStyle(0x091520, 1);
+            frame.fillRoundedRect(fx, cy - sq / 2, sq, sq, 7);
+            frame.lineStyle(1.5, frag.border, 0.4);
+            frame.strokeRoundedRect(fx, cy - sq / 2, sq, sq, 7);
+            this.invPanel.push(frame);
 
-            // === Multi-layer border glow ===
-            const glow = this.add.graphics().setDepth(503);
-            glow.lineStyle(10, frag.glowHex, 0.06);
-            glow.strokeRoundedRect(rx + 10, fy - 4, rw - 20, cardH + 8, 14);
-            glow.lineStyle(5, frag.glowHex, 0.12);
-            glow.strokeRoundedRect(rx + 12, fy - 1, rw - 24, cardH + 2, 12);
-            glow.lineStyle(1.5, frag.glowHex, 0.85);
-            glow.strokeRoundedRect(rx + 14, fy, rw - 28, cardH, 10);
-            this.invPanel.push(glow);
-
-            // === Icon backdrop disc ===
-            const disc = this.add.graphics().setDepth(503);
-            disc.fillStyle(frag.glowHex, 0.08);
-            disc.fillCircle(iconX, midY, 26);
-            disc.fillStyle(frag.glowHex, 0.05);
-            disc.fillCircle(iconX, midY, 34);
-            disc.lineStyle(1, frag.glowHex, 0.35);
-            disc.strokeCircle(iconX, midY, 23);
-            this.invPanel.push(disc);
-
-            // === Fragment icon ===
-            const icon = this.add.image(iconX, midY, frag.key).setScale(1.5).setDepth(504);
+            // Icon centered in frame
+            const icon = this.add.image(fx + sq / 2, cy, frag.key).setDepth(503);
+            icon.setScale(Math.min(46 / icon.width, 46 / icon.height));
             this.invPanel.push(icon);
 
-            // === Name ===
+            // Count badge — bottom-right corner of frame
+            const count = frag.getValue();
             this.invPanel.push(
-                this.add.text(rx + 94, midY - 14, frag.label, {
-                    fontSize: '14px', fontStyle: 'bold', color: frag.nameColor,
-                    shadow: { offsetX: 0, offsetY: 1, color: '#000000', blur: 4, fill: true },
-                }).setDepth(504)
+                this.add.text(fx + sq - 4, cy + sq / 2 - 4, `${count}`, {
+                    fontSize: '11px', fontStyle: 'bold', color: '#ffffff',
+                    stroke: '#000000', strokeThickness: 3,
+                }).setOrigin(1, 1).setDepth(504)
             );
 
-            // === Sublabel ===
+            // Label below frame
             this.invPanel.push(
-                this.add.text(rx + 94, midY + 4, frag.subLabel, {
-                    fontSize: '10px', color: '#3d5060',
-                }).setDepth(504)
+                this.add.text(fx + sq / 2, cy + sq / 2 + 6, frag.label, {
+                    fontSize: '10px', color: '#7a9ab0',
+                }).setOrigin(0.5, 0).setDepth(503)
             );
 
-            // === Count — white text with colored stroke (halo effect) ===
-            this.invPanel.push(
-                this.add.text(rx + rw - 26, midY - 18, `${frag.getValue()}`, {
-                    fontSize: '38px', fontStyle: 'bold',
-                    color: '#ffffff',
-                    stroke: frag.countStroke,
-                    strokeThickness: 10,
-                }).setOrigin(1, 0).setDepth(504).setAlpha(0.25)
-            );
-            this.invPanel.push(
-                this.add.text(rx + rw - 26, midY - 18, `${frag.getValue()}`, {
-                    fontSize: '38px', fontStyle: 'bold',
-                    color: '#ffffff',
-                    stroke: '#000000',
-                    strokeThickness: 3,
-                }).setOrigin(1, 0).setDepth(505)
-            );
+            // Hit zone
+            const zone = this.add.rectangle(fx + sq / 2, cy, sq, sq, 0x000000, 0)
+                .setDepth(504).setInteractive({ useHandCursor: true });
+            zone.on('pointerdown', (ptr, lx, ly, event) => {
+                event.stopPropagation();
+                if (this._weaponInfoKey === frag.key) {
+                    this._hideWeaponInfo();
+                } else {
+                    this._showFragInfo(frag, fx, cy, sq);
+                    this._weaponInfoKey = frag.key;
+                }
+            });
+            this.invPanel.push(zone);
         });
     }
 
     _drawWeaponsContent(rx, ry, rw, rh) {
         const ownedWeapons = Economy.getOwnedWeapons();
         const cols = 4;
-        const cellW = rw / cols;
-        const slotW = cellW - 14, slotH = 60;
-        const cellH = 82;
+        const hPad = 16;
+        const cellW = (rw - hPad * 2) / cols;
+        const slotW = cellW - 20, slotH = 60;
+        const cellH = 86;
         const rows = Math.ceil(ownedWeapons.length / cols);
-        const startY = ry + 16;
+        const startY = ry + 20;
 
         ownedWeapons.forEach((key, i) => {
             const wdata = getWeaponByKey(key);
             if (!wdata) return;
             const col = i % cols;
             const row = Math.floor(i / cols);
-            const cx = rx + col * cellW + cellW / 2;
+            const cx = rx + hPad + col * cellW + cellW / 2;
             const cy = startY + row * cellH;
             const sx = cx - slotW / 2, sy = cy;
 
@@ -708,10 +699,68 @@ export default class MenuScene extends Phaser.Scene {
             // Hit zone — triggers weapon info on hover/tap
             const zone = this.add.rectangle(cx, cy + slotH / 2, slotW, slotH, 0x000000, 0)
                 .setDepth(504).setInteractive({ useHandCursor: true });
-            zone.on('pointerover', () => this._showWeaponInfo(wdata, cx, cy));
-            zone.on('pointerout',  () => this._hideWeaponInfo());
+            zone.on('pointerdown', (ptr, lx, ly, event) => {
+                event.stopPropagation();
+                if (this._weaponInfoKey === wdata.key) {
+                    this._hideWeaponInfo();
+                } else {
+                    this._showWeaponInfo(wdata, cx, cy);
+                    this._weaponInfoKey = wdata.key;
+                }
+            });
             this.invPanel.push(zone);
         });
+    }
+
+    _showFragInfo(frag, fx, cy, sq) {
+        this._hideWeaponInfo();
+        if (!this._invBounds) return;
+        const { px, py, pw, ph, contentY } = this._invBounds;
+
+        const fragDesc = {
+            frag_common: 'Thu thập từ quái vật và rương.\nDùng để nâng cấp vũ khí.',
+            frag_rare:   'Rơi ngẫu nhiên từ quái mạnh.\nDùng để chế tạo vũ khí đặc biệt.',
+        };
+
+        const iw = 200, ih = 100;
+        let ix = fx;
+        let iy = cy + sq / 2 + 24;
+        if (iy + ih > py + ph - 4) iy = cy - sq / 2 - ih - 8;
+        ix = Math.max(px + 105, Math.min(px + pw - iw - 4, ix));
+
+        this.weaponInfo = [];
+
+        const g = this.add.graphics().setDepth(600);
+        g.fillStyle(0x07101c, 0.97);
+        g.fillRoundedRect(ix, iy, iw, ih, 10);
+        g.lineStyle(7, 0x1abc9c, 0.1);
+        g.strokeRoundedRect(ix - 3, iy - 3, iw + 6, ih + 6, 13);
+        g.lineStyle(1.5, 0x1abc9c, 0.7);
+        g.strokeRoundedRect(ix, iy, iw, ih, 10);
+        this.weaponInfo.push(g);
+
+        this.weaponInfo.push(
+            this.add.text(ix + 12, iy + 12, frag.label, {
+                fontSize: '13px', fontStyle: 'bold', color: '#e8eef5',
+            }).setDepth(601)
+        );
+
+        const dg = this.add.graphics().setDepth(601);
+        dg.lineStyle(1, 0x1a3040, 1);
+        dg.lineBetween(ix + 10, iy + 32, ix + iw - 10, iy + 32);
+        this.weaponInfo.push(dg);
+
+        this.weaponInfo.push(
+            this.add.text(ix + 12, iy + 38, `Số lượng: ${frag.getValue()}`, {
+                fontSize: '11px', fontStyle: 'bold', color: '#8bbccc',
+            }).setDepth(601)
+        );
+        this.weaponInfo.push(
+            this.add.text(ix + 12, iy + 58, fragDesc[frag.key] || '', {
+                fontSize: '10px', color: '#3d6070',
+                wordWrap: { width: iw - 24 },
+            }).setDepth(601)
+        );
     }
 
     _showWeaponInfo(wdata, slotCX, slotCY) {
@@ -799,6 +848,7 @@ export default class MenuScene extends Phaser.Scene {
         if (!this.weaponInfo) return;
         this.weaponInfo.forEach(e => e.destroy());
         this.weaponInfo = null;
+        this._weaponInfoKey = null;
     }
 
     closeInventoryPanel() {
@@ -836,26 +886,6 @@ export default class MenuScene extends Phaser.Scene {
         btn.add([glow, bg, inner, text]);
         bg.setInteractive({ useHandCursor: true });
 
-        // Pulsing and floating animation
-        this.tweens.add({
-            targets: btn,
-            y: y - 5,
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        this.tweens.add({
-            targets: glow,
-            alpha: 0.8,
-            scale: 1.1,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
         bg.on('pointerover', () => {
             bg.setFillStyle(0x3498db, 1);
             bg.setStrokeStyle(4, 0x76c442, 1);
@@ -868,21 +898,611 @@ export default class MenuScene extends Phaser.Scene {
         });
         bg.on('pointerdown', () => {
             btn.setScale(0.95);
-            this.cameras.main.fadeOut(500, 0, 0, 0);
-            this.time.delayedCall(500, () => {
-                this.registry.set('selectedCharacter', this.selectedCharacterKey);
-                this.scene.start('MainScene');
-            });
+            this.time.delayedCall(100, () => btn.setScale(1));
+            this.showGameModePopup();
         });
+    }
+
+    showGameModePopup() {
+        if (this.gameModePopup) return;
+        const { width, height } = this.scale;
+        this.gameModePopup = [];
+
+        const pw = 340, ph = 210;
+        const px = (width - pw) / 2, py = (height - ph) / 2;
+
+        const ov = this.add.rectangle(0, 0, width, height, 0x000000, 0.65).setOrigin(0).setDepth(200).setInteractive();
+        ov.on('pointerdown', () => this.closeGameModePopup());
+        this.gameModePopup.push(ov);
+
+        const pg = this.add.graphics().setDepth(201);
+        pg.fillStyle(0x07101c, 0.98);
+        pg.fillRoundedRect(px, py, pw, ph, 12);
+        pg.lineStyle(1.5, 0x1abc9c, 0.6);
+        pg.strokeRoundedRect(px, py, pw, ph, 12);
+        this.gameModePopup.push(pg);
+
+        const hg = this.add.graphics().setDepth(201);
+        hg.fillStyle(0x0e8a70, 1);
+        hg.fillRoundedRect(px + 1, py + 1, pw - 2, 34, { tl: 11, tr: 11, bl: 0, br: 0 });
+        this.gameModePopup.push(hg);
+
+        this.gameModePopup.push(
+            this.add.text(px + pw / 2, py + 18, 'CHỌN CHẾ ĐỘ CHƠI', { fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+        );
+
+        const xBtn = this.add.text(px + pw - 18, py + 18, '✕', { fontSize: '13px', color: '#99ccbb' }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
+        xBtn.on('pointerdown', () => this.closeGameModePopup());
+        xBtn.on('pointerover', () => xBtn.setColor('#ffffff'));
+        xBtn.on('pointerout', () => xBtn.setColor('#99ccbb'));
+        this.gameModePopup.push(xBtn);
+
+        const makeBtn = (bx, by, bw, bh, label, color, hoverColor, onClick) => {
+            const bg = this.add.graphics().setDepth(202);
+            const draw = (hover) => {
+                bg.clear();
+                bg.fillStyle(hover ? hoverColor : color, 1);
+                bg.fillRoundedRect(bx - bw / 2, by - bh / 2, bw, bh, 9);
+                bg.lineStyle(1.5, hover ? 0xffffff : 0x33667755, 1);
+                bg.strokeRoundedRect(bx - bw / 2, by - bh / 2, bw, bh, 9);
+            };
+            draw(false);
+            const txt = this.add.text(bx, by - 7, label, { fontSize: '13px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(203);
+            const hit = this.add.rectangle(bx, by, bw, bh, 0, 0).setDepth(204).setInteractive({ useHandCursor: true });
+            hit.on('pointerdown', onClick);
+            hit.on('pointerover', () => draw(true));
+            hit.on('pointerout', () => draw(false));
+            return [bg, txt, hit];
+        };
+
+        this.gameModePopup.push(...makeBtn(
+            px + pw / 2 - 84, py + 130, 148, 58,
+            '🧍 Chơi 1 mình', 0x0e6b58, 0x1abc9c,
+            () => {
+                this.closeGameModePopup();
+                this.cameras.main.fadeOut(500, 0, 0, 0);
+                this.time.delayedCall(500, () => {
+                    this.registry.set('selectedCharacter', this.selectedCharacterKey);
+                    this.scene.start('MainScene');
+                });
+            }
+        ));
+        this.gameModePopup.push(
+            this.add.text(px + pw / 2 - 84, py + 152, 'Chơi offline', { fontSize: '9px', color: '#66aa88' }).setOrigin(0.5).setDepth(203)
+        );
+
+        this.gameModePopup.push(...makeBtn(
+            px + pw / 2 + 84, py + 130, 148, 58,
+            '👥 Chơi 3 người', 0x1a5a8a, 0x2980b9,
+            () => {
+                this.closeGameModePopup();
+                this.showMultiplayerLobby();
+            }
+        ));
+        this.gameModePopup.push(
+            this.add.text(px + pw / 2 + 84, py + 152, 'Kết nối online', { fontSize: '9px', color: '#6699bb' }).setOrigin(0.5).setDepth(203)
+        );
+
+        // Join room link
+        const joinTxt = this.add.text(px + pw / 2, py + 188, '🔑 Tham gia phòng bằng mã mời', {
+            fontSize: '10px', color: '#2980b9',
+        }).setOrigin(0.5).setDepth(203).setInteractive({ useHandCursor: true });
+        joinTxt.on('pointerover', () => joinTxt.setStyle({ color: '#5fa8d8', fontSize: '10px' }));
+        joinTxt.on('pointerout', () => joinTxt.setStyle({ color: '#2980b9', fontSize: '10px' }));
+        joinTxt.on('pointerdown', () => {
+            this.closeGameModePopup();
+            this.showJoinRoomPopup();
+        });
+        this.gameModePopup.push(joinTxt);
+    }
+
+    showFriendsList(inviteLink) {
+        if (this.friendsPopup) return;
+        const { width, height } = this.scale;
+        this.friendsPopup = [];
+
+        const pw = 320, ph = 380;
+        const px = (width - pw) / 2, py = (height - ph) / 2;
+
+        const ov = this.add.rectangle(0, 0, width, height, 0x000000, 0.55).setOrigin(0).setDepth(210).setInteractive();
+        // Không close khi click overlay vì DOM input sẽ trigger event này
+        this.friendsPopup.push(ov);
+
+        const pg = this.add.graphics().setDepth(211);
+        pg.fillStyle(0x07101c, 0.99);
+        pg.fillRoundedRect(px, py, pw, ph, 12);
+        pg.lineStyle(1.5, 0x2980b9, 0.7);
+        pg.strokeRoundedRect(px, py, pw, ph, 12);
+        this.friendsPopup.push(pg);
+
+        const hg = this.add.graphics().setDepth(211);
+        hg.fillStyle(0x1a5a8a, 1);
+        hg.fillRoundedRect(px + 1, py + 1, pw - 2, 34, { tl: 11, tr: 11, bl: 0, br: 0 });
+        this.friendsPopup.push(hg);
+
+        this.friendsPopup.push(
+            this.add.text(px + pw / 2, py + 18, 'MỜI BẠN BÈ', { fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(212)
+        );
+
+        const xBtn = this.add.text(px + pw - 18, py + 18, '✕', { fontSize: '13px', color: '#99bbcc' }).setOrigin(0.5).setDepth(212).setInteractive({ useHandCursor: true });
+        xBtn.on('pointerdown', () => this.closeFriendsList());
+        xBtn.on('pointerover', () => xBtn.setColor('#ffffff'));
+        xBtn.on('pointerout', () => xBtn.setColor('#99bbcc'));
+        this.friendsPopup.push(xBtn);
+
+        // Search bar (DOM) — positioned using canvas scale
+        const inputEl = document.createElement('input');
+        inputEl.type = 'text';
+        inputEl.placeholder = 'Tìm bạn bè...';
+        const _p1 = this._domPos(px + 14, py + 44, pw - 90, 28);
+        inputEl.style.cssText = [
+            'position:fixed', `left:${_p1.left}px`, `top:${_p1.top}px`,
+            `width:${_p1.w}px`, `height:${_p1.h}px`,
+            'background:#0d2535', 'border:1px solid #1a3040',
+            'border-radius:6px', 'color:#e8eef5',
+            `font-size:${_p1.fs}px`, 'padding:0 8px', 'outline:none', 'box-sizing:border-box',
+        ].join(';');
+        inputEl.addEventListener('mousedown', e => e.stopPropagation());
+        inputEl.addEventListener('pointerdown', e => e.stopPropagation());
+        document.body.appendChild(inputEl);
+        this.friendsPopup.push({ destroy: () => inputEl.remove() });
+
+        // Search button
+        const searchG = this.add.graphics().setDepth(211);
+        const drawSearch = (h) => {
+            searchG.clear();
+            searchG.fillStyle(h ? 0x2980b9 : 0x1a5a8a, 1);
+            searchG.fillRoundedRect(px + pw - 70, py + 44, 56, 28, 6);
+        };
+        drawSearch(false);
+        this.friendsPopup.push(searchG);
+        this.friendsPopup.push(
+            this.add.text(px + pw - 42, py + 58, 'Tìm', { fontSize: '11px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(212)
+        );
+        const searchHit = this.add.rectangle(px + pw - 42, py + 58, 56, 28, 0, 0).setDepth(213).setInteractive({ useHandCursor: true });
+        searchHit.on('pointerover', () => drawSearch(true));
+        searchHit.on('pointerout', () => drawSearch(false));
+        this.friendsPopup.push(searchHit);
+
+        // Divider
+        const divG = this.add.graphics().setDepth(211);
+        divG.lineStyle(1, 0x1a3040, 1);
+        divG.lineBetween(px + 12, py + 80, px + pw - 12, py + 80);
+        this.friendsPopup.push(divG);
+
+        // List area — load friends then render
+        const listAreaY = py + 88;
+        const listAreaH = ph - 140;
+        const loadingTxt = this.add.text(px + pw / 2, listAreaY + listAreaH / 2, 'Đang tải...', {
+            fontSize: '11px', color: '#3d6070',
+        }).setOrigin(0.5).setDepth(212);
+        this.friendsPopup.push(loadingTxt);
+
+        const user = auth.currentUser;
+        if (!user) {
+            loadingTxt.setText('Đăng nhập để dùng tính năng này');
+            return;
+        }
+
+        const renderList = (friends) => {
+            loadingTxt.destroy();
+            if (friends.length === 0) {
+                const emptyTxt = this.add.text(px + pw / 2, listAreaY + listAreaH / 2 - 10, 'Chưa có bạn bè.\nDùng ô tìm kiếm bên trên.', {
+                    fontSize: '10px', color: '#2a4050', align: 'center',
+                }).setOrigin(0.5).setDepth(212);
+                this.friendsPopup.push(emptyTxt);
+                return;
+            }
+
+            friends.slice(0, 5).forEach((friend, i) => {
+                const fy = listAreaY + i * 54;
+                // Row bg
+                const rowG = this.add.graphics().setDepth(211);
+                rowG.fillStyle(0x0a1e2e, 1);
+                rowG.fillRoundedRect(px + 12, fy, pw - 24, 46, 6);
+                this.friendsPopup.push(rowG);
+
+                // Avatar circle + initial
+                const colors = [0x1abc9c, 0x2980b9, 0xe67e22, 0x8e44ad, 0xe74c3c];
+                const avG = this.add.graphics().setDepth(212);
+                avG.fillStyle(colors[i % colors.length], 0.8);
+                avG.fillCircle(px + 36, fy + 23, 16);
+                this.friendsPopup.push(avG);
+                this.friendsPopup.push(
+                    this.add.text(px + 36, fy + 23, (friend.displayName || '?')[0].toUpperCase(), {
+                        fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+                    }).setOrigin(0.5).setDepth(213)
+                );
+
+                // Name
+                this.friendsPopup.push(
+                    this.add.text(px + 60, fy + 14, friend.displayName || 'Người chơi', {
+                        fontSize: '11px', color: '#e8eef5', fontStyle: 'bold',
+                    }).setDepth(212)
+                );
+
+                // Invite button
+                const ibG = this.add.graphics().setDepth(212);
+                const drawIb = (h) => {
+                    ibG.clear();
+                    ibG.fillStyle(h ? 0x1abc9c : 0x0e6b58, 1);
+                    ibG.fillRoundedRect(px + pw - 82, fy + 12, 66, 24, 5);
+                };
+                drawIb(false);
+                this.friendsPopup.push(ibG);
+                const ibTxt = this.add.text(px + pw - 49, fy + 24, 'Mời', { fontSize: '10px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(213);
+                this.friendsPopup.push(ibTxt);
+                const ibHit = this.add.rectangle(px + pw - 49, fy + 24, 66, 24, 0, 0).setDepth(214).setInteractive({ useHandCursor: true });
+                this.friendsPopup.push(ibHit);
+
+                const toastFriend = this.add.text(px + pw / 2, py + ph - 28, `✓ Đã sao chép link mời cho ${friend.displayName}!`, {
+                    fontSize: '9px', color: '#1abc9c',
+                }).setOrigin(0.5).setDepth(212).setAlpha(0);
+                this.friendsPopup.push(toastFriend);
+
+                ibHit.on('pointerover', () => { drawIb(true); ibTxt.setColor('#aaffdd'); });
+                ibHit.on('pointerout', () => { drawIb(false); ibTxt.setColor('#ffffff'); });
+                ibHit.on('pointerdown', () => {
+                    navigator.clipboard.writeText(inviteLink).catch(() => {});
+                    toastFriend.setAlpha(1);
+                    this.time.delayedCall(2500, () => { if (toastFriend.active) toastFriend.setAlpha(0); });
+                });
+            });
+        };
+
+        const renderSearchResults = (results) => {
+            // Clear previous search results
+            this.friendsPopup.filter(e => e._isSearchResult).forEach(e => e.destroy());
+            this.friendsPopup = this.friendsPopup.filter(e => !e._isSearchResult);
+
+            results.slice(0, 4).forEach((user, i) => {
+                const fy = listAreaY + i * 54;
+                const rowG = this.add.graphics().setDepth(211);
+                rowG.fillStyle(0x0a1e2e, 1);
+                rowG.fillRoundedRect(px + 12, fy, pw - 24, 46, 6);
+                rowG._isSearchResult = true;
+                this.friendsPopup.push(rowG);
+
+                const avG = this.add.graphics().setDepth(212);
+                avG.fillStyle(0x2980b9, 0.8);
+                avG.fillCircle(px + 36, fy + 23, 16);
+                avG._isSearchResult = true;
+                this.friendsPopup.push(avG);
+
+                const initTxt = this.add.text(px + 36, fy + 23, (user.displayName || '?')[0].toUpperCase(), {
+                    fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+                }).setOrigin(0.5).setDepth(213);
+                initTxt._isSearchResult = true;
+                this.friendsPopup.push(initTxt);
+
+                const nameTxt = this.add.text(px + 60, fy + 14, user.displayName || 'Người chơi', {
+                    fontSize: '11px', color: '#e8eef5', fontStyle: 'bold',
+                }).setDepth(212);
+                nameTxt._isSearchResult = true;
+                this.friendsPopup.push(nameTxt);
+
+                // Add friend button
+                const addG = this.add.graphics().setDepth(212);
+                addG._isSearchResult = true;
+                const drawAdd = (h) => {
+                    addG.clear();
+                    addG.fillStyle(h ? 0x2980b9 : 0x1a5a8a, 1);
+                    addG.fillRoundedRect(px + pw - 90, fy + 12, 74, 24, 5);
+                };
+                drawAdd(false);
+                this.friendsPopup.push(addG);
+
+                const addTxt = this.add.text(px + pw - 53, fy + 24, '+ Kết bạn', { fontSize: '9px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(213);
+                addTxt._isSearchResult = true;
+                this.friendsPopup.push(addTxt);
+
+                const addHit = this.add.rectangle(px + pw - 53, fy + 24, 74, 24, 0, 0).setDepth(214).setInteractive({ useHandCursor: true });
+                addHit._isSearchResult = true;
+                this.friendsPopup.push(addHit);
+
+                addHit.on('pointerover', () => { drawAdd(true); addTxt.setColor('#aaddff'); });
+                addHit.on('pointerout', () => { drawAdd(false); addTxt.setColor('#ffffff'); });
+                addHit.on('pointerdown', () => {
+                    const me = auth.currentUser;
+                    if (!me) return;
+                    const myProfile = { uid: me.uid, displayName: me.displayName || 'Player', photoURL: me.photoURL || '' };
+                    addFriend(me.uid, myProfile, user.uid, user).catch(() => {});
+                    addTxt.setText('✓ Đã gửi');
+                    addHit.disableInteractive();
+                });
+            });
+        };
+
+        getFriends(user.uid).then(friends => renderList(friends)).catch(() => {
+            loadingTxt.setText('Không thể tải danh sách bạn bè');
+        });
+
+        searchHit.on('pointerdown', () => {
+            const q = inputEl.value.trim();
+            if (!q) return;
+            searchPlayers(q, user.uid).then(results => {
+                loadingTxt.setAlpha(0);
+                renderSearchResults(results.length ? results : []);
+                if (!results.length) {
+                    const notFound = this.add.text(px + pw / 2, listAreaY + 30, 'Không tìm thấy người chơi', {
+                        fontSize: '10px', color: '#2a4050',
+                    }).setOrigin(0.5).setDepth(212);
+                    notFound._isSearchResult = true;
+                    this.friendsPopup.push(notFound);
+                }
+            }).catch(() => {});
+        });
+        inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchHit.emit('pointerdown'); });
+    }
+
+    closeFriendsList() {
+        if (!this.friendsPopup) return;
+        this.friendsPopup.forEach(e => e.destroy());
+        this.friendsPopup = null;
+    }
+
+    showJoinRoomPopup() {
+        if (this.joinPopup) return;
+        const { width, height } = this.scale;
+        this.joinPopup = [];
+
+        const pw = 320, ph = 180;
+        const px = (width - pw) / 2, py = (height - ph) / 2;
+
+        const ov = this.add.rectangle(0, 0, width, height, 0x000000, 0.65).setOrigin(0).setDepth(200).setInteractive();
+        // Không close khi click overlay vì DOM input sẽ trigger event này
+        this.joinPopup.push(ov);
+
+        const pg = this.add.graphics().setDepth(201);
+        pg.fillStyle(0x07101c, 0.98);
+        pg.fillRoundedRect(px, py, pw, ph, 12);
+        pg.lineStyle(1.5, 0x2980b9, 0.6);
+        pg.strokeRoundedRect(px, py, pw, ph, 12);
+        this.joinPopup.push(pg);
+
+        const hg = this.add.graphics().setDepth(201);
+        hg.fillStyle(0x1a5a8a, 1);
+        hg.fillRoundedRect(px + 1, py + 1, pw - 2, 34, { tl: 11, tr: 11, bl: 0, br: 0 });
+        this.joinPopup.push(hg);
+
+        this.joinPopup.push(
+            this.add.text(px + pw / 2, py + 18, 'NHẬP MÃ PHÒNG', { fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+        );
+
+        const backBtn = this.add.text(px + 18, py + 18, '←', { fontSize: '16px', color: '#99bbcc' }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
+        backBtn.on('pointerdown', () => { this.closeJoinRoomPopup(); this.showGameModePopup(); });
+        backBtn.on('pointerover', () => backBtn.setColor('#ffffff'));
+        backBtn.on('pointerout', () => backBtn.setColor('#99bbcc'));
+        this.joinPopup.push(backBtn);
+
+        // Input box (DOM) — positioned using canvas scale
+        const inputEl = document.createElement('input');
+        inputEl.type = 'text';
+        inputEl.maxLength = 6;
+        inputEl.placeholder = 'VD: U3GI8M';
+        const _p2 = this._domPos(px + 40, py + 56, pw - 80, 30);
+        inputEl.style.cssText = [
+            'position:fixed', `left:${_p2.left}px`, `top:${_p2.top}px`,
+            `width:${_p2.w}px`, `height:${_p2.h}px`,
+            'background:#0d2535', 'border:1px solid #1a3040',
+            'border-radius:6px', 'color:#1abc9c',
+            `font-size:${Math.round(_p2.fs * 1.4)}px`, 'font-weight:bold',
+            'text-align:center', `letter-spacing:${Math.round(_p2.fs * 0.4)}px`,
+            'outline:none', 'padding:0', 'box-sizing:border-box',
+        ].join(';');
+        inputEl.addEventListener('mousedown', e => e.stopPropagation());
+        inputEl.addEventListener('pointerdown', e => e.stopPropagation());
+        document.body.appendChild(inputEl);
+        inputEl.focus();
+        this.joinPopup.push({ destroy: () => inputEl.remove() });
+
+        // Confirm button
+        const confirmG = this.add.graphics().setDepth(201);
+        const drawConfirm = (hover) => {
+            confirmG.clear();
+            confirmG.fillStyle(hover ? 0x1abc9c : 0x0e6b58, 1);
+            confirmG.fillRoundedRect(px + pw / 2 - 60, py + ph - 50, 120, 32, 8);
+        };
+        drawConfirm(false);
+        this.joinPopup.push(confirmG);
+        this.joinPopup.push(
+            this.add.text(px + pw / 2, py + ph - 34, 'Tham gia', { fontSize: '13px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+        );
+        const confirmHit = this.add.rectangle(px + pw / 2, py + ph - 34, 120, 32, 0, 0).setDepth(204).setInteractive({ useHandCursor: true });
+        confirmHit.on('pointerover', () => drawConfirm(true));
+        confirmHit.on('pointerout', () => drawConfirm(false));
+        confirmHit.on('pointerdown', () => {
+            const code = inputEl.value.trim().toUpperCase();
+            if (code.length < 4) return;
+            this.closeJoinRoomPopup();
+            this.showMultiplayerLobby(code);
+        });
+        this.joinPopup.push(confirmHit);
+    }
+
+    closeJoinRoomPopup() {
+        if (!this.joinPopup) return;
+        this.joinPopup.forEach(e => e.destroy());
+        this.joinPopup = null;
+    }
+
+    closeGameModePopup() {
+        if (!this.gameModePopup) return;
+        this.gameModePopup.forEach(e => e.destroy());
+        this.gameModePopup = null;
+    }
+
+    showMultiplayerLobby(existingCode) {
+        if (this.lobbyPopup) return;
+        const { width, height } = this.scale;
+        this.lobbyPopup = [];
+
+        const pw = 400, ph = 350;
+        const px = (width - pw) / 2, py = (height - ph) / 2;
+        const isHost = !existingCode;
+        const roomCode = existingCode || Math.random().toString(36).substring(2, 8).toUpperCase();
+        const inviteLink = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+
+        const ov = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setDepth(200).setInteractive();
+        this.lobbyPopup.push(ov);
+
+        const pg = this.add.graphics().setDepth(201);
+        pg.fillStyle(0x07101c, 0.98);
+        pg.fillRoundedRect(px, py, pw, ph, 12);
+        pg.lineStyle(1.5, 0x2980b9, 0.7);
+        pg.strokeRoundedRect(px, py, pw, ph, 12);
+        this.lobbyPopup.push(pg);
+
+        const hg = this.add.graphics().setDepth(201);
+        hg.fillStyle(0x1a5a8a, 1);
+        hg.fillRoundedRect(px + 1, py + 1, pw - 2, 34, { tl: 11, tr: 11, bl: 0, br: 0 });
+        this.lobbyPopup.push(hg);
+
+        this.lobbyPopup.push(
+            this.add.text(px + pw / 2, py + 18, 'PHÒNG CHỜ', { fontSize: '13px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+        );
+
+        const backBtn = this.add.text(px + 18, py + 18, '←', { fontSize: '16px', color: '#99bbcc' }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
+        backBtn.on('pointerdown', () => { this.closeMultiplayerLobby(); this.showGameModePopup(); });
+        backBtn.on('pointerover', () => backBtn.setColor('#ffffff'));
+        backBtn.on('pointerout', () => backBtn.setColor('#99bbcc'));
+        this.lobbyPopup.push(backBtn);
+
+        const xBtn = this.add.text(px + pw - 18, py + 18, '✕', { fontSize: '13px', color: '#99bbcc' }).setOrigin(0.5).setDepth(202).setInteractive({ useHandCursor: true });
+        xBtn.on('pointerdown', () => this.closeMultiplayerLobby());
+        xBtn.on('pointerover', () => xBtn.setColor('#ffffff'));
+        xBtn.on('pointerout', () => xBtn.setColor('#99bbcc'));
+        this.lobbyPopup.push(xBtn);
+
+        // Room code + copy row
+        this.lobbyPopup.push(
+            this.add.text(px + pw / 2, py + 50, 'MÃ PHÒNG', { fontSize: '9px', color: '#5fa8b8', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+        );
+
+        const codeG = this.add.graphics().setDepth(201);
+        codeG.fillStyle(0x0d2535, 1);
+        codeG.fillRoundedRect(px + pw / 2 - 90, py + 60, 148, 28, 6);
+        codeG.lineStyle(1, 0x1a3040, 1);
+        codeG.strokeRoundedRect(px + pw / 2 - 90, py + 60, 148, 28, 6);
+        this.lobbyPopup.push(codeG);
+        this.lobbyPopup.push(
+            this.add.text(px + pw / 2 - 16, py + 74, roomCode, { fontSize: '15px', color: '#1abc9c', fontStyle: 'bold', letterSpacing: 6 }).setOrigin(0.5).setDepth(202)
+        );
+
+        // Copy link button (right of code box)
+        const copyG = this.add.graphics().setDepth(201);
+        const drawCopyBtn = (hover) => {
+            copyG.clear();
+            copyG.fillStyle(hover ? 0x1e6e9e : 0x133350, 1);
+            copyG.fillRoundedRect(px + pw / 2 + 64, py + 60, 62, 28, 6);
+            copyG.lineStyle(1, hover ? 0x2980b9 : 0x1a3a50, 1);
+            copyG.strokeRoundedRect(px + pw / 2 + 64, py + 60, 62, 28, 6);
+        };
+        drawCopyBtn(false);
+        this.lobbyPopup.push(copyG);
+
+        const copyTxt = this.add.text(px + pw / 2 + 95, py + 74, '📋 Sao chép', { fontSize: '8px', color: '#7ec8e3', fontStyle: 'bold' }).setOrigin(0.5).setDepth(203);
+        this.lobbyPopup.push(copyTxt);
+
+        const copyHit = this.add.rectangle(px + pw / 2 + 95, py + 74, 62, 28, 0, 0).setDepth(204).setInteractive({ useHandCursor: true });
+        this.lobbyPopup.push(copyHit);
+
+        // Toast text (hidden initially)
+        const toastTxt = this.add.text(px + pw / 2, py + 96, '✓ Đã sao chép link mời!', {
+            fontSize: '9px', color: '#1abc9c', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(202).setAlpha(0);
+        this.lobbyPopup.push(toastTxt);
+
+        copyHit.on('pointerover', () => drawCopyBtn(true));
+        copyHit.on('pointerout', () => drawCopyBtn(false));
+        copyHit.on('pointerdown', () => {
+            navigator.clipboard.writeText(inviteLink).catch(() => {});
+            toastTxt.setAlpha(1);
+            this.time.delayedCall(2000, () => { if (toastTxt.active) toastTxt.setAlpha(0); });
+        });
+
+        // Player slots
+        const slotW = 100, slotH = 100, slotGap = 14;
+        const totalW = 3 * slotW + 2 * slotGap;
+        const slotStartX = px + (pw - totalW) / 2;
+        const slotY = py + 112;
+        const playerName = this.registry.get('playerName') || 'Bạn';
+
+        [playerName, null, null].forEach((player, i) => {
+            const sx = slotStartX + i * (slotW + slotGap);
+            const sg = this.add.graphics().setDepth(201);
+            sg.fillStyle(player ? 0x0d2535 : 0x050e18, 1);
+            sg.fillRoundedRect(sx, slotY, slotW, slotH, 8);
+            sg.lineStyle(1.5, player ? 0x1abc9c : 0x1a3040, 1);
+            sg.strokeRoundedRect(sx, slotY, slotW, slotH, 8);
+            this.lobbyPopup.push(sg);
+
+            if (player) {
+                const badgeG = this.add.graphics().setDepth(202);
+                badgeG.fillStyle(0xe67e22, 1);
+                badgeG.fillRoundedRect(sx + slotW / 2 - 18, slotY + 6, 36, 14, 4);
+                this.lobbyPopup.push(badgeG);
+                this.lobbyPopup.push(
+                    this.add.text(sx + slotW / 2, slotY + 13, 'HOST', { fontSize: '7px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(203)
+                );
+                const avG = this.add.graphics().setDepth(202);
+                avG.fillStyle(0x1abc9c, 0.15);
+                avG.fillCircle(sx + slotW / 2, slotY + 54, 22);
+                avG.lineStyle(2, 0x1abc9c, 0.8);
+                avG.strokeCircle(sx + slotW / 2, slotY + 54, 22);
+                this.lobbyPopup.push(avG);
+                const spr = this.add.sprite(sx + slotW / 2, slotY + 62, this.selectedCharacterKey || 'player_1').setScale(1.5).setDepth(202);
+                this.lobbyPopup.push(spr);
+                this.lobbyPopup.push(
+                    this.add.text(sx + slotW / 2, slotY + 84, player, { fontSize: '9px', color: '#1abc9c', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+                );
+            } else {
+                // Invite button per empty slot
+                const invG = this.add.graphics().setDepth(202);
+                const drawInv = (hover) => {
+                    invG.clear();
+                    invG.fillStyle(hover ? 0x0d2535 : 0x071018, 1);
+                    invG.fillRoundedRect(sx + 14, slotY + 62, slotW - 28, 22, 5);
+                    invG.lineStyle(1, hover ? 0x2980b9 : 0x1a3040, 1);
+                    invG.strokeRoundedRect(sx + 14, slotY + 62, slotW - 28, 22, 5);
+                };
+                drawInv(false);
+                this.lobbyPopup.push(invG);
+                this.lobbyPopup.push(
+                    this.add.text(sx + slotW / 2, slotY + 36, '?', { fontSize: '28px', color: '#1a3040', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+                );
+                const invTxt = this.add.text(sx + slotW / 2, slotY + 73, '+ Mời bạn', { fontSize: '8px', color: '#2980b9' }).setOrigin(0.5).setDepth(203);
+                this.lobbyPopup.push(invTxt);
+                const invHit = this.add.rectangle(sx + slotW / 2, slotY + 73, slotW - 28, 22, 0, 0).setDepth(204).setInteractive({ useHandCursor: true });
+                this.lobbyPopup.push(invHit);
+                invHit.on('pointerover', () => { drawInv(true); invTxt.setColor('#5fa8d8'); });
+                invHit.on('pointerout', () => { drawInv(false); invTxt.setColor('#2980b9'); });
+                invHit.on('pointerdown', () => this.showFriendsList(inviteLink));
+            }
+        });
+
+        // Start button (disabled)
+        const startG = this.add.graphics().setDepth(201);
+        startG.fillStyle(0x0a1c14, 1);
+        startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
+        startG.lineStyle(1, 0x1abc9c, 0.2);
+        startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
+        this.lobbyPopup.push(startG);
+        this.lobbyPopup.push(
+            this.add.text(px + pw / 2, py + ph - 31, 'Đang chờ người chơi...', { fontSize: '9px', color: '#2a5040' }).setOrigin(0.5).setDepth(202)
+        );
+    }
+
+    closeMultiplayerLobby() {
+        if (!this.lobbyPopup) return;
+        this.lobbyPopup.forEach(e => e.destroy());
+        this.lobbyPopup = null;
     }
 
     selectCharacter(key) {
         this.selectedCharacterKey = key;
 
-        // Update Grid Highlights
-        this.charIcons.forEach(icon => {
-            icon.bg.setStrokeStyle(2, icon.key === key ? this.colors.highlight : 0x555555);
-        });
+        this.charIcons.forEach(icon => icon.setSelected(icon.key === key));
 
         this.updateSpotlight();
         this.updateWeaponList();
@@ -912,77 +1532,64 @@ export default class MenuScene extends Phaser.Scene {
         this.weaponContainer.removeAll(true);
         const config = getCharacterConfig(this.selectedCharacterKey);
 
-        const slotSize = 50;
-        const spacing = 12;
+        const slotSize = 52;
+        const spacing = 10;
 
-        // Slot names/categories
-        const categories = [
-            { id: 1, name: 'Ô 1' },
-            { id: 2, name: 'Ô 2' },
-            { id: 3, name: 'Ô 3' },
-            { id: 4, name: 'Ô 4' }
-        ];
+        const categories = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
 
-        // Load equipped weapons from localStorage
         const equipped = JSON.parse(localStorage.getItem('equipped_weapons') || '{}');
-        // Default slots for new players
         if (this.selectedCharacterKey === 'player_1') {
             if (!equipped.slot1) equipped.slot1 = 'Glock_17';
             if (!equipped.slot2) equipped.slot2 = 'MP5';
             if (!equipped.slot4) equipped.slot4 = 'Grenade';
         }
-        // Clear any slot containing a weapon the player doesn't own
         Object.keys(equipped).forEach(slot => {
-            if (equipped[slot] && !Economy.isWeaponOwned(equipped[slot])) {
-                delete equipped[slot];
-            }
+            if (equipped[slot] && !Economy.isWeaponOwned(equipped[slot])) delete equipped[slot];
         });
 
-        // Draw 4 slots in 2x2 grid
         categories.forEach((cat, i) => {
             const col = i % 2;
             const row = Math.floor(i / 2);
             const sx = (col - 0.5) * (slotSize + spacing);
-            const sy = (row - 0.5) * (slotSize + spacing + 15); // Extra space for labels
+            const sy = (row - 0.5) * (slotSize + spacing);
 
             const slotKey = `slot${i + 1}`;
             const weaponKey = equipped[slotKey];
             const weapon = weaponKey ? getWeaponByKey(weaponKey) : null;
 
-            // Label
-            const label = this.add.text(sx, sy - slotSize / 2 - 8, cat.name, {
-                fontSize: '9px',
-                color: '#aaaaaa',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-            this.weaponContainer.add(label);
+            const slotG = this.add.graphics();
+            const drawSlot = (hover) => {
+                slotG.clear();
+                slotG.fillStyle(weapon ? (hover ? 0x122b3f : 0x0d2535) : (hover ? 0x0d1e2c : 0x071018), 1);
+                slotG.fillRoundedRect(sx - slotSize / 2, sy - slotSize / 2, slotSize, slotSize, 6);
+                slotG.lineStyle(weapon ? 2 : 1, weapon ? (hover ? 0x2dd4bf : 0x1abc9c) : (hover ? 0x2a5060 : 0x1a3040), 1);
+                slotG.strokeRoundedRect(sx - slotSize / 2, sy - slotSize / 2, slotSize, slotSize, 6);
+            };
+            drawSlot(false);
+            this.weaponContainer.add(slotG);
 
-            // Slot Background
-            const wBg = this.add.rectangle(sx, sy, slotSize, slotSize, 0x000000, 0.4);
-            wBg.setStrokeStyle(1, weapon ? this.colors.highlight : 0x555555);
-            wBg.setInteractive({ useHandCursor: true });
-            this.weaponContainer.add(wBg);
+            // Slot number badge (top-left)
+            const numT = this.add.text(sx - slotSize / 2 + 4, sy - slotSize / 2 + 3, `${i + 1}`, {
+                fontSize: '8px', color: weapon ? '#1abc9c' : '#2a4050', fontStyle: 'bold',
+            });
+            this.weaponContainer.add(numT);
 
             if (weapon) {
                 const wIcon = this.add.image(sx, sy, weapon.texture);
-                const maxW = slotSize * 0.8;
-                const maxH = slotSize * 0.6;
-                const imgW = wIcon.width;
-                const imgH = wIcon.height;
-                const fitScale = Math.min(maxW / imgW, maxH / imgH, 1);
+                const fitScale = Math.min((slotSize * 0.78) / wIcon.width, (slotSize * 0.58) / wIcon.height, 1);
                 wIcon.setScale(fitScale * (weapon.hudScale || 1));
                 this.weaponContainer.add(wIcon);
             } else {
-                const plus = this.add.text(sx, sy, '+', { fontSize: '20px', color: '#555555' }).setOrigin(0.5);
-                this.weaponContainer.add(plus);
+                const dash = this.add.text(sx, sy + 1, '—', { fontSize: '14px', color: '#1a3040' }).setOrigin(0.5);
+                this.weaponContainer.add(dash);
             }
 
-            wBg.on('pointerdown', () => {
-                this.showWeaponSelection(cat.id, slotKey);
-            });
+            const hit = this.add.rectangle(sx, sy, slotSize, slotSize, 0, 0).setInteractive({ useHandCursor: true });
+            this.weaponContainer.add(hit);
 
-            wBg.on('pointerover', () => wBg.setStrokeStyle(2, 0xffffff));
-            wBg.on('pointerout', () => wBg.setStrokeStyle(1, weapon ? this.colors.highlight : 0x555555));
+            hit.on('pointerdown', () => this.showWeaponSelection(cat.id, slotKey));
+            hit.on('pointerover', () => drawSlot(true));
+            hit.on('pointerout', () => drawSlot(false));
         });
     }
 
@@ -1324,6 +1931,20 @@ export default class MenuScene extends Phaser.Scene {
         this.updateWeaponList();
     }
 
+    _domPos(x, y, w, h) {
+        const canvas = this.sys.game.canvas;
+        const rect = canvas.getBoundingClientRect();
+        const sx = rect.width / this.scale.width;
+        const sy = rect.height / this.scale.height;
+        return {
+            left: Math.round(rect.left + x * sx),
+            top: Math.round(rect.top + y * sy),
+            w: Math.round(w * sx),
+            h: Math.round(h * sy),
+            fs: Math.round(12 * sy),
+        };
+    }
+
     createPanel(x, y, w, h, color, alpha) {
         const graphics = this.add.graphics();
         graphics.fillStyle(color, alpha);
@@ -1364,6 +1985,7 @@ export default class MenuScene extends Phaser.Scene {
                     localStorage.removeItem('owned_weapons');
                 }
                 localStorage.setItem('current_uid', user.uid);
+                saveUserProfile(user.uid, user.displayName || 'Player', user.photoURL || '').catch(() => {});
                 await Economy.syncFromCloud();
                 if (this.diamondText) this.diamondText.setText(Economy.getDiamonds().toLocaleString());
                 if (this.coinText) this.coinText.setText(Economy.getCoins().toLocaleString());

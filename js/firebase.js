@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, limit, deleteDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
@@ -42,4 +42,43 @@ export async function loadProgress(uid) {
 export async function saveProgress(uid, data) {
   const ref = doc(db, 'users', uid);
   await setDoc(ref, data, { merge: true });
+}
+
+export async function saveUserProfile(uid, displayName, photoURL) {
+  const ref = doc(db, 'players', uid);
+  await setDoc(ref, {
+    uid,
+    displayName,
+    displayNameLower: (displayName || '').toLowerCase(),
+    photoURL,
+  }, { merge: true });
+}
+
+export async function getFriends(uid) {
+  const ref = collection(db, 'players', uid, 'friends');
+  const snap = await getDocs(ref);
+  return snap.docs.map(d => d.data());
+}
+
+export async function searchPlayers(queryStr, excludeUid) {
+  const lower = queryStr.toLowerCase();
+  const ref = collection(db, 'players');
+  const q = query(
+    ref,
+    where('displayNameLower', '>=', lower),
+    where('displayNameLower', '<=', lower + ''),
+    limit(8)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data()).filter(u => u.uid !== excludeUid);
+}
+
+export async function addFriend(myUid, myProfile, friendUid, friendProfile) {
+  await setDoc(doc(db, 'players', myUid, 'friends', friendUid), friendProfile);
+  await setDoc(doc(db, 'players', friendUid, 'friends', myUid), myProfile);
+}
+
+export async function removeFriend(myUid, friendUid) {
+  await deleteDoc(doc(db, 'players', myUid, 'friends', friendUid));
+  await deleteDoc(doc(db, 'players', friendUid, 'friends', myUid));
 }
