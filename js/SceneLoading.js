@@ -109,60 +109,67 @@ export default class SceneLoading extends Phaser.Scene {
             shadow: { offsetX: 0, offsetY: 2, color: '#000', blur: 4, fill: true }
         }).setOrigin(0.5, 0.5);
 
-        // HTML button — iOS Safari requires touchend from a real DOM element
-        // to open a popup (signInWithPopup uses window.open internally)
-        const canvas = this.game.canvas;
-        const htmlBtn = document.createElement('button');
-        htmlBtn.id = 'google-login-btn';
-        htmlBtn.textContent = 'Đăng nhập với Google';
-
-        const syncPos = () => {
-            const r = canvas.getBoundingClientRect();
-            const sx = r.width / this.scale.width;
-            const sy = r.height / this.scale.height;
-            Object.assign(htmlBtn.style, {
-                left:   `${r.left + (cx - btnW / 2) * sx}px`,
-                top:    `${r.top  + (btnY - btnH / 2) * sy}px`,
-                width:  `${btnW * sx}px`,
-                height: `${btnH * sy}px`,
-            });
-        };
-
-        Object.assign(htmlBtn.style, {
-            position:   'fixed',
-            background: 'transparent',
-            border:     'none',
-            color:      'transparent',
-            cursor:     'pointer',
-            zIndex:     '9999',
-            touchAction:'manipulation',
-            webkitTapHighlightColor: 'transparent',
-            fontSize:   '1px',
-        });
-        syncPos();
-        window.addEventListener('resize', syncPos);
-        document.body.appendChild(htmlBtn);
-        this._htmlLoginBtn  = htmlBtn;
-        this._resizeLoginBtn = syncPos;
-
         let busy = false;
         const handleLogin = () => {
             if (busy) return;
             busy = true;
             btnTxt.setText('Đang đăng nhập...');
             drawBtn(0x374151, 0x6b7280);
-            // signInWithGoogle (signInWithPopup) called synchronously from the gesture
             signInWithGoogle().catch(() => {
                 busy = false;
                 btnTxt.setText('Đăng nhập với Google');
                 drawBtn(0x1d4ed8, 0x60a5fa);
             });
-            // success handled by onAuthChange listener in create()
         };
-        htmlBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleLogin(); });
-        htmlBtn.addEventListener('click', handleLogin);
 
-        this._loginElements = [glow, panel, title, sep, sub, btnBg, btnTxt];
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            // On mobile: signInWithRedirect doesn't need gesture trust from DOM element.
+            // Use Phaser Zone so touch events hit exactly the visible button area.
+            const zone = this.add.zone(cx, btnY, btnW, btnH).setInteractive();
+            zone.on('pointerdown', handleLogin);
+            this._loginElements = [glow, panel, title, sep, sub, btnBg, btnTxt, zone];
+        } else {
+            // On desktop: signInWithPopup needs touchend/click from a real DOM element
+            // (window.open requires synchronous gesture trust in some browsers).
+            const canvas = this.game.canvas;
+            const htmlBtn = document.createElement('button');
+            htmlBtn.id = 'google-login-btn';
+            htmlBtn.textContent = 'Đăng nhập với Google';
+
+            const syncPos = () => {
+                const r = canvas.getBoundingClientRect();
+                const sx = r.width / this.scale.width;
+                const sy = r.height / this.scale.height;
+                Object.assign(htmlBtn.style, {
+                    left:   `${r.left + (cx - btnW / 2) * sx}px`,
+                    top:    `${r.top  + (btnY - btnH / 2) * sy}px`,
+                    width:  `${btnW * sx}px`,
+                    height: `${btnH * sy}px`,
+                });
+            };
+
+            Object.assign(htmlBtn.style, {
+                position:   'fixed',
+                background: 'transparent',
+                border:     'none',
+                color:      'transparent',
+                cursor:     'pointer',
+                zIndex:     '9999',
+                touchAction:'manipulation',
+                webkitTapHighlightColor: 'transparent',
+                fontSize:   '1px',
+            });
+            syncPos();
+            window.addEventListener('resize', syncPos);
+            document.body.appendChild(htmlBtn);
+            this._htmlLoginBtn   = htmlBtn;
+            this._resizeLoginBtn = syncPos;
+
+            htmlBtn.addEventListener('click', handleLogin);
+            this._loginElements = [glow, panel, title, sep, sub, btnBg, btnTxt];
+        }
     }
 
     _hideLoginPopup() {
