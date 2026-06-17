@@ -40,16 +40,11 @@ jobs:
 
       - name: Add Cloudflare Pages config
         run: |
-          cat > dist/package.json << 'EOF'
-          {"name":"survival-game-2d","version":"1.0.0","scripts":{"build":"echo 'Static files, no build needed'"}}
-          EOF
-          cat > dist/wrangler.toml << 'EOF'
-          name = "survival-game-2d"
-          compatibility_date = "2026-06-17"
-
-          [assets]
-          directory = "./"
-          EOF
+          echo '{"name":"survival-game-2d","version":"1.0.0","scripts":{"build":"echo ok"}}' > dist/package.json
+          echo 'name = "survival-game-2d"' > dist/wrangler.toml
+          echo 'compatibility_date = "2026-06-17"' >> dist/wrangler.toml
+          echo '[assets]' >> dist/wrangler.toml
+          echo 'directory = "./"' >> dist/wrangler.toml
 
       - name: Publish
         uses: peaceiris/actions-gh-pages@v3
