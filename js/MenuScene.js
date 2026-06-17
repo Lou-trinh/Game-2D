@@ -1,7 +1,7 @@
 import { getAllCharacters, getCharacterConfig } from './Character';
 import { Economy } from './utils/Economy';
 import { WeaponData, WeaponCategories, getWeaponsByCategory, getWeaponByKey, getWeaponsByCategories } from './data/WeaponData';
-import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, onFriendRequestsChange } from './firebase.js';
+import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, onFriendRequestsChange, createRoom, joinRoom, onRoomPlayersChange, leaveRoom, setRoomStatus, onRoomStatusChange, sendRoomInvite, onRoomInviteChange, declineRoomInvite } from './firebase.js';
 
 export default class MenuScene extends Phaser.Scene {
     constructor() {
@@ -476,6 +476,116 @@ export default class MenuScene extends Phaser.Scene {
 
         this.events.once('destroy', () => { if (this._friendRequestUnsub) this._friendRequestUnsub(); });
         this.events.once('shutdown', () => { if (this._friendRequestUnsub) this._friendRequestUnsub(); });
+    }
+
+    _startRoomInviteListener() {
+        const user = auth.currentUser;
+        if (!user) return;
+        if (this._roomInviteUnsub) this._roomInviteUnsub();
+
+        this._shownInvites = new Set();
+        console.log('[RoomInvite] Listener started for uid:', user.uid);
+
+        this._roomInviteUnsub = onRoomInviteChange(user.uid, (invites) => {
+            console.log('[RoomInvite] onSnapshot fired, invites:', invites);
+            invites.forEach(invite => {
+                const key = `${invite.uid || invite.displayName}_${invite.roomCode}`;
+                if (!this._shownInvites.has(key)) {
+                    this._shownInvites.add(key);
+                    console.log('[RoomInvite] Showing popup for:', invite);
+                    this.showRoomInvitePopup(invite);
+                }
+            });
+        });
+
+        this.events.once('destroy', () => { if (this._roomInviteUnsub) this._roomInviteUnsub(); });
+        this.events.once('shutdown', () => { if (this._roomInviteUnsub) this._roomInviteUnsub(); });
+    }
+
+    showRoomInvitePopup(invite) {
+        const { width, height } = this.scale;
+        const pw = 320, ph = 160;
+        const px = (width - pw) / 2, py = (height - ph) / 2 - 40;
+        const popupEls = [];
+
+        const ov = this.add.rectangle(0, 0, width, height, 0x000000, 0.55).setOrigin(0).setDepth(300).setInteractive();
+        popupEls.push(ov);
+
+        const pg = this.add.graphics().setDepth(301);
+        pg.fillStyle(0x07101c, 0.99);
+        pg.fillRoundedRect(px, py, pw, ph, 12);
+        pg.lineStyle(2, 0x1abc9c, 0.8);
+        pg.strokeRoundedRect(px, py, pw, ph, 12);
+        popupEls.push(pg);
+
+        const hg = this.add.graphics().setDepth(301);
+        hg.fillStyle(0x0e5a48, 1);
+        hg.fillRoundedRect(px + 1, py + 1, pw - 2, 34, { tl: 11, tr: 11, bl: 0, br: 0 });
+        popupEls.push(hg);
+
+        popupEls.push(
+            this.add.text(px + pw / 2, py + 18, 'LỜI MỜI VÀO PHÒNG', { fontSize: '12px', color: '#1abc9c', fontStyle: 'bold' }).setOrigin(0.5).setDepth(302)
+        );
+
+        const senderName = invite.displayName || 'Người chơi';
+        popupEls.push(
+            this.add.text(px + pw / 2, py + 56, `${senderName} mời bạn vào phòng`, {
+                fontSize: '11px', color: '#c8dde8',
+            }).setOrigin(0.5).setDepth(302)
+        );
+        popupEls.push(
+            this.add.text(px + pw / 2, py + 74, `Mã phòng: ${invite.roomCode}`, {
+                fontSize: '13px', color: '#1abc9c', fontStyle: 'bold',
+            }).setOrigin(0.5).setDepth(302)
+        );
+
+        const closeAll = () => popupEls.forEach(e => e && e.destroy && e.destroy());
+
+        // Xác nhận
+        const confirmG = this.add.graphics().setDepth(301);
+        const drawConfirm = (h) => {
+            confirmG.clear();
+            confirmG.fillStyle(h ? 0x1abc9c : 0x0e6b58, 1);
+            confirmG.fillRoundedRect(px + pw / 2 - 124, py + 100, 110, 36, 7);
+        };
+        drawConfirm(false);
+        popupEls.push(confirmG);
+        popupEls.push(
+            this.add.text(px + pw / 2 - 69, py + 118, 'Xác nhận', { fontSize: '12px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(302)
+        );
+        const confirmHit = this.add.rectangle(px + pw / 2 - 69, py + 118, 110, 36, 0, 0).setDepth(303).setInteractive({ useHandCursor: true });
+        confirmHit.on('pointerover', () => drawConfirm(true));
+        confirmHit.on('pointerout', () => drawConfirm(false));
+        confirmHit.on('pointerdown', () => {
+            const user = auth.currentUser;
+            if (user) declineRoomInvite(user.uid, invite.uid).catch(() => {});
+            closeAll();
+            this.closeMultiplayerLobby();
+            this.showMultiplayerLobby(invite.roomCode);
+        });
+        popupEls.push(confirmHit);
+
+        // Từ chối
+        const declineG = this.add.graphics().setDepth(301);
+        const drawDecline = (h) => {
+            declineG.clear();
+            declineG.fillStyle(h ? 0x7f1e1e : 0x3d1010, 1);
+            declineG.fillRoundedRect(px + pw / 2 + 14, py + 100, 110, 36, 7);
+        };
+        drawDecline(false);
+        popupEls.push(declineG);
+        popupEls.push(
+            this.add.text(px + pw / 2 + 69, py + 118, 'Từ chối', { fontSize: '12px', color: '#ffaaaa', fontStyle: 'bold' }).setOrigin(0.5).setDepth(302)
+        );
+        const declineHit = this.add.rectangle(px + pw / 2 + 69, py + 118, 110, 36, 0, 0).setDepth(303).setInteractive({ useHandCursor: true });
+        declineHit.on('pointerover', () => drawDecline(true));
+        declineHit.on('pointerout', () => drawDecline(false));
+        declineHit.on('pointerdown', () => {
+            const user = auth.currentUser;
+            if (user) declineRoomInvite(user.uid, invite.uid).catch(() => {});
+            closeAll();
+        });
+        popupEls.push(declineHit);
     }
 
     openFriendsPanel() {
@@ -1422,7 +1532,7 @@ export default class MenuScene extends Phaser.Scene {
         this.gameModePopup.push(joinTxt);
     }
 
-    showFriendsList(inviteLink) {
+    showFriendsList(inviteLink, roomCode) {
         if (this.friendsPopup) return;
         const { width, height } = this.scale;
         this.friendsPopup = [];
@@ -1561,7 +1671,7 @@ export default class MenuScene extends Phaser.Scene {
                 const ibHit = this.add.rectangle(px + pw - 49, fy + 24, 66, 24, 0, 0).setDepth(214).setInteractive({ useHandCursor: true });
                 this.friendsPopup.push(ibHit);
 
-                const toastFriend = this.add.text(px + pw / 2, py + ph - 28, `✓ Đã sao chép link mời cho ${friend.displayName}!`, {
+                const toastFriend = this.add.text(px + pw / 2, py + ph - 28, `✓ Đã gửi lời mời cho ${friend.displayName}!`, {
                     fontSize: '9px', color: '#1abc9c',
                 }).setOrigin(0.5).setDepth(212).setAlpha(0);
                 this.friendsPopup.push(toastFriend);
@@ -1569,7 +1679,17 @@ export default class MenuScene extends Phaser.Scene {
                 ibHit.on('pointerover', () => { drawIb(true); ibTxt.setColor('#aaffdd'); });
                 ibHit.on('pointerout', () => { drawIb(false); ibTxt.setColor('#ffffff'); });
                 ibHit.on('pointerdown', () => {
-                    navigator.clipboard.writeText(inviteLink).catch(() => {});
+                    const me = auth.currentUser;
+                    console.log('[RoomInvite] Mời clicked — me:', me?.uid, 'friend.uid:', friend.uid, 'roomCode:', roomCode);
+                    if (me && roomCode) {
+                        const myProfile = { uid: me.uid, displayName: me.displayName || 'Player', photoURL: me.photoURL || '' };
+                        sendRoomInvite(me.uid, myProfile, friend.uid, roomCode)
+                            .then(() => console.log('[RoomInvite] Write OK to friend:', friend.uid))
+                            .catch(e => console.error('[RoomInvite] Write FAILED:', e));
+                    } else {
+                        console.warn('[RoomInvite] Fallback copy — me:', !!me, 'roomCode:', roomCode);
+                        navigator.clipboard.writeText(inviteLink).catch(() => {});
+                    }
                     toastFriend.setAlpha(1);
                     this.time.delayedCall(2500, () => { if (toastFriend.active) toastFriend.setAlpha(0); });
                 });
@@ -1847,80 +1967,157 @@ export default class MenuScene extends Phaser.Scene {
             this.time.delayedCall(2000, () => { if (toastTxt.active) toastTxt.setAlpha(0); });
         });
 
-        // Player slots
+        // Player slots — dynamic, re-rendered on Firestore update
         const slotW = 100, slotH = 100, slotGap = 14;
         const totalW = 3 * slotW + 2 * slotGap;
         const slotStartX = px + (pw - totalW) / 2;
         const slotY = py + 112;
-        const playerName = this.registry.get('playerName') || 'Bạn';
+        this._lobbySlotEls = [];
 
-        [playerName, null, null].forEach((player, i) => {
-            const sx = slotStartX + i * (slotW + slotGap);
-            const sg = this.add.graphics().setDepth(201);
-            sg.fillStyle(player ? 0x0d2535 : 0x050e18, 1);
-            sg.fillRoundedRect(sx, slotY, slotW, slotH, 8);
-            sg.lineStyle(1.5, player ? 0x1abc9c : 0x1a3040, 1);
-            sg.strokeRoundedRect(sx, slotY, slotW, slotH, 8);
-            this.lobbyPopup.push(sg);
+        const renderSlots = (players) => {
+            this._lobbySlotEls.forEach(e => e && e.destroy && e.destroy());
+            this._lobbySlotEls = [];
 
-            if (player) {
-                const badgeG = this.add.graphics().setDepth(202);
-                badgeG.fillStyle(0xe67e22, 1);
-                badgeG.fillRoundedRect(sx + slotW / 2 - 18, slotY + 6, 36, 14, 4);
-                this.lobbyPopup.push(badgeG);
-                this.lobbyPopup.push(
-                    this.add.text(sx + slotW / 2, slotY + 13, 'HOST', { fontSize: '7px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(203)
-                );
-                const avG = this.add.graphics().setDepth(202);
-                avG.fillStyle(0x1abc9c, 0.15);
-                avG.fillCircle(sx + slotW / 2, slotY + 54, 22);
-                avG.lineStyle(2, 0x1abc9c, 0.8);
-                avG.strokeCircle(sx + slotW / 2, slotY + 54, 22);
-                this.lobbyPopup.push(avG);
-                const spr = this.add.sprite(sx + slotW / 2, slotY + 62, this.selectedCharacterKey || 'player_1').setScale(1.5).setDepth(202);
-                this.lobbyPopup.push(spr);
-                this.lobbyPopup.push(
-                    this.add.text(sx + slotW / 2, slotY + 84, player, { fontSize: '9px', color: '#1abc9c', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
-                );
-            } else {
-                // Invite button per empty slot
-                const invG = this.add.graphics().setDepth(202);
-                const drawInv = (hover) => {
-                    invG.clear();
-                    invG.fillStyle(hover ? 0x0d2535 : 0x071018, 1);
-                    invG.fillRoundedRect(sx + 14, slotY + 62, slotW - 28, 22, 5);
-                    invG.lineStyle(1, hover ? 0x2980b9 : 0x1a3040, 1);
-                    invG.strokeRoundedRect(sx + 14, slotY + 62, slotW - 28, 22, 5);
-                };
-                drawInv(false);
-                this.lobbyPopup.push(invG);
-                this.lobbyPopup.push(
-                    this.add.text(sx + slotW / 2, slotY + 36, '?', { fontSize: '28px', color: '#1a3040', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
-                );
-                const invTxt = this.add.text(sx + slotW / 2, slotY + 73, '+ Mời bạn', { fontSize: '8px', color: '#2980b9' }).setOrigin(0.5).setDepth(203);
-                this.lobbyPopup.push(invTxt);
-                const invHit = this.add.rectangle(sx + slotW / 2, slotY + 73, slotW - 28, 22, 0, 0).setDepth(204).setInteractive({ useHandCursor: true });
-                this.lobbyPopup.push(invHit);
-                invHit.on('pointerover', () => { drawInv(true); invTxt.setColor('#5fa8d8'); });
-                invHit.on('pointerout', () => { drawInv(false); invTxt.setColor('#2980b9'); });
-                invHit.on('pointerdown', () => this.showFriendsList(inviteLink));
+            for (let i = 0; i < 3; i++) {
+                const p = players[i] || null;
+                const sx = slotStartX + i * (slotW + slotGap);
+
+                const sg = this.add.graphics().setDepth(201);
+                sg.fillStyle(p ? 0x0d2535 : 0x050e18, 1);
+                sg.fillRoundedRect(sx, slotY, slotW, slotH, 8);
+                sg.lineStyle(1.5, p ? 0x1abc9c : 0x1a3040, 1);
+                sg.strokeRoundedRect(sx, slotY, slotW, slotH, 8);
+                this._lobbySlotEls.push(sg);
+
+                if (p) {
+                    if (p.isHost) {
+                        const badgeG = this.add.graphics().setDepth(202);
+                        badgeG.fillStyle(0xe67e22, 1);
+                        badgeG.fillRoundedRect(sx + slotW / 2 - 18, slotY + 6, 36, 14, 4);
+                        this._lobbySlotEls.push(badgeG);
+                        this._lobbySlotEls.push(
+                            this.add.text(sx + slotW / 2, slotY + 13, 'HOST', { fontSize: '7px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(203)
+                        );
+                    }
+                    const avG = this.add.graphics().setDepth(202);
+                    avG.fillStyle(0x1abc9c, 0.15);
+                    avG.fillCircle(sx + slotW / 2, slotY + 54, 22);
+                    avG.lineStyle(2, 0x1abc9c, 0.8);
+                    avG.strokeCircle(sx + slotW / 2, slotY + 54, 22);
+                    this._lobbySlotEls.push(avG);
+                    const sprKey = p.uid === auth.currentUser?.uid ? (this.selectedCharacterKey || 'player_1') : 'player_1';
+                    const spr = this.add.sprite(sx + slotW / 2, slotY + 62, sprKey).setScale(1.5).setDepth(202);
+                    this._lobbySlotEls.push(spr);
+                    this._lobbySlotEls.push(
+                        this.add.text(sx + slotW / 2, slotY + 84, p.displayName || 'Người chơi', { fontSize: '9px', color: '#1abc9c', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+                    );
+                } else {
+                    const invG = this.add.graphics().setDepth(202);
+                    const drawInv = (hover) => {
+                        invG.clear();
+                        invG.fillStyle(hover ? 0x0d2535 : 0x071018, 1);
+                        invG.fillRoundedRect(sx + 14, slotY + 62, slotW - 28, 22, 5);
+                        invG.lineStyle(1, hover ? 0x2980b9 : 0x1a3040, 1);
+                        invG.strokeRoundedRect(sx + 14, slotY + 62, slotW - 28, 22, 5);
+                    };
+                    drawInv(false);
+                    this._lobbySlotEls.push(invG);
+                    this._lobbySlotEls.push(
+                        this.add.text(sx + slotW / 2, slotY + 36, '?', { fontSize: '28px', color: '#1a3040', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
+                    );
+                    const invTxt = this.add.text(sx + slotW / 2, slotY + 73, '+ Mời bạn', { fontSize: '8px', color: '#2980b9' }).setOrigin(0.5).setDepth(203);
+                    this._lobbySlotEls.push(invTxt);
+                    const invHit = this.add.rectangle(sx + slotW / 2, slotY + 73, slotW - 28, 22, 0, 0).setDepth(204).setInteractive({ useHandCursor: true });
+                    this._lobbySlotEls.push(invHit);
+                    invHit.on('pointerover', () => { drawInv(true); invTxt.setColor('#5fa8d8'); });
+                    invHit.on('pointerout', () => { drawInv(false); invTxt.setColor('#2980b9'); });
+                    invHit.on('pointerdown', () => this.showFriendsList(inviteLink, roomCode));
+                }
             }
-        });
 
-        // Start button (disabled)
-        const startG = this.add.graphics().setDepth(201);
-        startG.fillStyle(0x0a1c14, 1);
-        startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
-        startG.lineStyle(1, 0x1abc9c, 0.2);
-        startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
-        this.lobbyPopup.push(startG);
-        this.lobbyPopup.push(
-            this.add.text(px + pw / 2, py + ph - 31, 'Đang chờ người chơi...', { fontSize: '9px', color: '#2a5040' }).setOrigin(0.5).setDepth(202)
-        );
+            // Start button — active for host when ≥2 players, passive for guests
+            const me = auth.currentUser;
+            const amHost = players.length > 0 && players[0].uid === me?.uid && players[0].isHost;
+            const canStart = players.length >= 2;
+
+            const startG = this.add.graphics().setDepth(201);
+            if (canStart && amHost) {
+                startG.fillStyle(0x0e6b3a, 1);
+                startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
+                startG.lineStyle(1.5, 0x1abc9c, 0.9);
+                startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
+            } else {
+                startG.fillStyle(0x0a1c14, 1);
+                startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
+                startG.lineStyle(1, 0x1abc9c, 0.2);
+                startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
+            }
+            this._lobbySlotEls.push(startG);
+
+            const startLabel = canStart && amHost ? 'Bắt đầu ▶' : canStart ? 'Chờ host bắt đầu...' : 'Đang chờ người chơi...';
+            const startColor = canStart && amHost ? '#1fff90' : '#2a5040';
+            const startTxt = this.add.text(px + pw / 2, py + ph - 31, startLabel, {
+                fontSize: '10px', color: startColor, fontStyle: canStart && amHost ? 'bold' : 'normal',
+            }).setOrigin(0.5).setDepth(202);
+            this._lobbySlotEls.push(startTxt);
+
+            if (canStart && amHost) {
+                const startHit = this.add.rectangle(px + pw / 2, py + ph - 31, 170, 34, 0, 0).setDepth(203).setInteractive({ useHandCursor: true });
+                startHit.on('pointerover', () => { startG.clear(); startG.fillStyle(0x17a35a, 1); startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); startG.lineStyle(1.5, 0x1abc9c, 1); startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); });
+                startHit.on('pointerout', () => { startG.clear(); startG.fillStyle(0x0e6b3a, 1); startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); startG.lineStyle(1.5, 0x1abc9c, 0.9); startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); });
+                startHit.on('pointerdown', () => {
+                    setRoomStatus(roomCode, 'started').catch(() => {});
+                    this.registry.set('selectedCharacter', this.selectedCharacterKey);
+                    this.registry.set('roomCode', roomCode);
+                    this.registry.set('isMultiplayerHost', true);
+                    this.closeMultiplayerLobby();
+                    this.cameras.main.fadeOut(400, 0, 0, 0);
+                    this.time.delayedCall(400, () => this.scene.start('MainScene'));
+                });
+                this._lobbySlotEls.push(startHit);
+            }
+        };
+
+        // Create/join room in Firestore + listen for player changes
+        const user = auth.currentUser;
+        this._lobbyRoomCode = roomCode;
+        if (user) {
+            const myProfile = { uid: user.uid, displayName: user.displayName || 'Bạn', photoURL: user.photoURL || '' };
+            if (isHost) {
+                createRoom(roomCode, myProfile).catch(() => {});
+            } else {
+                joinRoom(roomCode, myProfile).catch(() => {});
+            }
+            this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
+
+            // Guests listen for host starting the game
+            if (!isHost) {
+                this._lobbyStatusUnsub = onRoomStatusChange(roomCode, (roomData) => {
+                    if (roomData.status === 'started') {
+                        this.registry.set('selectedCharacter', this.selectedCharacterKey);
+                        this.registry.set('roomCode', roomCode);
+                        this.registry.set('isMultiplayerHost', false);
+                        this.closeMultiplayerLobby();
+                        this.cameras.main.fadeOut(400, 0, 0, 0);
+                        this.time.delayedCall(400, () => this.scene.start('MainScene'));
+                    }
+                });
+            }
+        } else {
+            renderSlots([{ displayName: this.registry.get('playerName') || 'Bạn', isHost: true }]);
+        }
     }
 
     closeMultiplayerLobby() {
         if (!this.lobbyPopup) return;
+        if (this._lobbyUnsub) { this._lobbyUnsub(); this._lobbyUnsub = null; }
+        if (this._lobbyStatusUnsub) { this._lobbyStatusUnsub(); this._lobbyStatusUnsub = null; }
+        if (this._lobbySlotEls) { this._lobbySlotEls.forEach(e => e && e.destroy && e.destroy()); this._lobbySlotEls = null; }
+        const user = auth.currentUser;
+        if (user && this._lobbyRoomCode) {
+            leaveRoom(this._lobbyRoomCode, user.uid).catch(() => {});
+            this._lobbyRoomCode = null;
+        }
         this.lobbyPopup.forEach(e => e.destroy());
         this.lobbyPopup = null;
     }
@@ -2414,6 +2611,7 @@ export default class MenuScene extends Phaser.Scene {
                 saveUserProfile(user.uid, user.displayName || 'Player', user.photoURL || '').catch(() => {});
                 await Economy.syncFromCloud();
                 this._startFriendRequestListener();
+                this._startRoomInviteListener();
                 if (this.diamondText) this.diamondText.setText(Economy.getDiamonds().toLocaleString());
                 if (this.coinText) this.coinText.setText(Economy.getCoins().toLocaleString());
                 this.updateExpBar();

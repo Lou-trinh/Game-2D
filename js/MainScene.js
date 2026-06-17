@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Player from './Player';
 import { CharacterTypes, getCharacterConfig } from './Character';
+import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange } from './firebase';
 import Bear from './Bear';
 import Stone from './Stone';
 import Tree from './Tree';
@@ -22,6 +23,7 @@ export default class MainScene extends Phaser.Scene {
   constructor() {
     super('MainScene');
     this.player = null;
+    this._mpIdCounter = 0;
     this.bears = [];
     this.stones = [];
     this.trees = [];
@@ -193,6 +195,8 @@ export default class MainScene extends Phaser.Scene {
     }
 
     if (enemy) {
+      enemy.mpId = ++this._mpIdCounter;
+      enemy.mpType = type;
       console.log(`👾 Spawned ${type} from gate!`);
     }
   }
@@ -433,8 +437,8 @@ export default class MainScene extends Phaser.Scene {
 
 
     // Start Wave Spawning from Gate - Reduced spawn rate
-    this.time.addEvent({
-      delay: 1500, // Spawn every 1.5 seconds (reduced from 0.8s for less density)
+    this._spawnTimer = this.time.addEvent({
+      delay: 1500,
       loop: true,
       callback: () => {
         this.spawnEnemyFromGate();
@@ -590,6 +594,8 @@ export default class MainScene extends Phaser.Scene {
     });
 
     console.log('✅ MainScene with Bears, TreeMan, ForestGuardian, GnollBrute, GnollShaman, Wolves, Mushrooms, Chests and Stones loaded');
+
+    this._initMultiplayer();
   }
 
   update(time, delta) {
@@ -944,5 +950,196 @@ export default class MainScene extends Phaser.Scene {
     if (this.player) {
       this.player.revive();
     }
+  }
+
+  _initMultiplayer() {
+    const roomCode = this.registry.get('roomCode');
+    if (!roomCode) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const isHost = this.registry.get('isMultiplayerHost') !== false;
+    const selectedCharKey = this.registry.get('selectedCharacter') || 'player_1';
+    this._otherPlayerSprites = {};
+    this._guestEnemySprites = {};
+
+    // Sync own player position every 300ms
+    this._syncTimer = this.time.addEvent({
+      delay: 300,
+      loop: true,
+      callback: () => {
+        if (!this.player || !this.player.active) return;
+        updatePlayerState(roomCode, user.uid, {
+          x: Math.round(this.player.x),
+          y: Math.round(this.player.y),
+          flipX: this.player.flipX,
+          animKey: this.player.anims?.currentAnim?.key || '',
+          characterKey: selectedCharKey,
+          displayName: user.displayName || 'Player',
+          alive: !this.player.isDead,
+          health: this.player.health || 0,
+          maxHealth: this.player.maxHealth || 100,
+          updatedAt: Date.now(),
+        }).catch(() => {});
+      },
+    });
+
+    // Listen for other players' positions
+    this._otherPlayersUnsub = onOtherPlayersChange(roomCode, user.uid, (others) => {
+      if (!this.scene.isActive('MainScene')) return;
+      const now = Date.now();
+      const activeUids = new Set(others.map(p => p.uid));
+      Object.keys(this._otherPlayerSprites).forEach(uid => {
+        if (!activeUids.has(uid)) {
+          const { sprite, nameText } = this._otherPlayerSprites[uid];
+          try { if (sprite.active) sprite.destroy(); } catch (_) {}
+          try { if (nameText.active) nameText.destroy(); } catch (_) {}
+          delete this._otherPlayerSprites[uid];
+        }
+      });
+      others.forEach(p => {
+        if (!p.x || now - (p.updatedAt || 0) > 8000) return;
+        if (!this._otherPlayerSprites[p.uid]) {
+          const sprite = this.add.sprite(p.x, p.y, p.characterKey || 'player_1').setDepth(p.y);
+          const nameText = this.add.text(p.x, p.y - 38, p.displayName || '?', {
+            fontSize: '8px', color: '#ffff88', stroke: '#000000', strokeThickness: 3,
+          }).setOrigin(0.5).setDepth(p.y + 2);
+          const hpBg = this.add.rectangle(p.x, p.y - 28, 32, 4, 0x000000).setDepth(p.y + 2);
+          const hpBar = this.add.rectangle(p.x - 16, p.y - 28, 32, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(p.y + 3);
+          this._otherPlayerSprites[p.uid] = { sprite, nameText, hpBg, hpBar, prevAlive: true };
+        }
+
+        const entry = this._otherPlayerSprites[p.uid];
+        const { sprite, nameText, hpBg, hpBar } = entry;
+        const isDead = p.alive === false;
+
+        // Handle death transition
+        if (isDead && entry.prevAlive !== false) {
+          entry.prevAlive = false;
+          sprite.setTexture('ghost').setScale(0.3).stop();
+          if (entry.floatTween) entry.floatTween.stop();
+          entry.floatTween = this.tweens.add({
+            targets: sprite, y: p.y - 10,
+            duration: 800, ease: 'Sine.easeInOut', yoyo: true, repeat: -1,
+          });
+          hpBg.setVisible(false);
+          hpBar.setVisible(false);
+        } else if (!isDead && entry.prevAlive === false) {
+          entry.prevAlive = true;
+          sprite.setTexture(p.characterKey || 'player_1').setScale(1);
+          if (entry.floatTween) { entry.floatTween.stop(); entry.floatTween = null; }
+          hpBg.setVisible(true);
+          hpBar.setVisible(true);
+        }
+
+        // Position update (skip y for ghost — tween controls it)
+        if (!isDead) {
+          sprite.setPosition(p.x, p.y).setFlipX(p.flipX || false).setDepth(p.y);
+          if (p.animKey && this.anims.exists(p.animKey) && sprite.anims?.currentAnim?.key !== p.animKey) {
+            sprite.play(p.animKey, true);
+          }
+        } else {
+          sprite.setX(p.x).setDepth(p.y);
+        }
+
+        nameText.setPosition(p.x, p.y - (isDead ? 22 : 38)).setDepth(p.y + 2);
+        nameText.setColor(isDead ? '#aaaaaa' : '#ffff88');
+
+        // Health bar
+        if (!isDead) {
+          const pct = Math.max(0, (p.health || 0) / (p.maxHealth || 100));
+          hpBg.setPosition(p.x, p.y - 28).setDepth(p.y + 2);
+          hpBar.setPosition(p.x - 16, p.y - 28).setDepth(p.y + 3);
+          hpBar.width = pct * 32;
+          hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
+        }
+      });
+    });
+
+    if (isHost) {
+      // Host: broadcast all enemy states every 400ms
+      this._enemyBroadcastTimer = this.time.addEvent({
+        delay: 400,
+        loop: true,
+        callback: () => {
+          const allEnemyGroups = [
+            this.bears, this.wolves, this.treeMen, this.forestGuardians,
+            this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
+          ];
+          const enemies = [];
+          allEnemyGroups.forEach(group => {
+            group.forEach(e => {
+              if (!e || e.isDead || !e.sprite || !e.sprite.active) return;
+              enemies.push({
+                id: e.mpId,
+                textureKey: e.sprite.texture.key,
+                x: Math.round(e.sprite.x),
+                y: Math.round(e.sprite.y),
+                flipX: e.sprite.flipX,
+                animKey: e.sprite.anims?.currentAnim?.key || '',
+              });
+            });
+          });
+          updateGameState(roomCode, { enemies, updatedAt: Date.now() }).catch(() => {});
+        },
+      });
+    } else {
+      // Guest: disable own spawn timer, render enemies from host
+      if (this._spawnTimer) { this._spawnTimer.remove(); this._spawnTimer = null; }
+
+      this._gameStateUnsub = onGameStateChange(roomCode, (state) => {
+        if (!this.scene.isActive('MainScene')) return;
+        const enemies = state.enemies || [];
+        const activeIds = new Set(enemies.map(e => String(e.id)));
+
+        // Remove sprites for dead/gone enemies
+        Object.keys(this._guestEnemySprites).forEach(id => {
+          if (!activeIds.has(id)) {
+            try { this._guestEnemySprites[id].destroy(); } catch (_) {}
+            delete this._guestEnemySprites[id];
+          }
+        });
+
+        // Create/update enemy sprites
+        enemies.forEach(e => {
+          const key = String(e.id);
+          if (!this._guestEnemySprites[key]) {
+            this._guestEnemySprites[key] = this.add.sprite(e.x, e.y, e.textureKey).setDepth(e.y);
+          }
+          const sp = this._guestEnemySprites[key];
+          sp.setPosition(e.x, e.y).setFlipX(e.flipX || false).setDepth(e.y);
+          if (e.animKey && this.anims.exists(e.animKey) && sp.anims?.currentAnim?.key !== e.animKey) {
+            sp.play(e.animKey, true);
+          }
+        });
+      });
+    }
+
+    this.events.once('shutdown', () => this._cleanupMultiplayer(roomCode, user.uid));
+    this.events.once('destroy', () => this._cleanupMultiplayer(roomCode, user.uid));
+  }
+
+  _cleanupMultiplayer(roomCode, uid) {
+    if (this._syncTimer) { this._syncTimer.remove(); this._syncTimer = null; }
+    if (this._enemyBroadcastTimer) { this._enemyBroadcastTimer.remove(); this._enemyBroadcastTimer = null; }
+    if (this._otherPlayersUnsub) { this._otherPlayersUnsub(); this._otherPlayersUnsub = null; }
+    if (this._gameStateUnsub) { this._gameStateUnsub(); this._gameStateUnsub = null; }
+    if (this._otherPlayerSprites) {
+      Object.values(this._otherPlayerSprites).forEach(entry => {
+        try { if (entry.floatTween) entry.floatTween.stop(); } catch (_) {}
+        try { if (entry.sprite?.active) entry.sprite.destroy(); } catch (_) {}
+        try { if (entry.nameText?.active) entry.nameText.destroy(); } catch (_) {}
+        try { if (entry.hpBg?.active) entry.hpBg.destroy(); } catch (_) {}
+        try { if (entry.hpBar?.active) entry.hpBar.destroy(); } catch (_) {}
+      });
+      this._otherPlayerSprites = null;
+    }
+    if (this._guestEnemySprites) {
+      Object.values(this._guestEnemySprites).forEach(sp => { try { sp.destroy(); } catch (_) {} });
+      this._guestEnemySprites = null;
+    }
+    removePlayerState(roomCode, uid).catch(() => {});
+    this.registry.remove('roomCode');
+    this.registry.remove('isMultiplayerHost');
   }
 }

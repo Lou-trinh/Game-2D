@@ -105,3 +105,86 @@ export async function removeFriend(myUid, friendUid) {
   await deleteDoc(doc(db, 'players', myUid, 'friends', friendUid));
   await deleteDoc(doc(db, 'players', friendUid, 'friends', myUid));
 }
+
+export async function createRoom(roomCode, playerProfile) {
+  await setDoc(doc(db, 'rooms', roomCode), { status: 'waiting', createdAt: Date.now() });
+  await setDoc(doc(db, 'rooms', roomCode, 'players', playerProfile.uid), {
+    ...playerProfile, isHost: true, joinedAt: Date.now(),
+  });
+}
+
+export async function setRoomStatus(roomCode, status) {
+  await setDoc(doc(db, 'rooms', roomCode), { status, updatedAt: Date.now() }, { merge: true });
+}
+
+export function onRoomStatusChange(roomCode, callback) {
+  return onSnapshot(doc(db, 'rooms', roomCode), snap => {
+    if (snap.exists()) callback(snap.data());
+  });
+}
+
+export async function joinRoom(roomCode, playerProfile) {
+  await setDoc(doc(db, 'rooms', roomCode, 'players', playerProfile.uid), {
+    ...playerProfile, isHost: false, joinedAt: Date.now(),
+  });
+}
+
+export function onRoomPlayersChange(roomCode, callback) {
+  return onSnapshot(collection(db, 'rooms', roomCode, 'players'), snap => {
+    const players = snap.docs.map(d => d.data()).sort((a, b) => {
+      if (a.isHost && !b.isHost) return -1;
+      if (!a.isHost && b.isHost) return 1;
+      return (a.joinedAt || 0) - (b.joinedAt || 0);
+    });
+    callback(players);
+  });
+}
+
+export async function leaveRoom(roomCode, uid) {
+  await deleteDoc(doc(db, 'rooms', roomCode, 'players', uid));
+}
+
+export async function updateGameState(roomCode, data) {
+  await setDoc(doc(db, 'rooms', roomCode, 'gameState', 'main'), data);
+}
+
+export function onGameStateChange(roomCode, callback) {
+  return onSnapshot(doc(db, 'rooms', roomCode, 'gameState', 'main'), snap => {
+    if (snap.exists()) callback(snap.data());
+  });
+}
+
+export async function updatePlayerState(roomCode, uid, state) {
+  await setDoc(doc(db, 'rooms', roomCode, 'playerStates', uid), state, { merge: true });
+}
+
+export function onOtherPlayersChange(roomCode, myUid, callback) {
+  return onSnapshot(collection(db, 'rooms', roomCode, 'playerStates'), snap => {
+    const others = snap.docs
+      .filter(d => d.id !== myUid)
+      .map(d => ({ uid: d.id, ...d.data() }));
+    callback(others);
+  });
+}
+
+export async function removePlayerState(roomCode, uid) {
+  await deleteDoc(doc(db, 'rooms', roomCode, 'playerStates', uid));
+}
+
+export async function sendRoomInvite(fromUid, fromProfile, toUid, roomCode) {
+  await setDoc(doc(db, 'players', toUid, 'roomInvites', fromUid), {
+    ...fromProfile,
+    roomCode,
+    sentAt: Date.now(),
+  });
+}
+
+export function onRoomInviteChange(uid, callback) {
+  return onSnapshot(collection(db, 'players', uid, 'roomInvites'), snap => {
+    callback(snap.docs.map(d => d.data()));
+  });
+}
+
+export async function declineRoomInvite(uid, fromUid) {
+  await deleteDoc(doc(db, 'players', uid, 'roomInvites', fromUid));
+}
