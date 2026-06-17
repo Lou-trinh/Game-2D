@@ -133,11 +133,48 @@ export default class SceneLoading extends Phaser.Scene {
         const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
         if (isMobile) {
-            // On mobile: signInWithRedirect doesn't need gesture trust from DOM element.
-            // Use Phaser Zone so touch events hit exactly the visible button area.
-            const zone = this.add.zone(cx, btnY, btnW, btnH).setInteractive();
-            zone.on('pointerdown', handleLogin);
-            this._loginElements = [glow, panel, title, sep, sub, btnBg, btnTxt, zone];
+            // iOS Safari blocks window.open() from canvas touch events.
+            // Use a real HTML button so the click event gives proper gesture trust.
+            // Full-screen overlay avoids any coordinate calculation issues.
+            const overlay = document.createElement('div');
+            Object.assign(overlay.style, {
+                position: 'fixed', inset: '0', zIndex: '9999',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                background: 'transparent',
+                pointerEvents: 'none',
+            });
+
+            const htmlBtn = document.createElement('button');
+            htmlBtn.textContent = 'Đăng nhập với Google';
+            Object.assign(htmlBtn.style, {
+                padding: '16px 40px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                background: '#1d4ed8',
+                color: 'white',
+                border: '2px solid #60a5fa',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                pointerEvents: 'auto',
+                touchAction: 'manipulation',
+                webkitTapHighlightColor: 'transparent',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+            });
+
+            htmlBtn.addEventListener('click', () => {
+                htmlBtn.textContent = 'Đang đăng nhập...';
+                htmlBtn.style.background = '#374151';
+                signInWithGoogle().catch(() => {
+                    htmlBtn.textContent = 'Đăng nhập với Google';
+                    htmlBtn.style.background = '#1d4ed8';
+                });
+            });
+
+            overlay.appendChild(htmlBtn);
+            document.body.appendChild(overlay);
+            this._mobileOverlay = overlay;
+            this._loginElements = [glow, panel, title, sep, sub, btnBg, btnTxt];
         } else {
             // On desktop: signInWithPopup needs touchend/click from a real DOM element
             // (window.open requires synchronous gesture trust in some browsers).
@@ -184,6 +221,10 @@ export default class SceneLoading extends Phaser.Scene {
         this._loginElements.forEach(el => el.destroy());
         this._loginElements = [];
         this._loginVisible = false;
+        if (this._mobileOverlay) {
+            this._mobileOverlay.remove();
+            this._mobileOverlay = null;
+        }
         if (this._htmlLoginBtn) {
             window.removeEventListener('resize', this._resizeLoginBtn);
             this._htmlLoginBtn.remove();
