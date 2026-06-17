@@ -54,8 +54,9 @@ export default class MenuScene extends Phaser.Scene {
         // 4. CENTER AREA (Spotlight & Start)
         this.createCenterSpotlight(width / 2, height / 2 + 20);
 
-        // 5. SHOP BUTTON & START BUTTON (Aligned)
-        this.createShopButton(rightColumnCenter, height - 160);
+        // 5. SHOP + INVENTORY + START BUTTONS
+        this.createShopButton(rightColumnCenter, height - 220);
+        this.createInventoryButton(rightColumnCenter, height - 160);
         this.createStartButton(rightColumnCenter, height - 100);
 
         // Fade in effect
@@ -334,6 +335,126 @@ export default class MenuScene extends Phaser.Scene {
         bg.on('pointerdown', () => {
             this.scene.launch('SceneShop');
         });
+    }
+
+    createInventoryButton(x, y) {
+        const btn = this.add.container(x, y);
+
+        const glow = this.add.graphics();
+        glow.fillStyle(0x1abc9c, 0.3);
+        glow.fillRoundedRect(-65, -20, 130, 40, 10);
+        glow.setAlpha(0.5);
+
+        const bg = this.add.rectangle(0, 0, 120, 35, 0x16a085, 1);
+        bg.setStrokeStyle(3, 0xffffff, 1);
+
+        const inner = this.add.graphics();
+        inner.lineStyle(2, 0x1abc9c, 1);
+        inner.strokeRoundedRect(-56, -14, 112, 28, 5);
+
+        const text = this.add.text(0, 0, '🎒 KHO ĐỒ', {
+            fontSize: '15px',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 2, fill: true }
+        }).setOrigin(0.5);
+
+        btn.add([glow, bg, inner, text]);
+        bg.setInteractive({ useHandCursor: true });
+
+        this.tweens.add({
+            targets: btn,
+            y: y - 3,
+            duration: 2200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        bg.on('pointerover', () => {
+            bg.setFillStyle(0x1abc9c, 1);
+            bg.setStrokeStyle(4, 0xaaffee, 1);
+            btn.setScale(1.1);
+        });
+        bg.on('pointerout', () => {
+            bg.setFillStyle(0x16a085, 1);
+            bg.setStrokeStyle(3, 0xffffff, 1);
+            btn.setScale(1);
+        });
+        bg.on('pointerdown', () => this.openInventoryPanel());
+    }
+
+    openInventoryPanel() {
+        if (this.invPanel) this.closeInventoryPanel();
+
+        const { width, height } = this.cameras.main;
+        const pw = 220, ph = 220;
+        const px = width - pw - 15;
+        const py = height - ph - 270;
+
+        this.invPanel = [];
+
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.5);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(500);
+        overlay.setInteractive();
+        overlay.on('pointerdown', () => this.closeInventoryPanel());
+        this.invPanel.push(overlay);
+
+        const bg = this.add.graphics();
+        bg.setDepth(501);
+        bg.fillStyle(0x111111, 0.95);
+        bg.fillRoundedRect(px, py, pw, ph, 10);
+        bg.lineStyle(2, 0x1abc9c, 1);
+        bg.strokeRoundedRect(px, py, pw, ph, 10);
+        this.invPanel.push(bg);
+
+        const title = this.add.text(px + pw / 2, py + 14, 'KHO ĐỒ', {
+            fontSize: '16px', fontStyle: 'bold', color: '#1abc9c',
+            stroke: '#000000', strokeThickness: 3,
+        }).setOrigin(0.5, 0).setDepth(502);
+        this.invPanel.push(title);
+
+        const divider = this.add.graphics().setDepth(502);
+        divider.lineStyle(1, 0x1abc9c, 0.5);
+        divider.lineBetween(px + 10, py + 36, px + pw - 10, py + 36);
+        this.invPanel.push(divider);
+
+        const closeBtn = this.add.text(px + pw - 12, py + 10, '✕', {
+            fontSize: '14px', color: '#aaaaaa'
+        }).setOrigin(1, 0).setDepth(502).setInteractive({ useHandCursor: true });
+        closeBtn.on('pointerover', () => closeBtn.setColor('#ff4444'));
+        closeBtn.on('pointerout', () => closeBtn.setColor('#aaaaaa'));
+        closeBtn.on('pointerdown', () => this.closeInventoryPanel());
+        this.invPanel.push(closeBtn);
+
+        const rows = [
+            { key: 'diamond',    label: 'Kim cương',   scale: 0.9,  getValue: () => Economy.getDiamonds() },
+            { key: 'coin',       label: 'Đồng xu',     scale: 0.2,  getValue: () => Economy.getCoins() },
+            { key: 'frag_common', label: 'Mảnh thường', scale: 0.55, getValue: () => Economy.getFragCommon() },
+            { key: 'frag_rare',   label: 'Mảnh hiếm',  scale: 0.55, getValue: () => Economy.getFragRare() },
+        ];
+
+        let ry = py + 46;
+        rows.forEach(row => {
+            const icon = this.add.image(px + 22, ry + 14, row.key).setScale(row.scale).setDepth(502);
+            const lbl = this.add.text(px + 42, ry + 6, row.label, {
+                fontSize: '13px', color: '#cccccc'
+            }).setDepth(502);
+            const val = this.add.text(px + pw - 14, ry + 6, `${row.getValue()}`, {
+                fontSize: '15px', fontStyle: 'bold', color: '#ffffff',
+                stroke: '#000000', strokeThickness: 2,
+            }).setOrigin(1, 0).setDepth(502);
+            this.invPanel.push(icon, lbl, val);
+            ry += 40;
+        });
+    }
+
+    closeInventoryPanel() {
+        if (!this.invPanel) return;
+        this.invPanel.forEach(e => e.destroy());
+        this.invPanel = null;
     }
 
     createStartButton(x, y) {
