@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { onAuthChange, signInWithGoogle, checkRedirectResult } from './firebase.js';
+import { auth, onAuthChange, signInWithGoogle, checkRedirectResult } from './firebase.js';
 
 export default class SceneLoading extends Phaser.Scene {
     constructor() {
@@ -19,20 +19,28 @@ export default class SceneLoading extends Phaser.Scene {
         this._loginVisible = false;
 
         let started = false;
+        const proceed = () => {
+            if (started) return;
+            started = true;
+            unsubscribe();
+            if (this._loginVisible) this._hideLoginPopup();
+            this._startLoadingSequence();
+        };
 
-        // Keep listener active through the entire login flow —
-        // handles both "already signed in" and "just signed in via popup"
-        const unsubscribe = onAuthChange((user) => {
-            if (user && !started) {
-                started = true;
-                unsubscribe();
-                if (this._loginVisible) this._hideLoginPopup();
-                this._startLoadingSequence();
-            }
-        });
+        const unsubscribe = onAuthChange((user) => { if (user) proceed(); });
 
-        // Process any pending redirect result, then show login if still not signed in
-        try { await checkRedirectResult(); } catch (_) {}
+        // Process pending redirect result from signInWithRedirect.
+        // getRedirectResult resolves with UserCredential (or null) — handle it directly
+        // instead of relying solely on onAuthStateChanged which may not re-fire on all mobile browsers.
+        try {
+            const result = await checkRedirectResult();
+            if (result && result.user) proceed();
+        } catch (e) {
+            console.error('[Auth] getRedirectResult error:', e.code, e.message);
+        }
+
+        // Final fallback: auth may already have a current user (existing session or popup)
+        if (!started && auth.currentUser) proceed();
 
         if (!started) {
             this._showLoginPopup();
