@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, limit, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, limit, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,
@@ -73,9 +73,32 @@ export async function searchPlayers(queryStr, excludeUid) {
   return snap.docs.map(d => d.data()).filter(u => u.uid !== excludeUid);
 }
 
-export async function addFriend(myUid, myProfile, friendUid, friendProfile) {
-  await setDoc(doc(db, 'players', myUid, 'friends', friendUid), friendProfile);
-  await setDoc(doc(db, 'players', friendUid, 'friends', myUid), myProfile);
+export async function sendFriendRequest(fromUid, fromProfile, toUid) {
+  await setDoc(doc(db, 'players', toUid, 'requests', fromUid), {
+    ...fromProfile,
+    sentAt: Date.now(),
+  });
+}
+
+export async function getFriendRequests(uid) {
+  const snap = await getDocs(collection(db, 'players', uid, 'requests'));
+  return snap.docs.map(d => d.data());
+}
+
+export function onFriendRequestsChange(uid, callback) {
+  return onSnapshot(collection(db, 'players', uid, 'requests'), snap => {
+    callback(snap.docs.map(d => d.data()));
+  });
+}
+
+export async function acceptFriendRequest(myUid, myProfile, fromUid, fromProfile) {
+  await setDoc(doc(db, 'players', myUid, 'friends', fromUid), fromProfile);
+  await setDoc(doc(db, 'players', fromUid, 'friends', myUid), myProfile);
+  await deleteDoc(doc(db, 'players', myUid, 'requests', fromUid));
+}
+
+export async function declineFriendRequest(myUid, fromUid) {
+  await deleteDoc(doc(db, 'players', myUid, 'requests', fromUid));
 }
 
 export async function removeFriend(myUid, friendUid) {

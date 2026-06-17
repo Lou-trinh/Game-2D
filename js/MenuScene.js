@@ -1,7 +1,7 @@
 import { getAllCharacters, getCharacterConfig } from './Character';
 import { Economy } from './utils/Economy';
 import { WeaponData, WeaponCategories, getWeaponsByCategory, getWeaponByKey, getWeaponsByCategories } from './data/WeaponData';
-import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, addFriend } from './firebase.js';
+import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, onFriendRequestsChange } from './firebase.js';
 
 export default class MenuScene extends Phaser.Scene {
     constructor() {
@@ -54,11 +54,12 @@ export default class MenuScene extends Phaser.Scene {
         // 4. CENTER AREA (Spotlight & Start)
         this.createCenterSpotlight(width / 2, height / 2 + 20);
 
-        // 5. SHOP + INVENTORY + START BUTTONS (horizontal, right-aligned)
+        // 5. SHOP + FRIENDS + INVENTORY + START BUTTONS (horizontal, right-aligned)
         const btnY = height - 55;
-        const btnGap = 130;
+        const btnGap = 125;
         const rightBtnX = width - 70;
-        this.createShopButton(rightBtnX - btnGap * 2, btnY);
+        this.createShopButton(rightBtnX - btnGap * 3, btnY);
+        this.createFriendsButton(rightBtnX - btnGap * 2, btnY);
         this.createInventoryButton(rightBtnX - btnGap, btnY);
         this.createStartButton(rightBtnX, btnY);
 
@@ -402,6 +403,431 @@ export default class MenuScene extends Phaser.Scene {
             btn.setScale(1);
         });
         bg.on('pointerdown', () => this.openInventoryPanel());
+    }
+
+    createFriendsButton(x, y) {
+        const btn = this.add.container(x, y);
+
+        const glow = this.add.graphics();
+        glow.fillStyle(0x8e44ad, 0.3);
+        glow.fillRoundedRect(-65, -20, 130, 40, 10);
+        glow.setAlpha(0.5);
+
+        const bg = this.add.rectangle(0, 0, 120, 35, 0x6c3483, 1);
+        bg.setStrokeStyle(3, 0xffffff, 1);
+
+        const inner = this.add.graphics();
+        inner.lineStyle(2, 0x8e44ad, 1);
+        inner.strokeRoundedRect(-56, -14, 112, 28, 5);
+
+        const text = this.add.text(0, 0, '👥 BẠN BÈ', {
+            fontSize: '14px', color: '#ffffff', fontStyle: 'bold',
+            shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 2, fill: true }
+        }).setOrigin(0.5);
+
+        // Notification badge — absolute canvas position, above everything
+        this._friendBtnX = x;
+        this._friendBtnY = y;
+        this._friendBadgeBg = this.add.graphics().setDepth(50);
+        this._friendBadgeText = this.add.text(x + 50, y - 16, '', {
+            fontSize: '9px', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(51);
+
+        btn.add([glow, bg, inner, text]);
+        bg.setInteractive({ useHandCursor: true });
+
+        bg.on('pointerover', () => {
+            bg.setFillStyle(0x8e44ad, 1);
+            bg.setStrokeStyle(4, 0xd7bde2, 1);
+            btn.setScale(1.1);
+        });
+        bg.on('pointerout', () => {
+            bg.setFillStyle(0x6c3483, 1);
+            bg.setStrokeStyle(3, 0xffffff, 1);
+            btn.setScale(1);
+        });
+        bg.on('pointerdown', () => this.openFriendsPanel());
+    }
+
+    _startFriendRequestListener() {
+        const user = auth.currentUser;
+        if (!user || !this._friendBadgeBg) return;
+        if (this._friendRequestUnsub) this._friendRequestUnsub();
+
+        this._friendRequestUnsub = onFriendRequestsChange(user.uid, (requests) => {
+            this._pendingRequests = requests;
+            const count = requests.length;
+
+            // Update badge
+            this._friendBadgeBg.clear();
+            this._friendBadgeText.setText('');
+            if (count > 0) {
+                const bx = this._friendBtnX + 50, by = this._friendBtnY - 16;
+                this._friendBadgeBg.fillStyle(0xe74c3c, 1);
+                this._friendBadgeBg.fillCircle(bx, by, count > 9 ? 10 : 8);
+                this._friendBadgeText.setPosition(bx, by).setText(count > 9 ? '9+' : String(count));
+            }
+
+            // Rebuild panel nếu đang mở ở tab yêu cầu
+            if (this.friendsPanel && this._friendsPanelTab === 'requests') {
+                this._buildFriendsPanel();
+            }
+        });
+
+        this.events.once('destroy', () => { if (this._friendRequestUnsub) this._friendRequestUnsub(); });
+        this.events.once('shutdown', () => { if (this._friendRequestUnsub) this._friendRequestUnsub(); });
+    }
+
+    openFriendsPanel() {
+        if (this.friendsPanel) { this.closeFriendsPanel(); return; }
+        this._friendsPanelTab = this._friendsPanelTab || 'requests';
+        this._buildFriendsPanel();
+    }
+
+    _buildFriendsPanel() {
+        if (this.friendsPanel) {
+            this.friendsPanel.forEach(e => e.destroy());
+            this.friendsPanel = null;
+        }
+
+        const { width, height } = this.scale;
+        this.friendsPanel = [];
+
+        const pw = 480, ph = 320;
+        const px = (width - pw) / 2, py = (height - ph) / 2;
+
+        // Overlay
+        const ov = this.add.rectangle(0, 0, width, height, 0x000000, 0.5).setOrigin(0).setDepth(500).setInteractive();
+        ov.on('pointerdown', () => this.closeFriendsPanel());
+        this.friendsPanel.push(ov);
+
+        // Panel bg
+        const pg = this.add.graphics().setDepth(501);
+        pg.fillStyle(0x07101c, 0.98);
+        pg.fillRoundedRect(px, py, pw, ph, 12);
+        pg.lineStyle(1.5, 0x8e44ad, 0.7);
+        pg.strokeRoundedRect(px, py, pw, ph, 12);
+        this.friendsPanel.push(pg);
+
+        // Header
+        const hg = this.add.graphics().setDepth(501);
+        hg.fillStyle(0x4a235a, 1);
+        hg.fillRoundedRect(px + 1, py + 1, pw - 2, 34, { tl: 11, tr: 11, bl: 0, br: 0 });
+        this.friendsPanel.push(hg);
+
+        this.friendsPanel.push(
+            this.add.text(px + pw / 2, py + 18, 'BẠN BÈ', { fontSize: '13px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(502)
+        );
+
+        const xBtn = this.add.text(px + pw - 18, py + 18, '✕', { fontSize: '13px', color: '#ccbbdd' }).setOrigin(0.5).setDepth(502).setInteractive({ useHandCursor: true });
+        xBtn.on('pointerdown', (p, lx, ly, ev) => { ev.stopPropagation(); this.closeFriendsPanel(); });
+        xBtn.on('pointerover', () => xBtn.setColor('#ffffff'));
+        xBtn.on('pointerout', () => xBtn.setColor('#ccbbdd'));
+        this.friendsPanel.push(xBtn);
+
+        // Tabs
+        const tabs = [
+            { id: 'requests', label: 'Yêu cầu' },
+            { id: 'friends',  label: 'Bạn bè' },
+            { id: 'search',   label: 'Tìm kiếm' },
+        ];
+        const tabW = pw / tabs.length;
+        tabs.forEach((tab, i) => {
+            const tx = px + i * tabW + tabW / 2;
+            const ty = py + 48;
+            const isActive = this._friendsPanelTab === tab.id;
+
+            const tbg = this.add.graphics().setDepth(501);
+            tbg.fillStyle(isActive ? 0x1a0a24 : 0x0a0514, 1);
+            tbg.fillRect(px + i * tabW, py + 36, tabW, 24);
+            if (isActive) {
+                tbg.lineStyle(2, 0x8e44ad, 1);
+                tbg.lineBetween(px + i * tabW, py + 60, px + (i + 1) * tabW, py + 60);
+            }
+            this.friendsPanel.push(tbg);
+
+            // Badge for requests tab
+            let labelStr = tab.label;
+            const reqCount = (this._pendingRequests || []).length;
+            if (tab.id === 'requests' && reqCount > 0) labelStr += ` (${reqCount})`;
+
+            const ttxt = this.add.text(tx, ty, labelStr, {
+                fontSize: '10px', color: isActive ? '#d7bde2' : '#5a4a6a', fontStyle: 'bold',
+            }).setOrigin(0.5).setDepth(502).setInteractive({ useHandCursor: true });
+            ttxt.on('pointerdown', (p, lx, ly, ev) => {
+                ev.stopPropagation();
+                this._friendsPanelTab = tab.id;
+                this._buildFriendsPanel();
+            });
+            this.friendsPanel.push(ttxt);
+        });
+
+        // Divider
+        const dg = this.add.graphics().setDepth(501);
+        dg.lineStyle(1, 0x1a3040, 1);
+        dg.lineBetween(px, py + 60, px + pw, py + 60);
+        this.friendsPanel.push(dg);
+
+        // Content
+        const cx = px + 12, cy = py + 68, cw = pw - 24, ch = ph - 80;
+        if (this._friendsPanelTab === 'requests') this._drawRequestsTab(cx, cy, cw, ch);
+        else if (this._friendsPanelTab === 'friends') this._drawFriendsTab(cx, cy, cw, ch);
+        else this._drawFriendsSearchTab(cx, cy, cw, ch);
+    }
+
+    _drawRequestsTab(cx, cy, cw, ch) {
+        const requests = this._pendingRequests || [];
+        if (requests.length === 0) {
+            this.friendsPanel.push(
+                this.add.text(cx + cw / 2, cy + ch / 2, 'Không có yêu cầu kết bạn nào.', {
+                    fontSize: '10px', color: '#2a4050',
+                }).setOrigin(0.5).setDepth(502)
+            );
+            return;
+        }
+
+        const user = auth.currentUser;
+        requests.forEach((req, i) => {
+            const ry = cy + i * 54;
+            const rowG = this.add.graphics().setDepth(501);
+            rowG.fillStyle(0x0a1628, 1);
+            rowG.fillRoundedRect(cx, ry, cw, 46, 6);
+            this.friendsPanel.push(rowG);
+
+            const colors = [0x8e44ad, 0x2980b9, 0xe67e22, 0x1abc9c, 0xe74c3c];
+            const avG = this.add.graphics().setDepth(502);
+            avG.fillStyle(colors[i % colors.length], 0.9);
+            avG.fillCircle(cx + 24, ry + 23, 16);
+            this.friendsPanel.push(avG);
+            this.friendsPanel.push(
+                this.add.text(cx + 24, ry + 23, (req.displayName || '?')[0].toUpperCase(), {
+                    fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+                }).setOrigin(0.5).setDepth(503)
+            );
+
+            this.friendsPanel.push(
+                this.add.text(cx + 48, ry + 10, req.displayName || 'Người chơi', {
+                    fontSize: '11px', color: '#e8eef5', fontStyle: 'bold',
+                }).setDepth(502)
+            );
+            this.friendsPanel.push(
+                this.add.text(cx + 48, ry + 26, 'Muốn kết bạn với bạn', {
+                    fontSize: '9px', color: '#5a6a7a',
+                }).setDepth(502)
+            );
+
+            // Accept button
+            const accG = this.add.graphics().setDepth(502);
+            const drawAcc = (h) => { accG.clear(); accG.fillStyle(h ? 0x1abc9c : 0x0e6b58, 1); accG.fillRoundedRect(cx + cw - 132, ry + 11, 58, 24, 5); };
+            drawAcc(false);
+            this.friendsPanel.push(accG);
+            const accTxt = this.add.text(cx + cw - 103, ry + 23, 'Chấp nhận', { fontSize: '8px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(503);
+            this.friendsPanel.push(accTxt);
+            const accHit = this.add.rectangle(cx + cw - 103, ry + 23, 58, 24, 0, 0).setDepth(504).setInteractive({ useHandCursor: true });
+            this.friendsPanel.push(accHit);
+            accHit.on('pointerover', () => { drawAcc(true); ev => ev && ev.stopPropagation && ev.stopPropagation(); });
+            accHit.on('pointerout', () => drawAcc(false));
+            accHit.on('pointerdown', (p, lx, ly, ev) => {
+                ev.stopPropagation();
+                if (!user) return;
+                const myProfile = { uid: user.uid, displayName: user.displayName || 'Player', photoURL: user.photoURL || '' };
+                acceptFriendRequest(user.uid, myProfile, req.uid, req)
+                    .catch(() => {});
+            });
+
+            // Decline button
+            const decG = this.add.graphics().setDepth(502);
+            const drawDec = (h) => { decG.clear(); decG.fillStyle(h ? 0xe74c3c : 0x4a1a1a, 1); decG.fillRoundedRect(cx + cw - 68, ry + 11, 56, 24, 5); };
+            drawDec(false);
+            this.friendsPanel.push(decG);
+            const decTxt = this.add.text(cx + cw - 40, ry + 23, 'Từ chối', { fontSize: '8px', color: '#cc8888', fontStyle: 'bold' }).setOrigin(0.5).setDepth(503);
+            this.friendsPanel.push(decTxt);
+            const decHit = this.add.rectangle(cx + cw - 40, ry + 23, 56, 24, 0, 0).setDepth(504).setInteractive({ useHandCursor: true });
+            this.friendsPanel.push(decHit);
+            decHit.on('pointerover', () => { drawDec(true); decTxt.setColor('#ffffff'); });
+            decHit.on('pointerout', () => { drawDec(false); decTxt.setColor('#cc8888'); });
+            decHit.on('pointerdown', (p, lx, ly, ev) => {
+                ev.stopPropagation();
+                if (!user) return;
+                declineFriendRequest(user.uid, req.uid).catch(() => {});
+            });
+        });
+    }
+
+    _drawFriendsTab(cx, cy, cw, ch) {
+        const user = auth.currentUser;
+        if (!user) {
+            this.friendsPanel.push(
+                this.add.text(cx + cw / 2, cy + ch / 2, 'Đăng nhập để xem danh sách bạn bè.', { fontSize: '10px', color: '#2a4050' }).setOrigin(0.5).setDepth(502)
+            );
+            return;
+        }
+
+        const loadTxt = this.add.text(cx + cw / 2, cy + ch / 2, 'Đang tải...', { fontSize: '10px', color: '#3d6070' }).setOrigin(0.5).setDepth(502);
+        this.friendsPanel.push(loadTxt);
+
+        getFriends(user.uid).then(friends => {
+            if (!this.friendsPanel) return;
+            loadTxt.destroy();
+            if (friends.length === 0) {
+                this.friendsPanel.push(
+                    this.add.text(cx + cw / 2, cy + ch / 2, 'Chưa có bạn bè.\nTìm kiếm bạn bè ở tab Tìm kiếm.', { fontSize: '10px', color: '#2a4050', align: 'center' }).setOrigin(0.5).setDepth(502)
+                );
+                return;
+            }
+            friends.forEach((friend, i) => {
+                const ry = cy + i * 54;
+                const rowG = this.add.graphics().setDepth(501);
+                rowG.fillStyle(0x0a1628, 1);
+                rowG.fillRoundedRect(cx, ry, cw, 46, 6);
+                this.friendsPanel.push(rowG);
+
+                const colors = [0x1abc9c, 0x2980b9, 0xe67e22, 0x8e44ad, 0xe74c3c];
+                const avG = this.add.graphics().setDepth(502);
+                avG.fillStyle(colors[i % colors.length], 0.9);
+                avG.fillCircle(cx + 24, ry + 23, 16);
+                this.friendsPanel.push(avG);
+                this.friendsPanel.push(
+                    this.add.text(cx + 24, ry + 23, (friend.displayName || '?')[0].toUpperCase(), { fontSize: '13px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(503)
+                );
+                this.friendsPanel.push(
+                    this.add.text(cx + 48, ry + 14, friend.displayName || 'Người chơi', { fontSize: '11px', color: '#e8eef5', fontStyle: 'bold' }).setDepth(502)
+                );
+
+                // Remove friend
+                const rmG = this.add.graphics().setDepth(502);
+                const drawRm = (h) => { rmG.clear(); rmG.fillStyle(h ? 0xe74c3c : 0x2a1010, 1); rmG.fillRoundedRect(cx + cw - 74, ry + 11, 62, 24, 5); };
+                drawRm(false);
+                this.friendsPanel.push(rmG);
+                const rmTxt = this.add.text(cx + cw - 43, ry + 23, 'Xóa bạn', { fontSize: '8px', color: '#cc8888', fontStyle: 'bold' }).setOrigin(0.5).setDepth(503);
+                this.friendsPanel.push(rmTxt);
+                const rmHit = this.add.rectangle(cx + cw - 43, ry + 23, 62, 24, 0, 0).setDepth(504).setInteractive({ useHandCursor: true });
+                this.friendsPanel.push(rmHit);
+                rmHit.on('pointerover', () => { drawRm(true); rmTxt.setColor('#ffffff'); });
+                rmHit.on('pointerout', () => { drawRm(false); rmTxt.setColor('#cc8888'); });
+                rmHit.on('pointerdown', (p, lx, ly, ev) => {
+                    ev.stopPropagation();
+                    removeFriend(user.uid, friend.uid).then(() => this._buildFriendsPanel()).catch(() => {});
+                });
+            });
+        }).catch(() => { if (loadTxt.active) loadTxt.setText('Lỗi tải danh sách.'); });
+    }
+
+    _drawFriendsSearchTab(cx, cy, cw, ch) {
+        const user = auth.currentUser;
+        if (!user) {
+            this.friendsPanel.push(
+                this.add.text(cx + cw / 2, cy + ch / 2, 'Đăng nhập để tìm kiếm bạn bè.', { fontSize: '10px', color: '#2a4050' }).setOrigin(0.5).setDepth(502)
+            );
+            return;
+        }
+
+        // Search input (DOM)
+        const inputEl = document.createElement('input');
+        inputEl.type = 'text';
+        inputEl.placeholder = 'Nhập tên người chơi...';
+        const _ps = this._domPos(cx, cy, cw - 70, 30);
+        inputEl.style.cssText = [
+            'position:fixed', `left:${_ps.left}px`, `top:${_ps.top}px`,
+            `width:${_ps.w}px`, `height:${_ps.h}px`,
+            'background:#0d2535', 'border:1px solid #1a3040',
+            'border-radius:6px', 'color:#e8eef5',
+            `font-size:${_ps.fs}px`, 'padding:0 8px', 'outline:none', 'box-sizing:border-box', 'z-index:9999',
+        ].join(';');
+        inputEl.addEventListener('mousedown', e => e.stopPropagation());
+        inputEl.addEventListener('pointerdown', e => e.stopPropagation());
+        document.body.appendChild(inputEl);
+        inputEl.focus();
+        this.friendsPanel.push({ destroy: () => inputEl.remove() });
+
+        // Search button
+        const sbG = this.add.graphics().setDepth(502);
+        const drawSb = (h) => { sbG.clear(); sbG.fillStyle(h ? 0x8e44ad : 0x4a235a, 1); sbG.fillRoundedRect(cx + cw - 64, cy, 64, 30, 6); };
+        drawSb(false);
+        this.friendsPanel.push(sbG);
+        this.friendsPanel.push(
+            this.add.text(cx + cw - 32, cy + 15, 'Tìm', { fontSize: '11px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(503)
+        );
+        const sbHit = this.add.rectangle(cx + cw - 32, cy + 15, 64, 30, 0, 0).setDepth(504).setInteractive({ useHandCursor: true });
+        sbHit.on('pointerover', () => { sbG.clear(); drawSb(true); });
+        sbHit.on('pointerout', () => { sbG.clear(); drawSb(false); });
+        this.friendsPanel.push(sbHit);
+
+        const resultArea = { y: cy + 40 };
+        this._searchResultEls = [];
+
+        const doSearch = () => {
+            const q = inputEl.value.trim();
+            if (!q) return;
+            this._searchResultEls.forEach(e => e.destroy());
+            this._searchResultEls = [];
+
+            const loadT = this.add.text(cx + cw / 2, resultArea.y + 20, 'Đang tìm...', { fontSize: '10px', color: '#3d6070' }).setOrigin(0.5).setDepth(502);
+            this._searchResultEls.push(loadT);
+            this.friendsPanel.push(loadT);
+
+            searchPlayers(q, user.uid).then(results => {
+                loadT.destroy();
+                if (!results.length) {
+                    const nt = this.add.text(cx + cw / 2, resultArea.y + 20, 'Không tìm thấy người chơi nào.', { fontSize: '10px', color: '#2a4050' }).setOrigin(0.5).setDepth(502);
+                    this._searchResultEls.push(nt);
+                    this.friendsPanel.push(nt);
+                    return;
+                }
+                results.slice(0, 4).forEach((found, i) => {
+                    const ry = resultArea.y + i * 54;
+                    const rowG = this.add.graphics().setDepth(501);
+                    rowG.fillStyle(0x0a1628, 1);
+                    rowG.fillRoundedRect(cx, ry, cw, 46, 6);
+                    this._searchResultEls.push(rowG);
+                    this.friendsPanel.push(rowG);
+
+                    const avG = this.add.graphics().setDepth(502);
+                    avG.fillStyle(0x2980b9, 0.9);
+                    avG.fillCircle(cx + 24, ry + 23, 16);
+                    this._searchResultEls.push(avG);
+                    this.friendsPanel.push(avG);
+                    const initT = this.add.text(cx + 24, ry + 23, (found.displayName || '?')[0].toUpperCase(), { fontSize: '13px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(503);
+                    this._searchResultEls.push(initT);
+                    this.friendsPanel.push(initT);
+                    const nameT = this.add.text(cx + 48, ry + 14, found.displayName || 'Người chơi', { fontSize: '11px', color: '#e8eef5', fontStyle: 'bold' }).setDepth(502);
+                    this._searchResultEls.push(nameT);
+                    this.friendsPanel.push(nameT);
+
+                    const addG = this.add.graphics().setDepth(502);
+                    const drawAdd = (h) => { addG.clear(); addG.fillStyle(h ? 0x8e44ad : 0x4a235a, 1); addG.fillRoundedRect(cx + cw - 80, ry + 11, 68, 24, 5); };
+                    drawAdd(false);
+                    this._searchResultEls.push(addG);
+                    this.friendsPanel.push(addG);
+                    const addTxt = this.add.text(cx + cw - 46, ry + 23, '+ Kết bạn', { fontSize: '8px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(503);
+                    this._searchResultEls.push(addTxt);
+                    this.friendsPanel.push(addTxt);
+                    const addHit = this.add.rectangle(cx + cw - 46, ry + 23, 68, 24, 0, 0).setDepth(504).setInteractive({ useHandCursor: true });
+                    this._searchResultEls.push(addHit);
+                    this.friendsPanel.push(addHit);
+                    addHit.on('pointerover', () => { drawAdd(true); addTxt.setColor('#e8d0ff'); });
+                    addHit.on('pointerout', () => { drawAdd(false); addTxt.setColor('#fff'); });
+                    addHit.on('pointerdown', (p, lx, ly, ev) => {
+                        ev.stopPropagation();
+                        const myProfile = { uid: user.uid, displayName: user.displayName || 'Player', photoURL: user.photoURL || '' };
+                        sendFriendRequest(user.uid, myProfile, found.uid).then(() => {
+                            addTxt.setText('✓ Đã gửi');
+                            addHit.disableInteractive();
+                            drawAdd(false);
+                        }).catch(() => {});
+                    });
+                });
+            }).catch(() => { loadT.setText('Lỗi tìm kiếm.'); });
+        };
+
+        sbHit.on('pointerdown', (p, lx, ly, ev) => { ev.stopPropagation(); doSearch(); });
+        inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    }
+
+    closeFriendsPanel() {
+        if (!this.friendsPanel) return;
+        this.friendsPanel.forEach(e => e.destroy());
+        this.friendsPanel = null;
     }
 
     openInventoryPanel(tab) {
@@ -1206,7 +1632,7 @@ export default class MenuScene extends Phaser.Scene {
                     const me = auth.currentUser;
                     if (!me) return;
                     const myProfile = { uid: me.uid, displayName: me.displayName || 'Player', photoURL: me.photoURL || '' };
-                    addFriend(me.uid, myProfile, user.uid, user).catch(() => {});
+                    sendFriendRequest(me.uid, myProfile, user.uid).catch(() => {});
                     addTxt.setText('✓ Đã gửi');
                     addHit.disableInteractive();
                 });
@@ -1987,6 +2413,7 @@ export default class MenuScene extends Phaser.Scene {
                 localStorage.setItem('current_uid', user.uid);
                 saveUserProfile(user.uid, user.displayName || 'Player', user.photoURL || '').catch(() => {});
                 await Economy.syncFromCloud();
+                this._startFriendRequestListener();
                 if (this.diamondText) this.diamondText.setText(Economy.getDiamonds().toLocaleString());
                 if (this.coinText) this.coinText.setText(Economy.getCoins().toLocaleString());
                 this.updateExpBar();
