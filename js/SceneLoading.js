@@ -133,38 +133,48 @@ export default class SceneLoading extends Phaser.Scene {
         const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
         if (isMobile) {
-            // Destroy the Phaser canvas button — HTML overlay button replaces it entirely
+            // Destroy the Phaser canvas button — HTML button replaces it at exact same position
             btnBg.destroy();
             btnTxt.destroy();
 
-            // iOS Safari blocks window.open() from canvas touch events.
-            // Use a real HTML button so the click event gives proper gesture trust.
-            // Full-screen overlay avoids any coordinate calculation issues.
-            const overlay = document.createElement('div');
-            Object.assign(overlay.style, {
-                position: 'fixed', inset: '0', zIndex: '9999',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                background: 'transparent',
-                pointerEvents: 'none',
-            });
-
+            const canvas = this.game.canvas;
             const htmlBtn = document.createElement('button');
             htmlBtn.textContent = 'Đăng nhập với Google';
+
+            const syncPos = () => {
+                const r = canvas.getBoundingClientRect();
+                const sx = r.width / this.scale.width;
+                const sy = r.height / this.scale.height;
+                Object.assign(htmlBtn.style, {
+                    left:   `${r.left + (cx - btnW / 2) * sx}px`,
+                    top:    `${r.top  + (btnY - btnH / 2) * sy}px`,
+                    width:  `${btnW * sx}px`,
+                    height: `${btnH * sy}px`,
+                    fontSize: `${Math.round(15 * Math.min(sx, sy))}px`,
+                });
+            };
+
             Object.assign(htmlBtn.style, {
-                padding: '16px 40px',
-                fontSize: '18px',
-                fontWeight: 'bold',
+                position:   'fixed',
                 background: '#1d4ed8',
-                color: 'white',
-                border: '2px solid #60a5fa',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                pointerEvents: 'auto',
-                touchAction: 'manipulation',
+                color:      'white',
+                border:     '2px solid #60a5fa',
+                borderRadius: '10px',
+                fontWeight: 'bold',
+                cursor:     'pointer',
+                zIndex:     '9999',
+                padding:    '0',
+                boxSizing:  'border-box',
+                touchAction:'manipulation',
                 webkitTapHighlightColor: 'transparent',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
             });
+
+            syncPos();
+            window.addEventListener('resize', syncPos);
+            document.body.appendChild(htmlBtn);
+            this._mobileOverlay = null;
+            this._htmlLoginBtn   = htmlBtn;
+            this._resizeLoginBtn = syncPos;
 
             htmlBtn.addEventListener('click', () => {
                 htmlBtn.textContent = 'Đang đăng nhập...';
@@ -175,9 +185,6 @@ export default class SceneLoading extends Phaser.Scene {
                 });
             });
 
-            overlay.appendChild(htmlBtn);
-            document.body.appendChild(overlay);
-            this._mobileOverlay = overlay;
             this._loginElements = [glow, panel, title, sep, sub];
         } else {
             // On desktop: signInWithPopup needs touchend/click from a real DOM element
