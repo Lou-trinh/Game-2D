@@ -209,8 +209,11 @@ export default class ResourceUI {
             this.ammoBg.setVisible(false);
         }
 
-        // Inventory button (right of weapon slots)
-        this.createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth);
+        // Inventory button
+        this._isMobile = isMobile;
+        this._slotY = slotY;
+        this._slotH = slotH;
+        this.createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth, isMobile);
 
         // Create Exit Button (top right corner)
         this.createExitButton();
@@ -440,13 +443,17 @@ export default class ResourceUI {
         });
     }
 
-    createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth) {
-        const cx = slotX + totalSlotsWidth + slotMargin + slotW / 2;
-        const cy = slotY + slotH / 2;
+    createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth, isMobile) {
+        // Mobile: slots are centered → place button fixed bottom-left (x=20, above joystick area)
+        // Desktop: place right of weapon slots
+        const bx = isMobile ? 20 : slotX + totalSlotsWidth + slotMargin;
+        const by = slotY;
+        const cx = bx + slotW / 2;
+        const cy = by + slotH / 2;
         this._invBtnCX = cx;
         this._invBtnCY = cy;
         this._invBtnSlotY = slotY;
-        this._invBtnSlotX = slotX + totalSlotsWidth + slotMargin;
+        this._invBtnSlotX = bx;
         this.invPanelOpen = false;
 
         this.invBtnBg = this.scene.add.rectangle(cx, cy, slotW, slotH, 0x222222, 0.85);
