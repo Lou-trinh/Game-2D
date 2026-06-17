@@ -441,38 +441,31 @@ export default class ResourceUI {
     }
 
     createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth) {
-        const bx = slotX + totalSlotsWidth + slotMargin;
-        const by = slotY;
-        this._invBtn = { bx, by, slotW, slotH };
+        const cx = slotX + totalSlotsWidth + slotMargin + slotW / 2;
+        const cy = slotY + slotH / 2;
+        this._invBtnCX = cx;
+        this._invBtnCY = cy;
+        this._invBtnSlotY = slotY;
+        this._invBtnSlotX = slotX + totalSlotsWidth + slotMargin;
         this.invPanelOpen = false;
 
-        this.invBtnBg = this.scene.add.graphics();
-        this.invBtnBg.setScrollFactor(0).setDepth(2000);
-        this._redrawInvBtn(false);
+        this.invBtnBg = this.scene.add.rectangle(cx, cy, slotW, slotH, 0x222222, 0.85);
+        this.invBtnBg.setScrollFactor(0).setDepth(3000);
+        this.invBtnBg.setStrokeStyle(1, 0x666666, 1);
+        this.invBtnBg.setInteractive({ useHandCursor: true });
 
-        if (this.scene.textures.exists('backpack')) {
-            this.invBtnIcon = this.scene.add.image(bx + slotW / 2, by + slotH / 2, 'backpack');
-            this.invBtnIcon.setScrollFactor(0).setDepth(2001).setScale(0.11);
-        } else {
-            this.invBtnIcon = this.scene.add.text(bx + slotW / 2, by + slotH / 2, '🎒', { fontSize: '18px' });
-            this.invBtnIcon.setScrollFactor(0).setDepth(2001).setOrigin(0.5);
-        }
+        this.invBtnIcon = this.scene.add.text(cx, cy, '🎒', { fontSize: '18px' });
+        this.invBtnIcon.setScrollFactor(0).setDepth(3001).setOrigin(0.5);
 
-        const hit = this.scene.add.rectangle(bx + slotW / 2, by + slotH / 2, slotW, slotH, 0xffffff, 0);
-        hit.setScrollFactor(0).setDepth(2002).setInteractive({ useHandCursor: true });
-        hit.on('pointerover', () => this._redrawInvBtn(true));
-        hit.on('pointerout', () => this._redrawInvBtn(false));
-        hit.on('pointerdown', () => this.toggleInventoryPanel());
-        this.invBtnHit = hit;
-    }
-
-    _redrawInvBtn(hover) {
-        const { bx, by, slotW, slotH } = this._invBtn;
-        this.invBtnBg.clear();
-        this.invBtnBg.fillStyle(hover ? 0x2a2a2a : 0x1a1a1a, 0.9);
-        this.invBtnBg.fillRoundedRect(bx, by, slotW, slotH, 8);
-        this.invBtnBg.lineStyle(hover ? 2 : 1, hover ? 0xaaaaaa : 0x555555, 1);
-        this.invBtnBg.strokeRoundedRect(bx, by, slotW, slotH, 8);
+        this.invBtnBg.on('pointerover', () => {
+            this.invBtnBg.setFillStyle(0x3a3a3a, 0.95);
+            this.invBtnBg.setStrokeStyle(2, 0xaaaaaa, 1);
+        });
+        this.invBtnBg.on('pointerout', () => {
+            this.invBtnBg.setFillStyle(0x222222, 0.85);
+            this.invBtnBg.setStrokeStyle(1, 0x666666, 1);
+        });
+        this.invBtnBg.on('pointerdown', () => this.toggleInventoryPanel());
     }
 
     toggleInventoryPanel() {
@@ -485,11 +478,10 @@ export default class ResourceUI {
 
     openInventoryPanel() {
         this.invPanelOpen = true;
-        const { bx, by } = this._invBtn;
         const pw = 165;
         const ph = 180;
-        const px = bx;
-        const py = by - ph - 8;
+        const px = this._invBtnSlotX;
+        const py = this._invBtnSlotY - ph - 8;
 
         this._invEls = [];
 
@@ -638,7 +630,6 @@ export default class ResourceUI {
         this.closeInventoryPanel();
         if (this.invBtnBg) this.invBtnBg.destroy();
         if (this.invBtnIcon) this.invBtnIcon.destroy();
-        if (this.invBtnHit) this.invBtnHit.destroy();
 
         // Backpack
         if (this.backpack) this.backpack.destroy();
