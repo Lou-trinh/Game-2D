@@ -39,9 +39,7 @@ export default class Tree {
     console.log(`🌲 Tree spawned at (${x}, ${y})`);
   }
 
-  static preload(scene) {
-    scene.load.image('wood', 'assets/images/item/wood.png');
-  }
+  static preload(_scene) {}
 
   /* =========================
         HEALTH BAR

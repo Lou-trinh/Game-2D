@@ -318,13 +318,10 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.animation('smallmushroom_anim', 'assets/images/small_mush_room/smallmushroom_anim.json');
         this.load.atlas('golem', 'assets/images/golem/golem.png', 'assets/images/golem/golem_atlas.json');
         this.load.animation('golem_anim', 'assets/images/golem/golem_anim.json');
-        this.load.image('stone', 'assets/images/item/stone.png');
         this.load.atlas('chest', 'assets/images/item/chest/chest.png', 'assets/images/item/chest/chest_atlas.json');
         this.load.image('blood', 'assets/images/item/blood.png');
         this.load.image('blood2', 'assets/images/item/blood2.png');
         this.load.animation('chest_anim', 'assets/images/item/chest/chest_anim.json');
-        this.load.image('wood', 'assets/images/item/wood.png');
-        this.load.image('meat', 'assets/images/item/meat.png');
         this.load.image('button_out', 'assets/images/inventory/button/button_out.png');
         this.load.image('backpack', 'assets/images/inventory/backpack.png');
         this.load.image('diamond', 'assets/images/item/diamon.png');

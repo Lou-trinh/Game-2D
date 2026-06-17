@@ -68,10 +68,8 @@ export default class LargeMushRoom {
       'assets/images/large_mush_room/largemushroom_anim.json'
     );
 
-    // Sử dụng chung blood và meat
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');
-    scene.load.image('meat', 'assets/images/item/meat.png');
   }
 
   createHealthBar(scene) {

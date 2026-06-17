@@ -64,7 +64,6 @@ export default class TreeMan {
 
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');
-    scene.load.image('wood', 'assets/images/item/wood.png');
   }
 
   createHealthBar(scene) {

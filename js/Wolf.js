@@ -64,7 +64,6 @@ export default class Wolf {
 
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');
-    scene.load.image('meat', 'assets/images/item/meat.png');
   }
 
   createHealthBar(scene) {

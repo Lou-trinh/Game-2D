@@ -57,9 +57,7 @@ export default class Stone {
     console.log(`🪨 Stone ready - Visible: ${this.sprite.visible} - HasTile: ${tile ? 'YES' : 'NO'}`);
   }
 
-  static preload(scene) {
-    scene.load.image('stone', 'assets/images/item/stone.png');
-  }
+  static preload(_scene) {}
 
   createHealthBar(scene) {
     // Tạo background cho health bar

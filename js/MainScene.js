@@ -216,6 +216,18 @@ export default class MainScene extends Phaser.Scene {
     g.fillStyle(0xffffff); g.fillTriangle(16, 5, 22, 14, 18, 10);
     g.generateTexture('frag_rare', 32, 32); g.clear();
 
+    // Stone placeholder — gray circle
+    g.fillStyle(0x999999);
+    g.fillCircle(16, 16, 14);
+    g.fillStyle(0x777777);
+    g.fillCircle(12, 12, 6);
+    g.generateTexture('stone', 32, 32); g.clear();
+
+    // Wood placeholder — brown rectangle (sprite is always invisible in Tree.js)
+    g.fillStyle(0x8B4513);
+    g.fillRect(2, 2, 28, 28);
+    g.generateTexture('wood', 32, 32); g.clear();
+
     g.destroy();
   }
 
@@ -751,30 +763,6 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
-  pickupMeat() {
-    if (!this.player.bonusDamage) {
-      this.player.bonusDamage = 0;
-    }
-
-    if (!this.player.meatCount) {
-      this.player.meatCount = 0;
-    }
-
-    this.player.bonusDamage += 5;
-    this.player.meatCount += 1;
-    console.log(`🥩 Picked up meat! Bonus damage: +${this.player.bonusDamage}, Total meat: ${this.player.meatCount}`);
-
-    // Update UI if exists
-    if (this.resourceUI) {
-      this.resourceUI.updateResources();
-    }
-
-    this.player.setTint(0xff9900);
-    this.time.delayedCall(150, () => {
-      this.player.clearTint();
-    });
-  }
-
   pickupFragCommon() {
     Economy.addFragCommon(1);
     if (this.resourceUI) this.resourceUI.updateResources();
@@ -787,44 +775,6 @@ export default class MainScene extends Phaser.Scene {
     if (this.resourceUI) this.resourceUI.updateResources();
     this.player.setTint(0xcc44ff);
     this.time.delayedCall(200, () => this.player.clearTint());
-  }
-
-  pickupStone() {
-    if (!this.player.stoneCount) {
-      this.player.stoneCount = 0;
-    }
-
-    this.player.stoneCount += 1;
-    console.log(`🪨 Picked up stone! Total: ${this.player.stoneCount}`);
-
-    // Update UI if exists
-    if (this.resourceUI) {
-      this.resourceUI.updateResources();
-    }
-
-    this.player.setTint(0xcccccc);
-    this.time.delayedCall(150, () => {
-      this.player.clearTint();
-    });
-  }
-
-  pickupWood() {
-    if (!this.player.woodCount) {
-      this.player.woodCount = 0;
-    }
-
-    this.player.woodCount += 1;
-    console.log(`🪵 Picked up wood! Total: ${this.player.woodCount}`);
-
-    // Update UI if exists
-    if (this.resourceUI) {
-      this.resourceUI.updateResources();
-    }
-
-    this.player.setTint(0x8B4513);
-    this.time.delayedCall(150, () => {
-      this.player.clearTint();
-    });
   }
 
   pickupDiamond() {
