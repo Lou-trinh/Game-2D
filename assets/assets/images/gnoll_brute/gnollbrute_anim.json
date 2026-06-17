@@ -1,0 +1,52 @@
+{
+    "anims": [
+        {
+            "key": "gnollbrute_walk",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "gnollbrute",
+                    "frame": "gnollbrute_walk_1"
+                },
+                {
+                    "key": "gnollbrute",
+                    "frame": "gnollbrute_walk_2"
+                },
+                {
+                    "key": "gnollbrute",
+                    "frame": "gnollbrute_walk_3"
+                },
+                {
+                    "key": "gnollbrute",
+                    "frame": "gnollbrute_walk_4"
+                }
+            ]
+        },
+        {
+            "key": "gnollbrute_idle",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "gnollbrute",
+                    "frame": "gnollbrute_idle_1"
+                },
+                {
+                    "key": "gnollbrute",
+                    "frame": "gnollbrute_idle_2"
+                },
+                {
+                    "key": "gnollbrute",
+                    "frame": "gnollbrute_idle_3"
+                },
+                {
+                    "key": "gnollbrute",
+                    "frame": "gnollbrute_idle_4"
+                }
+            ]
+        }
+    ]
+}

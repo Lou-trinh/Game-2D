@@ -1,0 +1,56 @@
+{
+    "anims": [
+        {
+            "key": "gate",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "gate",
+                    "frame": "gate1"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate2"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate3"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate4"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate5"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate6"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate7"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate8"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate14"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate15"
+                },
+                {
+                    "key": "gate",
+                    "frame": "gate16"
+                }
+            ]
+        }
+    ]
+}

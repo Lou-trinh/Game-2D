@@ -1,0 +1,320 @@
+{
+    "frames": [
+        {
+            "filename": "gate1",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate2",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate3",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate4",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate5",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate6",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate7",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate8",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate9",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate10",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate11",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate12",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate13",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate14",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate15",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate16",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate17",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 261,
+                "y": 1
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate18",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 261,
+                "y": 66
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate19",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 261,
+                "y": 131
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate20",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 261,
+                "y": 196
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate21",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 1,
+                "y": 261
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate22",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 66,
+                "y": 261
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate23",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 131,
+                "y": 261
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        },
+        {
+            "filename": "gate24",
+            "frame": {
+                "w": 64,
+                "h": 64,
+                "x": 196,
+                "y": 261
+            },
+            "anchor": {
+                "x": 0.5,
+                "y": 0.5
+            }
+        }
+    ],
+    "meta": {
+        "description": "Atlas generado con Atlas Packer Gamma V2",
+        "web": "https://gammafp.github.io/atlas-packer-phaser/"
+    }
+}

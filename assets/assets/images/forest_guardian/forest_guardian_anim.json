@@ -1,0 +1,52 @@
+{
+    "anims": [
+        {
+            "key": "forest_guardian_walk",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "forest_guardian",
+                    "frame": "forestguardian_walk_1"
+                },
+                {
+                    "key": "forest_guardian",
+                    "frame": "forestguardian_walk_2"
+                },
+                {
+                    "key": "forest_guardian",
+                    "frame": "forestguardian_walk_3"
+                },
+                {
+                    "key": "forest_guardian",
+                    "frame": "forestguardian_walk_4"
+                }
+            ]
+        },
+        {
+            "key": "forest_guardian_idle",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "forest_guardian",
+                    "frame": "forestguardian_idle_1"
+                },
+                {
+                    "key": "forest_guardian",
+                    "frame": "forestguardian_idle_2"
+                },
+                {
+                    "key": "forest_guardian",
+                    "frame": "forestguardian_idle_3"
+                },
+                {
+                    "key": "forest_guardian",
+                    "frame": "forestguardian_idle_4"
+                }
+            ]
+        }
+    ]
+}

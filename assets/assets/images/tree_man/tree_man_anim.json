@@ -1,0 +1,52 @@
+{
+  "anims": [
+    {
+      "key": "tree_man_walk",
+      "type": "frames",
+      "repeat": -1,
+      "frameRate": 12,
+      "frames": [
+        {
+          "key": "tree_man",
+          "frame": "ent_walk_1"
+        },
+        {
+          "key": "tree_man",
+          "frame": "ent_walk_2"
+        },
+        {
+          "key": "tree_man",
+          "frame": "ent_walk_3"
+        },
+        {
+          "key": "tree_man",
+          "frame": "ent_walk_4"
+        }
+      ]
+    },
+    {
+      "key": "tree_man_idle",
+      "type": "frames",
+      "repeat": -1,
+      "frameRate": 8,
+      "frames": [
+        {
+          "key": "tree_man",
+          "frame": "ent_idle_1"
+        },
+        {
+          "key": "tree_man",
+          "frame": "ent_idle_2"
+        },
+        {
+          "key": "tree_man",
+          "frame": "ent_idle_3"
+        },
+        {
+          "key": "tree_man",
+          "frame": "ent_idle_4"
+        }
+      ]
+    }
+  ]
+}

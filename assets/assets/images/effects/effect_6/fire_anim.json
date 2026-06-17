@@ -1,0 +1,44 @@
+{
+    "anims": [
+        {
+            "key": "effect_6",
+            "type": "frames",
+            "repeat": -1,
+            "frameRate": 12,
+            "frames": [
+                {
+                    "key": "effect_6",
+                    "frame": "fire1"
+                },
+                {
+                    "key": "effect_6",
+                    "frame": "fire2"
+                },
+                {
+                    "key": "effect_6",
+                    "frame": "fire3"
+                },
+                {
+                    "key": "effect_6",
+                    "frame": "fire4"
+                },
+                {
+                    "key": "effect_6",
+                    "frame": "fire5"
+                },
+                {
+                    "key": "effect_6",
+                    "frame": "fire6"
+                },
+                {
+                    "key": "effect_6",
+                    "frame": "fire7"
+                },
+                {
+                    "key": "effect_6",
+                    "frame": "fire8"
+                }
+            ]
+        }
+    ]
+}
