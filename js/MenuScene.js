@@ -384,74 +384,425 @@ export default class MenuScene extends Phaser.Scene {
         bg.on('pointerdown', () => this.openInventoryPanel());
     }
 
-    openInventoryPanel() {
+    openInventoryPanel(tab) {
         if (this.invPanel) this.closeInventoryPanel();
+        if (tab !== undefined) this.invActiveTab = tab;
+        if (!this.invActiveTab) this.invActiveTab = 'frags';
+
+        // Generate frag textures if MainScene hasn't run yet
+        ['frag_common', 'frag_rare'].forEach(key => {
+            if (this.textures.exists(key)) return;
+            const g = this.add.graphics();
+            if (key === 'frag_common') {
+                g.fillStyle(0xaa4400); // dark base
+                g.fillTriangle(16, 5, 27, 16, 16, 27); g.fillTriangle(16, 5, 5, 16, 16, 27);
+                g.fillStyle(0xff8800); // main color
+                g.fillTriangle(16, 8, 25, 16, 16, 25); g.fillTriangle(16, 8, 7, 16, 16, 25);
+                g.fillStyle(0xffcc66); // inner shine
+                g.fillTriangle(16, 10, 22, 15, 16, 18);
+                g.fillStyle(0xffffff, 0.5); // top glint
+                g.fillTriangle(16, 8, 20, 13, 17, 11);
+            } else {
+                g.fillStyle(0x550088);
+                g.fillTriangle(16, 5, 27, 16, 16, 27); g.fillTriangle(16, 5, 5, 16, 16, 27);
+                g.fillStyle(0xaa44ff);
+                g.fillTriangle(16, 8, 25, 16, 16, 25); g.fillTriangle(16, 8, 7, 16, 16, 25);
+                g.fillStyle(0xddaaff);
+                g.fillTriangle(16, 10, 22, 15, 16, 18);
+                g.fillStyle(0xffffff, 0.5);
+                g.fillTriangle(16, 8, 20, 13, 17, 11);
+            }
+            g.generateTexture(key, 32, 32);
+            g.destroy();
+        });
 
         const { width, height } = this.cameras.main;
-        const pw = 260, ph = 240;
+        const pw = 490, ph = 300;
         const px = (width - pw) / 2;
         const py = (height - ph) / 2;
+        const leftW = Math.round(pw * 0.2);   // 98px sidebar
+        const rightX = px + leftW;
+        const rightW = pw - leftW;            // 392px content
+        const contentY = py + 44;
+        const contentH = ph - 44;             // 256px
+        this._invBounds = { px, py, pw, ph, rightX, rightW, contentY, contentH };
 
         this.invPanel = [];
 
+        // Dim overlay — clicks outside panel close it
         const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.5);
+        overlay.fillStyle(0x000000, 0.65);
         overlay.fillRect(0, 0, width, height);
-        overlay.setDepth(500);
-        overlay.setInteractive();
+        overlay.setDepth(500)
+            .setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
         overlay.on('pointerdown', () => this.closeInventoryPanel());
         this.invPanel.push(overlay);
 
-        const bg = this.add.graphics();
-        bg.setDepth(501);
-        bg.fillStyle(0x111111, 0.95);
-        bg.fillRoundedRect(px, py, pw, ph, 10);
+        // Block overlay from firing when clicking inside panel
+        const blocker = this.add.rectangle(px + pw / 2, py + ph / 2, pw, ph, 0x000000, 0)
+            .setDepth(501).setInteractive();
+        this.invPanel.push(blocker);
+
+        // Outer panel glow (drawn before bg so it appears behind border)
+        const panelGlow = this.add.graphics().setDepth(501);
+        panelGlow.lineStyle(10, 0x1abc9c, 0.06);
+        panelGlow.strokeRoundedRect(px - 5, py - 5, pw + 10, ph + 10, 17);
+        panelGlow.lineStyle(5, 0x1abc9c, 0.12);
+        panelGlow.strokeRoundedRect(px - 2, py - 2, pw + 4, ph + 4, 14);
+        this.invPanel.push(panelGlow);
+
+        // Panel background + border
+        const bg = this.add.graphics().setDepth(501);
+        bg.fillStyle(0x0d1117, 0.98);
+        bg.fillRoundedRect(px, py, pw, ph, 12);
         bg.lineStyle(2, 0x1abc9c, 1);
-        bg.strokeRoundedRect(px, py, pw, ph, 10);
+        bg.strokeRoundedRect(px, py, pw, ph, 12);
         this.invPanel.push(bg);
 
-        const title = this.add.text(px + pw / 2, py + 14, 'KHO ĐỒ', {
-            fontSize: '16px', fontStyle: 'bold', color: '#1abc9c',
-            stroke: '#000000', strokeThickness: 3,
-        }).setOrigin(0.5, 0).setDepth(502);
-        this.invPanel.push(title);
+        // Header bar
+        const hdr = this.add.graphics().setDepth(502);
+        hdr.fillStyle(0x0f2b26, 1);
+        hdr.fillRoundedRect(px + 1, py + 1, pw - 2, 42, { tl: 11, tr: 11, bl: 0, br: 0 });
+        this.invPanel.push(hdr);
 
-        const divider = this.add.graphics().setDepth(502);
-        divider.lineStyle(1, 0x1abc9c, 0.5);
-        divider.lineBetween(px + 10, py + 36, px + pw - 10, py + 36);
-        this.invPanel.push(divider);
+        const hdiv = this.add.graphics().setDepth(502);
+        hdiv.lineStyle(1, 0x1abc9c, 0.5);
+        hdiv.lineBetween(px, py + 43, px + pw, py + 43);
+        this.invPanel.push(hdiv);
 
-        const closeBtn = this.add.text(px + pw - 12, py + 10, '✕', {
-            fontSize: '14px', color: '#aaaaaa'
-        }).setOrigin(1, 0).setDepth(502).setInteractive({ useHandCursor: true });
+        this.invPanel.push(
+            this.add.text(px + pw / 2, py + 12, 'KHO ĐỒ', {
+                fontSize: '17px', fontStyle: 'bold', color: '#1abc9c',
+                stroke: '#000000', strokeThickness: 3,
+            }).setOrigin(0.5, 0).setDepth(503)
+        );
+
+        const closeBtn = this.add.text(px + pw - 14, py + 13, '✕', {
+            fontSize: '15px', color: '#666666',
+        }).setOrigin(1, 0).setDepth(503).setInteractive({ useHandCursor: true });
         closeBtn.on('pointerover', () => closeBtn.setColor('#ff4444'));
-        closeBtn.on('pointerout', () => closeBtn.setColor('#aaaaaa'));
+        closeBtn.on('pointerout', () => closeBtn.setColor('#666666'));
         closeBtn.on('pointerdown', () => this.closeInventoryPanel());
         this.invPanel.push(closeBtn);
 
-        const rows = [
-            { key: 'diamond',    label: 'Kim cương',   scale: 0.9,  getValue: () => Economy.getDiamonds() },
-            { key: 'coin',       label: 'Đồng xu',     scale: 0.2,  getValue: () => Economy.getCoins() },
-            { key: 'frag_common', label: 'Mảnh thường', scale: 0.55, getValue: () => Economy.getFragCommon() },
-            { key: 'frag_rare',   label: 'Mảnh hiếm',  scale: 0.55, getValue: () => Economy.getFragRare() },
+        // Left sidebar background
+        const sidebarBg = this.add.graphics().setDepth(502);
+        sidebarBg.fillStyle(0x070c10, 1);
+        // Stop 12px before panel bottom so the panel's border-radius corner stays fully visible
+        sidebarBg.fillRect(px + 2, contentY, leftW - 2, contentH - 12);
+        this.invPanel.push(sidebarBg);
+
+        // Sidebar/content vertical divider — stop 2px above panel bottom border
+        const vdiv = this.add.graphics().setDepth(503);
+        vdiv.lineStyle(1, 0x1abc9c, 0.25);
+        vdiv.lineBetween(px + leftW, contentY, px + leftW, py + ph - 2);
+        this.invPanel.push(vdiv);
+
+        // === LEFT NAV TABS ===
+        const navItems = [
+            { id: 'frags',   icon: 'frag_common', label: 'Mảnh' },
+            { id: 'weapons', icon: 'Glock_17',     label: 'Vũ khí' },
+        ];
+        const tabH = 72;
+
+        navItems.forEach((nav, i) => {
+            const isActive = this.invActiveTab === nav.id;
+            const ty = contentY + i * tabH;
+
+            // Tab fill
+            const tabBg = this.add.graphics().setDepth(502);
+            if (isActive) {
+                tabBg.fillStyle(0x102e28, 1);
+                tabBg.fillRect(px + 1, ty, leftW - 1, tabH);
+                // Active indicator stripe on right edge
+                tabBg.fillStyle(0x1abc9c, 1);
+                tabBg.fillRect(px + leftW - 3, ty + 6, 3, tabH - 12);
+            }
+            if (i > 0) {
+                tabBg.lineStyle(1, 0x1a2830, 1);
+                tabBg.lineBetween(px + 6, ty, px + leftW - 6, ty);
+            }
+            this.invPanel.push(tabBg);
+
+            // Icon
+            const iconY = ty + tabH / 2 - 12;
+            if (this.textures.exists(nav.icon)) {
+                const img = this.add.image(px + leftW / 2, iconY, nav.icon).setDepth(504);
+                img.setScale(Math.min(22 / img.width, 18 / img.height));
+                img.setAlpha(isActive ? 1 : 0.35);
+                this.invPanel.push(img);
+            }
+
+            // Label
+            this.invPanel.push(
+                this.add.text(px + leftW / 2, ty + tabH / 2 + 6, nav.label, {
+                    fontSize: '10px', color: isActive ? '#1abc9c' : '#4a6070',
+                    align: 'center',
+                }).setOrigin(0.5, 0).setDepth(504)
+            );
+
+            // Invisible hit zone for the tab
+            const zone = this.add.rectangle(
+                px + leftW / 2, ty + tabH / 2, leftW - 2, tabH, 0x000000, 0
+            ).setDepth(505).setInteractive({ useHandCursor: !isActive });
+            zone.on('pointerover', () => {
+                if (!isActive) { tabBg.fillStyle(0x0c2020, 1); tabBg.fillRect(px + 1, ty, leftW - 1, tabH); }
+            });
+            zone.on('pointerout', () => {
+                if (!isActive) { tabBg.clear(); }
+            });
+            zone.on('pointerdown', () => { if (!isActive) this.openInventoryPanel(nav.id); });
+            this.invPanel.push(zone);
+        });
+
+        // === RIGHT CONTENT ===
+        if (this.invActiveTab === 'frags') {
+            this._drawFragsContent(rightX, contentY, rightW, contentH);
+        } else {
+            this._drawWeaponsContent(rightX, contentY, rightW, contentH);
+        }
+    }
+
+    _drawFragsContent(rx, ry, rw, rh) {
+        const fragDefs = [
+            {
+                key: 'frag_common', label: 'Mảnh thường', subLabel: 'Dùng để nâng cấp vũ khí',
+                bg: 0x1a0a00, glowHex: 0xff8800, nameColor: '#ffaa44',
+                countStroke: '#aa4400', getValue: () => Economy.getFragCommon(),
+            },
+            {
+                key: 'frag_rare', label: 'Mảnh hiếm', subLabel: 'Chế tạo vũ khí đặc biệt',
+                bg: 0x0e0020, glowHex: 0xaa44ff, nameColor: '#cc88ff',
+                countStroke: '#660099', getValue: () => Economy.getFragRare(),
+            },
         ];
 
-        let ry = py + 46;
-        rows.forEach(row => {
-            const icon = this.add.image(px + 22, ry + 14, row.key).setScale(row.scale).setDepth(502);
-            const lbl = this.add.text(px + 42, ry + 6, row.label, {
-                fontSize: '13px', color: '#cccccc'
-            }).setDepth(502);
-            const val = this.add.text(px + pw - 14, ry + 6, `${row.getValue()}`, {
-                fontSize: '15px', fontStyle: 'bold', color: '#ffffff',
-                stroke: '#000000', strokeThickness: 2,
-            }).setOrigin(1, 0).setDepth(502);
-            this.invPanel.push(icon, lbl, val);
-            ry += 40;
+        const cardH = 76;
+        const gap = 14;
+        const startY = ry + 16;
+        const iconX = rx + 54;
+
+        fragDefs.forEach((frag, i) => {
+            const fy = startY + i * (cardH + gap);
+            const midY = fy + cardH / 2;
+
+            // === Card background (2-pass for subtle top gradient) ===
+            const card = this.add.graphics().setDepth(502);
+            card.fillStyle(frag.bg, 1);
+            card.fillRoundedRect(rx + 14, fy, rw - 28, cardH, 10);
+            card.fillStyle(0xffffff, 0.025); // faint top sheen
+            card.fillRoundedRect(rx + 14, fy, rw - 28, cardH * 0.45, { tl: 10, tr: 10, bl: 0, br: 0 });
+            this.invPanel.push(card);
+
+            // === Multi-layer border glow ===
+            const glow = this.add.graphics().setDepth(503);
+            glow.lineStyle(10, frag.glowHex, 0.06);
+            glow.strokeRoundedRect(rx + 10, fy - 4, rw - 20, cardH + 8, 14);
+            glow.lineStyle(5, frag.glowHex, 0.12);
+            glow.strokeRoundedRect(rx + 12, fy - 1, rw - 24, cardH + 2, 12);
+            glow.lineStyle(1.5, frag.glowHex, 0.85);
+            glow.strokeRoundedRect(rx + 14, fy, rw - 28, cardH, 10);
+            this.invPanel.push(glow);
+
+            // === Icon backdrop disc ===
+            const disc = this.add.graphics().setDepth(503);
+            disc.fillStyle(frag.glowHex, 0.08);
+            disc.fillCircle(iconX, midY, 26);
+            disc.fillStyle(frag.glowHex, 0.05);
+            disc.fillCircle(iconX, midY, 34);
+            disc.lineStyle(1, frag.glowHex, 0.35);
+            disc.strokeCircle(iconX, midY, 23);
+            this.invPanel.push(disc);
+
+            // === Fragment icon ===
+            const icon = this.add.image(iconX, midY, frag.key).setScale(1.5).setDepth(504);
+            this.invPanel.push(icon);
+
+            // === Name ===
+            this.invPanel.push(
+                this.add.text(rx + 94, midY - 14, frag.label, {
+                    fontSize: '14px', fontStyle: 'bold', color: frag.nameColor,
+                    shadow: { offsetX: 0, offsetY: 1, color: '#000000', blur: 4, fill: true },
+                }).setDepth(504)
+            );
+
+            // === Sublabel ===
+            this.invPanel.push(
+                this.add.text(rx + 94, midY + 4, frag.subLabel, {
+                    fontSize: '10px', color: '#3d5060',
+                }).setDepth(504)
+            );
+
+            // === Count — white text with colored stroke (halo effect) ===
+            this.invPanel.push(
+                this.add.text(rx + rw - 26, midY - 18, `${frag.getValue()}`, {
+                    fontSize: '38px', fontStyle: 'bold',
+                    color: '#ffffff',
+                    stroke: frag.countStroke,
+                    strokeThickness: 10,
+                }).setOrigin(1, 0).setDepth(504).setAlpha(0.25)
+            );
+            this.invPanel.push(
+                this.add.text(rx + rw - 26, midY - 18, `${frag.getValue()}`, {
+                    fontSize: '38px', fontStyle: 'bold',
+                    color: '#ffffff',
+                    stroke: '#000000',
+                    strokeThickness: 3,
+                }).setOrigin(1, 0).setDepth(505)
+            );
         });
     }
 
+    _drawWeaponsContent(rx, ry, rw, rh) {
+        const ownedWeapons = Economy.getOwnedWeapons();
+        const cols = 4;
+        const cellW = rw / cols;
+        const slotW = cellW - 14, slotH = 60;
+        const cellH = 82;
+        const rows = Math.ceil(ownedWeapons.length / cols);
+        const startY = ry + 16;
+
+        ownedWeapons.forEach((key, i) => {
+            const wdata = getWeaponByKey(key);
+            if (!wdata) return;
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const cx = rx + col * cellW + cellW / 2;
+            const cy = startY + row * cellH;
+            const sx = cx - slotW / 2, sy = cy;
+
+            // Slot glow
+            const slotGlow = this.add.graphics().setDepth(502);
+            slotGlow.lineStyle(6, 0x1abc9c, 0.06);
+            slotGlow.strokeRoundedRect(sx - 3, sy - 3, slotW + 6, slotH + 6, 10);
+            slotGlow.lineStyle(3, 0x1abc9c, 0.1);
+            slotGlow.strokeRoundedRect(sx - 1, sy - 1, slotW + 2, slotH + 2, 8);
+            this.invPanel.push(slotGlow);
+
+            // Slot background
+            const slot = this.add.graphics().setDepth(502);
+            slot.fillStyle(0x091520, 1);
+            slot.fillRoundedRect(sx, sy, slotW, slotH, 7);
+            slot.fillStyle(0xffffff, 0.025);
+            slot.fillRoundedRect(sx, sy, slotW, slotH * 0.4, { tl: 7, tr: 7, bl: 0, br: 0 });
+            slot.lineStyle(1.5, 0x1abc9c, 0.3);
+            slot.strokeRoundedRect(sx, sy, slotW, slotH, 7);
+            this.invPanel.push(slot);
+
+            // Weapon icon
+            if (this.textures.exists(wdata.texture)) {
+                const img = this.add.image(cx, cy + slotH / 2, wdata.texture).setDepth(503);
+                img.setScale(Math.min(56 / img.width, 40 / img.height));
+                this.invPanel.push(img);
+            }
+
+            // Weapon name
+            this.invPanel.push(
+                this.add.text(cx, cy + slotH + 4, wdata.name, {
+                    fontSize: '9px', color: '#7a9ab0',
+                    wordWrap: { width: slotW },
+                    align: 'center',
+                }).setOrigin(0.5, 0).setDepth(503)
+            );
+
+            // Hit zone — triggers weapon info on hover/tap
+            const zone = this.add.rectangle(cx, cy + slotH / 2, slotW, slotH, 0x000000, 0)
+                .setDepth(504).setInteractive({ useHandCursor: true });
+            zone.on('pointerover', () => this._showWeaponInfo(wdata, cx, cy));
+            zone.on('pointerout',  () => this._hideWeaponInfo());
+            this.invPanel.push(zone);
+        });
+    }
+
+    _showWeaponInfo(wdata, slotCX, slotCY) {
+        this._hideWeaponInfo();
+        if (!this._invBounds) return;
+
+        const { px, py, pw, ph, rightX, contentY } = this._invBounds;
+        const slotH = 60;
+        const catName = {
+            1:'Súng ngắn', 2:'Tiểu liên', 3:'Shotgun', 4:'Súng trường',
+            5:'Battle Rifle', 6:'Bắn tỉa', 7:'Súng máy', 8:'Tên lửa',
+            9:'Cận chiến', 10:'Vật ném',
+        };
+
+        const stats = [];
+        stats.push({ label: 'Sát thương', value: wdata.damage ? `${wdata.damage}` : '—' });
+        if (wdata.maxAmmo > 0) stats.push({ label: 'Số đạn',   value: `${wdata.maxAmmo}` });
+        if (wdata.range)       stats.push({ label: 'Tầm bắn',  value: `${wdata.range}` });
+        if (wdata.fireRate)    stats.push({ label: 'Nhịp bắn', value: `${wdata.fireRate}ms` });
+
+        const iw = 210;
+        const ih = 54 + stats.length * 20 + 12;
+
+        // Position below slot; flip above if it would overflow panel bottom
+        let iy = slotCY + slotH + 10;
+        if (iy + ih > py + ph - 4) iy = slotCY - ih - 10;
+        iy = Math.max(contentY + 2, Math.min(iy, py + ph - ih - 4));
+        let ix = slotCX - iw / 2;
+        ix = Math.max(rightX + 4, Math.min(px + pw - iw - 4, ix));
+
+        this.weaponInfo = [];
+
+        // Background
+        const g = this.add.graphics().setDepth(600);
+        g.fillStyle(0x07101c, 0.97);
+        g.fillRoundedRect(ix, iy, iw, ih, 10);
+        g.lineStyle(7, 0x3498db, 0.1);
+        g.strokeRoundedRect(ix - 3, iy - 3, iw + 6, ih + 6, 13);
+        g.lineStyle(1.5, 0x3498db, 0.8);
+        g.strokeRoundedRect(ix, iy, iw, ih, 10);
+        this.weaponInfo.push(g);
+
+        // Weapon icon
+        if (this.textures.exists(wdata.texture)) {
+            const img = this.add.image(ix + 28, iy + 26, wdata.texture).setDepth(601);
+            img.setScale(Math.min(38 / img.width, 28 / img.height));
+            this.weaponInfo.push(img);
+        }
+
+        // Name + category badge
+        this.weaponInfo.push(
+            this.add.text(ix + 58, iy + 12, wdata.name, {
+                fontSize: '13px', fontStyle: 'bold', color: '#e8eef5',
+            }).setDepth(601)
+        );
+        this.weaponInfo.push(
+            this.add.text(ix + 58, iy + 30, catName[wdata.category] || '—', {
+                fontSize: '10px', color: '#2980b9',
+            }).setDepth(601)
+        );
+
+        // Divider
+        const dg = this.add.graphics().setDepth(601);
+        dg.lineStyle(1, 0x1a3040, 1);
+        dg.lineBetween(ix + 10, iy + 52, ix + iw - 10, iy + 52);
+        this.weaponInfo.push(dg);
+
+        // Stats rows
+        stats.forEach((stat, i) => {
+            const sy = iy + 60 + i * 20;
+            this.weaponInfo.push(
+                this.add.text(ix + 12, sy, stat.label, {
+                    fontSize: '10px', color: '#3d6070',
+                }).setDepth(601)
+            );
+            this.weaponInfo.push(
+                this.add.text(ix + iw - 12, sy, stat.value, {
+                    fontSize: '10px', fontStyle: 'bold', color: '#8bbccc',
+                }).setOrigin(1, 0).setDepth(601)
+            );
+        });
+    }
+
+    _hideWeaponInfo() {
+        if (!this.weaponInfo) return;
+        this.weaponInfo.forEach(e => e.destroy());
+        this.weaponInfo = null;
+    }
+
     closeInventoryPanel() {
+        this._hideWeaponInfo();
         if (!this.invPanel) return;
         this.invPanel.forEach(e => e.destroy());
         this.invPanel = null;
