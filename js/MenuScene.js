@@ -388,9 +388,9 @@ export default class MenuScene extends Phaser.Scene {
         if (this.invPanel) this.closeInventoryPanel();
 
         const { width, height } = this.cameras.main;
-        const pw = 220, ph = 220;
-        const px = width - pw - 15;
-        const py = height - ph - 270;
+        const pw = 260, ph = 240;
+        const px = (width - pw) / 2;
+        const py = (height - ph) / 2;
 
         this.invPanel = [];
 
