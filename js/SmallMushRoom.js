@@ -377,10 +377,10 @@ export default class SmallMushRoom {
   }
 
   dropItems() {
-    // Drop 1 coin
-    if (this.scene.dropLoot) {
-      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'coin');
-    }
+    if (!this.scene.dropLoot) return;
+    this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'coin');
+    if (Math.random() < 0.02)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_common');
   }
 
   get x() {

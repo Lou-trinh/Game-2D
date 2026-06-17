@@ -444,11 +444,10 @@ export default class Wolf {
   }
 
   dropItems() {
-    // Drop 1-2 coins
-    const coinCount = Phaser.Math.Between(1, 2);
-    if (this.scene.dropLoot) {
-      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
-    }
+    if (!this.scene.dropLoot) return;
+    this.scene.dropLoot(this.sprite.x, this.sprite.y, Phaser.Math.Between(1, 2), 'coin');
+    if (Math.random() < 0.02)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_common');
   }
 
   get x() {

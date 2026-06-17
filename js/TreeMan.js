@@ -418,11 +418,12 @@ export default class TreeMan {
   }
 
   dropItems() {
-    // Drop 2-5 coins
-    const coinCount = Phaser.Math.Between(2, 5);
-    if (this.scene.dropLoot) {
-      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
-    }
+    if (!this.scene.dropLoot) return;
+    this.scene.dropLoot(this.sprite.x, this.sprite.y, Phaser.Math.Between(2, 5), 'coin');
+    if (Math.random() < 0.03)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_common');
+    if (Math.random() < 0.01)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_rare');
   }
 
   get x() {

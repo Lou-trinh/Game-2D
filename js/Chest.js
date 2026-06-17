@@ -104,38 +104,53 @@ export default class Chest {
         // Drop 1 blood (left side)
         this.dropSingleItem(dropX, dropY, 'blood', -25, 0);
 
-        // Drop 1 meat (right side)
-        this.scene.time.delayedCall(80, () => {
-            this.dropSingleItem(dropX, dropY, 'meat', 25, 0);
-        });
+        // Drop 1-3 health potions (replaces meat)
+        const potionCount = Phaser.Math.Between(1, 3);
+        for (let i = 0; i < potionCount; i++) {
+            this.scene.time.delayedCall(80 + i * 80, () => {
+                const ox = Phaser.Math.Between(-20, 20);
+                const oy = Phaser.Math.Between(-10, 10);
+                this.dropSingleItem(dropX, dropY, 'blood', ox, oy);
+            });
+        }
 
         // Drop 3-5 diamonds (scatter around)
         const diamondCount = Math.floor(Math.random() * 3) + 3;
         for (let i = 0; i < diamondCount; i++) {
-            this.scene.time.delayedCall(160 + (i * 100), () => {
+            this.scene.time.delayedCall(320 + i * 100, () => {
                 const angle = Math.random() * Math.PI * 2;
                 const distance = 20 + Math.random() * 15;
-                const offsetX = Math.cos(angle) * distance;
-                const offsetY = Math.sin(angle) * distance;
-
-                this.dropSingleItem(dropX, dropY, 'diamond', offsetX, offsetY);
+                this.dropSingleItem(dropX, dropY, 'diamond', Math.cos(angle) * distance, Math.sin(angle) * distance);
             });
         }
 
-        console.log(`📦 Dropped: 1 blood, 1 meat, ${diamondCount} diamonds!`);
+        // Drop 1-2 common fragments
+        const fragCommon = Phaser.Math.Between(1, 2);
+        for (let i = 0; i < fragCommon; i++) {
+            this.scene.time.delayedCall(620 + i * 100, () => {
+                const angle = Math.random() * Math.PI * 2;
+                const d = Phaser.Math.Between(20, 40);
+                this.dropSingleItem(dropX, dropY, 'frag_common', Math.cos(angle) * d, Math.sin(angle) * d);
+            });
+        }
+
+        // 50% chance: 1 rare fragment
+        if (Math.random() < 0.5) {
+            this.scene.time.delayedCall(820, () => {
+                const angle = Math.random() * Math.PI * 2;
+                const d = Phaser.Math.Between(25, 45);
+                this.dropSingleItem(dropX, dropY, 'frag_rare', Math.cos(angle) * d, Math.sin(angle) * d);
+            });
+        }
+
+        console.log(`📦 Chest: ${potionCount} potions, ${diamondCount} diamonds, ${fragCommon} frag_common`);
     }
 
     dropSingleItem(dropX, dropY, itemType, offsetX, offsetY) {
         const item = this.scene.add.image(dropX, dropY, itemType);
 
-        // Scale based on item type
-        if (itemType === 'blood') {
-            item.setScale(0.05);
-        } else if (itemType === 'meat') {
-            item.setScale(0.1);
-        } else if (itemType === 'diamond') {
-            item.setScale(0.8);
-        }
+        const scaleMap = { blood: 0.05, diamond: 0.8, blood: 0.65, frag_common: 0.7, frag_rare: 0.75 };
+        item.setScale(scaleMap[itemType] ?? 0.8);
 
         item.setDepth(dropY - 1);
         item.setAlpha(0.8);

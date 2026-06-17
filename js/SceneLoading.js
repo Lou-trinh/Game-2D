@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { onAuthChange, signInWithGoogle } from './firebase.js';
+import { onAuthChange, signInWithGoogle, checkRedirectResult } from './firebase.js';
 
 export default class SceneLoading extends Phaser.Scene {
     constructor() {
@@ -10,7 +10,7 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.image('loading_bg', 'assets/images/inventory/background_load.png');
     }
 
-    create() {
+    async create() {
         const { width, height } = this.cameras.main;
 
         this.add.image(width / 2, height / 2, 'loading_bg').setDisplaySize(width, height);
@@ -18,15 +18,25 @@ export default class SceneLoading extends Phaser.Scene {
         this._loginElements = [];
         this._loginVisible = false;
 
-        // Chỉ check state ban đầu 1 lần — không dùng để trigger sau khi login
+        let started = false;
+
+        // Keep listener active through the entire login flow —
+        // handles both "already signed in" and "just signed in via popup"
         const unsubscribe = onAuthChange((user) => {
-            unsubscribe();
-            if (user) {
+            if (user && !started) {
+                started = true;
+                unsubscribe();
+                if (this._loginVisible) this._hideLoginPopup();
                 this._startLoadingSequence();
-            } else {
-                this._showLoginPopup();
             }
         });
+
+        // Process any pending redirect result, then show login if still not signed in
+        try { await checkRedirectResult(); } catch (_) {}
+
+        if (!started) {
+            this._showLoginPopup();
+        }
     }
 
     _showLoginPopup() {
@@ -99,33 +109,71 @@ export default class SceneLoading extends Phaser.Scene {
             shadow: { offsetX: 0, offsetY: 2, color: '#000', blur: 4, fill: true }
         }).setOrigin(0.5, 0.5);
 
-        const btnHit = this.add.rectangle(cx, btnY, btnW, btnH, 0x000000, 0)
-            .setInteractive({ useHandCursor: true });
+        // HTML button — iOS Safari requires touchend from a real DOM element
+        // to open a popup (signInWithPopup uses window.open internally)
+        const canvas = this.game.canvas;
+        const htmlBtn = document.createElement('button');
+        htmlBtn.id = 'google-login-btn';
+        htmlBtn.textContent = 'Đăng nhập với Google';
 
-        btnHit.on('pointerdown', async () => {
-            btnHit.disableInteractive();
+        const syncPos = () => {
+            const r = canvas.getBoundingClientRect();
+            const sx = r.width / this.scale.width;
+            const sy = r.height / this.scale.height;
+            Object.assign(htmlBtn.style, {
+                left:   `${r.left + (cx - btnW / 2) * sx}px`,
+                top:    `${r.top  + (btnY - btnH / 2) * sy}px`,
+                width:  `${btnW * sx}px`,
+                height: `${btnH * sy}px`,
+            });
+        };
+
+        Object.assign(htmlBtn.style, {
+            position:   'fixed',
+            background: 'transparent',
+            border:     'none',
+            color:      'transparent',
+            cursor:     'pointer',
+            zIndex:     '9999',
+            touchAction:'manipulation',
+            webkitTapHighlightColor: 'transparent',
+            fontSize:   '1px',
+        });
+        syncPos();
+        window.addEventListener('resize', syncPos);
+        document.body.appendChild(htmlBtn);
+        this._htmlLoginBtn  = htmlBtn;
+        this._resizeLoginBtn = syncPos;
+
+        let busy = false;
+        const handleLogin = () => {
+            if (busy) return;
+            busy = true;
             btnTxt.setText('Đang đăng nhập...');
             drawBtn(0x374151, 0x6b7280);
-            try {
-                await signInWithGoogle();
-                this._hideLoginPopup();
-                this._startLoadingSequence();
-            } catch {
+            // signInWithGoogle (signInWithPopup) called synchronously from the gesture
+            signInWithGoogle().catch(() => {
+                busy = false;
                 btnTxt.setText('Đăng nhập với Google');
                 drawBtn(0x1d4ed8, 0x60a5fa);
-                btnHit.setInteractive({ useHandCursor: true });
-            }
-        });
-        btnHit.on('pointerover', () => drawBtn(0x2563eb, 0x93c5fd));
-        btnHit.on('pointerout', () => drawBtn(0x1d4ed8, 0x60a5fa));
+            });
+            // success handled by onAuthChange listener in create()
+        };
+        htmlBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleLogin(); });
+        htmlBtn.addEventListener('click', handleLogin);
 
-        this._loginElements = [glow, panel, title, sep, sub, btnBg, btnTxt, btnHit];
+        this._loginElements = [glow, panel, title, sep, sub, btnBg, btnTxt];
     }
 
     _hideLoginPopup() {
         this._loginElements.forEach(el => el.destroy());
         this._loginElements = [];
         this._loginVisible = false;
+        if (this._htmlLoginBtn) {
+            window.removeEventListener('resize', this._resizeLoginBtn);
+            this._htmlLoginBtn.remove();
+            this._htmlLoginBtn = null;
+        }
     }
 
     _startLoadingSequence() {

@@ -448,11 +448,12 @@ export default class GnollShaman {
   }
 
   dropItems() {
-    // Drop 2-4 coins
-    const coinCount = Phaser.Math.Between(2, 4);
-    if (this.scene.dropLoot) {
-      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
-    }
+    if (!this.scene.dropLoot) return;
+    this.scene.dropLoot(this.sprite.x, this.sprite.y, Phaser.Math.Between(2, 4), 'coin');
+    if (Math.random() < 0.04)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_common');
+    if (Math.random() < 0.01)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_rare');
   }
 
   get x() {

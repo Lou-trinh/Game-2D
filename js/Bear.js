@@ -420,11 +420,12 @@ export default class Bear {
   }
 
   dropItems() {
-    // Drop 1-3 coins
-    const coinCount = Phaser.Math.Between(1, 3);
-    if (this.scene.dropLoot) {
-      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
-    }
+    if (!this.scene.dropLoot) return;
+    this.scene.dropLoot(this.sprite.x, this.sprite.y, Phaser.Math.Between(1, 3), 'coin');
+    if (Math.random() < 0.03)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_common');
+    if (Math.random() < 0.01)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_rare');
   }
 
   get x() {

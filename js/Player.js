@@ -179,15 +179,14 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   loadEquippedWeapons(scene) {
     const equipped = JSON.parse(localStorage.getItem('equipped_weapons') || '{}');
 
-    // Fallback to defaults if not set in localStorage
-    this.weaponSlots = {
-      slot1: equipped.slot1 || 'Glock_17', // Handgun/Melee
-      slot2: equipped.slot2 || 'M4A1',      // SMG/AR/Shotgun
-      slot3: equipped.slot3 || 'SKS',       // Sniper/LMG/Rocket
-      slot4: equipped.slot4 || null
-    };
+    const owned = (key) => key && Economy.isWeaponOwned(key) ? key : null;
 
-    console.log('Equipped Weapons:', this.weaponSlots);
+    this.weaponSlots = {
+      slot1: owned(equipped.slot1) || 'Glock_17',
+      slot2: owned(equipped.slot2) || 'MP5',
+      slot3: owned(equipped.slot3) || null,
+      slot4: owned(equipped.slot4) || 'Grenade',
+    };
   }
 
   setupActiveWeapon(scene) {

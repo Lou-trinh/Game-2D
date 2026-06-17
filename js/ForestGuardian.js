@@ -545,11 +545,12 @@ export default class ForestGuardian {
   }
 
   dropItems() {
-    // Drop 5-10 coins
-    const coinCount = Phaser.Math.Between(5, 10);
-    if (this.scene.dropLoot) {
-      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
-    }
+    if (!this.scene.dropLoot) return;
+    this.scene.dropLoot(this.sprite.x, this.sprite.y, Phaser.Math.Between(5, 10), 'coin');
+    if (Math.random() < 0.1)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_common');
+    if (Math.random() < 0.04)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_rare');
   }
 
   get x() {

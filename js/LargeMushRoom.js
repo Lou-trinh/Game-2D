@@ -456,11 +456,12 @@ export default class LargeMushRoom {
   }
 
   dropItems() {
-    // Drop 2-3 coins
-    const coinCount = Phaser.Math.Between(2, 3);
-    if (this.scene.dropLoot) {
-      this.scene.dropLoot(this.sprite.x, this.sprite.y, coinCount, 'coin');
-    }
+    if (!this.scene.dropLoot) return;
+    this.scene.dropLoot(this.sprite.x, this.sprite.y, Phaser.Math.Between(2, 3), 'coin');
+    if (Math.random() < 0.05)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_common');
+    if (Math.random() < 0.02)
+      this.scene.dropLoot(this.sprite.x, this.sprite.y, 1, 'frag_rare');
   }
 
   get x() {

@@ -51,6 +51,21 @@ export const Economy = {
     }
   },
 
+  getFragCommon: () => parseInt(localStorage.getItem('frag_common') || '0'),
+  addFragCommon: (n = 1) => {
+    const v = Economy.getFragCommon() + n;
+    localStorage.setItem('frag_common', v.toString());
+    Economy._scheduleSave();
+    return v;
+  },
+  getFragRare: () => parseInt(localStorage.getItem('frag_rare') || '0'),
+  addFragRare: (n = 1) => {
+    const v = Economy.getFragRare() + n;
+    localStorage.setItem('frag_rare', v.toString());
+    Economy._scheduleSave();
+    return v;
+  },
+
   getLevel: () => {
     const val = localStorage.getItem('player_level');
     return val ? parseInt(val) : 1;
@@ -83,6 +98,8 @@ export const Economy = {
     if (data.exp !== undefined) localStorage.setItem('player_exp', data.exp.toString());
     if (data.level !== undefined) localStorage.setItem('player_level', data.level.toString());
     if (data.ownedWeapons) localStorage.setItem('owned_weapons', JSON.stringify(data.ownedWeapons));
+    if (data.fragCommon != null) localStorage.setItem('frag_common', data.fragCommon.toString());
+    if (data.fragRare   != null) localStorage.setItem('frag_rare',   data.fragRare.toString());
     console.log('☁️ Synced from cloud:', data);
     return true;
   },
@@ -103,6 +120,8 @@ export const Economy = {
       exp: Economy.getExp(),
       level: Economy.getLevel(),
       ownedWeapons: stored,
+      fragCommon: Economy.getFragCommon(),
+      fragRare:   Economy.getFragRare(),
       lastSeen: new Date().toISOString()
     };
     await saveProgress(user.uid, data);

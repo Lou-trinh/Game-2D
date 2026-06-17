@@ -197,7 +197,30 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  _createPlaceholderTextures() {
+    if (this.textures.exists('health_potion')) return;
+    const g = this.make.graphics({ add: false });
+
+    // Common fragment — orange crystal diamond
+    g.fillStyle(0xff8800);
+    g.fillTriangle(16, 2, 30, 16, 16, 30); g.fillTriangle(16, 2, 2, 16, 16, 30);
+    g.fillStyle(0xffcc44);
+    g.fillTriangle(16, 7, 24, 16, 16, 24); g.fillTriangle(16, 7, 8, 16, 16, 24);
+    g.generateTexture('frag_common', 32, 32); g.clear();
+
+    // Rare fragment — purple crystal diamond with gold shine
+    g.fillStyle(0x9900cc);
+    g.fillTriangle(16, 0, 32, 16, 16, 32); g.fillTriangle(16, 0, 0, 16, 16, 32);
+    g.fillStyle(0xdd44ff);
+    g.fillTriangle(16, 5, 26, 16, 16, 26); g.fillTriangle(16, 5, 6, 16, 16, 26);
+    g.fillStyle(0xffffff); g.fillTriangle(16, 5, 22, 14, 18, 10);
+    g.generateTexture('frag_rare', 32, 32); g.clear();
+
+    g.destroy();
+  }
+
   create() {
+    this._createPlaceholderTextures();
     this.player = null;
     this.bears = [];
     this.stones = [];
@@ -695,13 +718,14 @@ export default class MainScene extends Phaser.Scene {
           }
         });
 
-        // Blood, meat, stone, and wood pickups disabled - only diamonds work
         if (itemType === 'diamond') {
           this.pickupDiamond();
         } else if (itemType === 'blood') {
           this.pickupBlood();
-        } else if (itemType === 'meat') {
-          this.pickupMeat();
+        } else if (itemType === 'frag_common') {
+          this.pickupFragCommon();
+        } else if (itemType === 'frag_rare') {
+          this.pickupFragRare();
         } else if (itemType === 'coin') {
           this.pickupCoin();
         }
@@ -749,6 +773,20 @@ export default class MainScene extends Phaser.Scene {
     this.time.delayedCall(150, () => {
       this.player.clearTint();
     });
+  }
+
+  pickupFragCommon() {
+    Economy.addFragCommon(1);
+    if (this.resourceUI) this.resourceUI.updateResources();
+    this.player.setTint(0xff8800);
+    this.time.delayedCall(200, () => this.player.clearTint());
+  }
+
+  pickupFragRare() {
+    Economy.addFragRare(1);
+    if (this.resourceUI) this.resourceUI.updateResources();
+    this.player.setTint(0xcc44ff);
+    this.time.delayedCall(200, () => this.player.clearTint());
   }
 
   pickupStone() {
@@ -840,12 +878,8 @@ export default class MainScene extends Phaser.Scene {
       const item = this.add.sprite(x, y, type);
       item.setData('itemType', type);
 
-      // Much smaller scale for coins
-      if (type === 'coin') {
-        item.setScale(0.15);
-      } else {
-        item.setScale(0.8);
-      }
+      const scaleMap = { coin: 0.15, frag_common: 0.7, frag_rare: 0.75 };
+      item.setScale(scaleMap[type] ?? 0.8);
 
       item.setAlpha(0.8);
       item.setDepth(y + offsetY);
