@@ -1603,8 +1603,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // Show game over menu after a short delay
     this.scene.time.delayedCall(1000, () => {
       const isMultiplayer = !!this.scene.registry.get('roomCode');
-      if (!isMultiplayer) this.scene.scene.pause('MainScene');
-      this.scene.scene.launch('GameOverScene');
+      if (isMultiplayer) {
+        // Multiplayer: keep game loop running, show simple overlay inside MainScene
+        this.scene._showMpDeathOverlay();
+      } else {
+        this.scene.scene.pause('MainScene');
+        this.scene.scene.launch('GameOverScene');
+      }
     });
   }
 

@@ -1335,6 +1335,38 @@ export default class MainScene extends Phaser.Scene {
     this.events.once('destroy', () => this._cleanupMultiplayer(roomCode, user.uid));
   }
 
+  _showMpDeathOverlay() {
+    if (this._mpDeathOverlay) return;
+    const { width, height } = this.scale;
+    const depth = 500;
+    const ov = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setDepth(depth).setScrollFactor(0);
+    const txt = this.add.text(width / 2, height / 2 - 30, '💀 Bạn đã chết', {
+      fontSize: '20px', color: '#ff4444', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(depth + 1).setScrollFactor(0);
+    const sub = this.add.text(width / 2, height / 2 + 10, 'Trận đấu vẫn tiếp tục...', {
+      fontSize: '12px', color: '#cccccc', stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(depth + 1).setScrollFactor(0);
+
+    // Leave button
+    const btnG = this.add.graphics().setDepth(depth + 1).setScrollFactor(0);
+    btnG.fillStyle(0x7f1e1e, 1);
+    btnG.fillRoundedRect(width / 2 - 70, height / 2 + 40, 140, 36, 8);
+    const btnTxt = this.add.text(width / 2, height / 2 + 58, 'Rời trận', {
+      fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(depth + 2).setScrollFactor(0);
+    const btnHit = this.add.rectangle(width / 2, height / 2 + 58, 140, 36, 0, 0)
+      .setDepth(depth + 3).setScrollFactor(0).setInteractive({ useHandCursor: true });
+    btnHit.on('pointerover', () => btnG.fillStyle(0xb03030, 1).fillRoundedRect(width / 2 - 70, height / 2 + 40, 140, 36, 8));
+    btnHit.on('pointerout', () => btnG.fillStyle(0x7f1e1e, 1).fillRoundedRect(width / 2 - 70, height / 2 + 40, 140, 36, 8));
+    btnHit.on('pointerdown', () => {
+      this.scene.stop('MainScene');
+      this.scene.start('MenuScene');
+    });
+
+    this._mpDeathOverlay = [ov, txt, sub, btnG, btnTxt, btnHit];
+  }
+
   _cleanupMultiplayer(roomCode, uid) {
     if (this._syncTimer) { this._syncTimer.remove(); this._syncTimer = null; }
     if (this._enemyBroadcastTimer) { this._enemyBroadcastTimer.remove(); this._enemyBroadcastTimer = null; }
