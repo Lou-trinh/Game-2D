@@ -35,6 +35,7 @@ js/
 | `.claude/skills/weapons.md` | 55 vũ khí, categories, fields, storage, gotchas |
 | `.claude/skills/monsters.md` | 10 loại quái, stats, spawn phases, collision, multiplayer |
 | `.claude/skills/maps.md` | Tiled map, layers, collision, spawn gates, thêm map mới |
+| `.claude/skills/animations.md` | Animation keys, frames, frameRate, trigger logic cho player + 10 quái |
 
 ## Không làm
 - KHÔNG dùng `signInWithRedirect` trên mobile
