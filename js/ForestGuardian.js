@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { Economy } from './utils/Economy';
 
 export default class ForestGuardian {
@@ -174,7 +174,7 @@ export default class ForestGuardian {
   }
 
   findNearestTarget() {
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     let nearestTarget = player;
     let nearestDistance = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, player.x, player.y);
     if (this.scene.summonedMonsters) {
@@ -227,7 +227,7 @@ export default class ForestGuardian {
   }
 
   updateProjectiles(delta) {
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     const currentTime = this.scene.time.now;
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -328,7 +328,7 @@ export default class ForestGuardian {
 
   update(time, delta) {
     if (!this.sprite || !this.sprite.body || this.isDead) return;
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     if (!player) return;
 
     this.updateProjectiles(delta);

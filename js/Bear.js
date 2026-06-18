@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { Economy } from './utils/Economy';
 
 export default class Bear {
@@ -140,7 +140,7 @@ export default class Bear {
   }
 
   findNearestTarget() {
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     let nearestTarget = player;
     let nearestDistance = Phaser.Math.Distance.Between(
       this.sprite.x,
@@ -208,7 +208,7 @@ export default class Bear {
 
   attackPlayer() {
     const currentTime = this.scene.time.now;
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
 
     if (!player || player.isDead) return;
 
@@ -246,7 +246,7 @@ export default class Bear {
   update() {
     if (!this.sprite || !this.sprite.body || this.isDead) return;
 
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     if (!player) return;
 
     // Find nearest target (player or ice monster)

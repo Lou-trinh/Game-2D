@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { Economy } from './utils/Economy';
 
 export default class LargeMushRoom {
@@ -165,7 +165,7 @@ export default class LargeMushRoom {
   }
 
   findNearestTarget() {
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     let nearestTarget = player;
     let nearestDistance = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, player.x, player.y);
     if (this.scene.summonedMonsters) {
@@ -199,7 +199,7 @@ export default class LargeMushRoom {
 
   attackPlayer() {
     const currentTime = this.scene.time.now;
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
 
     if (!player || player.isDead) return;
 
@@ -236,7 +236,7 @@ export default class LargeMushRoom {
 
   update() {
     if (!this.sprite || !this.sprite.body || this.isDead) return;
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     if (!player) return;
 
     const { target, distance } = this.findNearestTarget();

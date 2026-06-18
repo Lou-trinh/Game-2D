@@ -45,6 +45,8 @@ class GuestEnemyProxy {
       this.isDead = true;
       sendEnemyKill(this._roomCode, this.mpId).catch(() => {});
       if (sp?.active) {
+        try { if (sp._hpBg?.active)  sp._hpBg.destroy();  } catch (_) {}
+        try { if (sp._hpBar?.active) sp._hpBar.destroy(); } catch (_) {}
         this._scene.tweens.add({
           targets: sp, alpha: 0, duration: 300,
           onComplete: () => { try { sp.destroy(); } catch (_) {} },
@@ -696,6 +698,8 @@ export default class MainScene extends Phaser.Scene {
           sp.y += (sp._targetY - sp.y) * 0.05;
         }
         sp.setDepth(sp.y);
+        if (sp._hpBg?.active)  sp._hpBg.setPosition(sp.x, sp.y - 18).setDepth(sp.y + 1);
+        if (sp._hpBar?.active) sp._hpBar.setPosition(sp.x - 15, sp.y - 18).setDepth(sp.y + 2);
       });
     }
 
@@ -1033,6 +1037,19 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  getNearestPlayer(fromX, fromY) {
+    let nearest = this.player;
+    let nearestDist = Phaser.Math.Distance.Between(fromX, fromY, this.player.x, this.player.y);
+    if (this._otherPlayerSprites) {
+      Object.values(this._otherPlayerSprites).forEach(entry => {
+        if (!entry.sprite?.active || entry.prevAlive === false) return;
+        const dist = Phaser.Math.Distance.Between(fromX, fromY, entry.sprite.x, entry.sprite.y);
+        if (dist < nearestDist) { nearestDist = dist; nearest = entry.sprite; }
+      });
+    }
+    return nearest;
+  }
+
   _initMultiplayer() {
     const roomCode = this.registry.get('roomCode');
     if (!roomCode) return;
@@ -1196,7 +1213,10 @@ export default class MainScene extends Phaser.Scene {
         // Remove sprites for dead/gone enemies
         Object.keys(this._guestEnemySprites).forEach(id => {
           if (!activeIds.has(id)) {
-            try { this._guestEnemySprites[id].destroy(); } catch (_) {}
+            const _sp = this._guestEnemySprites[id];
+            try { if (_sp?._hpBg?.active)  _sp._hpBg.destroy();  } catch (_) {}
+            try { if (_sp?._hpBar?.active) _sp._hpBar.destroy(); } catch (_) {}
+            try { _sp.destroy(); } catch (_) {}
             delete this._guestEnemySprites[id];
             const proxy = this._guestEnemyProxies?.[id];
             if (proxy) {
@@ -1215,6 +1235,8 @@ export default class MainScene extends Phaser.Scene {
             const sp = this.add.sprite(e.x, e.y, e.textureKey).setDepth(e.y);
             sp._targetX = e.x;
             sp._targetY = e.y;
+            sp._hpBg  = this.add.rectangle(e.x, e.y - 18, 30, 4, 0x000000).setDepth(e.y + 1);
+            sp._hpBar = this.add.rectangle(e.x - 15, e.y - 18, 30, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(e.y + 2);
             this._guestEnemySprites[key] = sp;
             const proxy = new GuestEnemyProxy(sp, e.id, e.hp || 100, this, roomCode);
             this._guestEnemyProxies[key] = proxy;
@@ -1233,10 +1255,15 @@ export default class MainScene extends Phaser.Scene {
           if (e.animKey && this.anims.exists(e.animKey) && sp.anims?.currentAnim?.key !== e.animKey) {
             sp.play(e.animKey, true);
           }
-          // Sync HP from host (take lower value to respect guest damage)
+          // Sync HP from host + update HP bar
           const proxy = this._guestEnemyProxies[key];
           if (proxy && !proxy.isDead && e.hp !== undefined) {
             proxy.hp = Math.min(proxy.hp, e.hp);
+          }
+          if (sp._hpBar && e.maxHp) {
+            const pct = Math.max(0, (e.hp || 0) / e.maxHp);
+            sp._hpBar.width = pct * 30;
+            sp._hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
           }
         });
       });

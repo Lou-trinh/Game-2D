@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { Economy } from './utils/Economy';
 
 export default class GnollShaman {
@@ -157,7 +157,7 @@ export default class GnollShaman {
   }
 
   findNearestTarget() {
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     let nearestTarget = player;
     let nearestDistance = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, player.x, player.y);
     if (this.scene.summonedMonsters) {
@@ -203,7 +203,7 @@ export default class GnollShaman {
   }
 
   updateProjectiles(delta) {
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];
@@ -254,7 +254,7 @@ export default class GnollShaman {
 
   update(time, delta) {
     if (!this.sprite || !this.sprite.body || this.isDead) return;
-    const player = this.scene.player;
+    const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     if (!player) return;
 
     this.updateProjectiles(delta);
