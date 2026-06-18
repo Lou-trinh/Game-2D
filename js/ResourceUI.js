@@ -209,12 +209,6 @@ export default class ResourceUI {
             this.ammoBg.setVisible(false);
         }
 
-        // Inventory button
-        this._isMobile = isMobile;
-        this._slotY = slotY;
-        this._slotH = slotH;
-        this.createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth, isMobile);
-
         // Create Exit Button (top right corner)
         this.createExitButton();
     }
