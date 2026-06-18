@@ -200,8 +200,8 @@ export function onEnemyKills(roomCode, callback) {
     snap.docChanges()
       .filter(c => c.type === 'added')
       .forEach(c => {
-        callback(c.data().mpId);
-        deleteDoc(c.ref).catch(() => {});
+        callback(c.doc.data().mpId);
+        deleteDoc(c.doc.ref).catch(() => {});
       });
   });
 }
