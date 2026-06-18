@@ -39,6 +39,19 @@ this.cameras.main.startFollow(player, true, 0.1, 0.1); // lerp mượt
 ```
 Không có shake ngoài ReviveScene (diamond fail → camera shake).
 
+## Orientation Lock (orientation.js)
+Chỉ chạy trên touch device (`pointer: coarse` hoặc `ontouchstart`).
+
+```
+first pointerdown/touchstart (once)
+→ document.documentElement.requestFullscreen()
+→ screen.orientation.lock('landscape')  // best-effort, có thể bị reject
+```
+
+Overlay `#rotate-device` (CSS): toggle class `is-portrait` trên `<html>` khi phát hiện portrait mode. Listeners: `orientationchange` + `resize`.
+
+Lỗi fullscreen/orientation bị **silent-catch** — không throw ra ngoài (browser reject ngoài trusted gesture).
+
 ## Collision Categories (Matter.js)
 | Entity | category | collidesWith |
 |--------|----------|-------------|

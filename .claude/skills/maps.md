@@ -45,6 +45,13 @@ this.matter.world.setBounds(0, 0, mapWidth, mapHeight);
 // Ngăn player và enemy ra ngoài ranh giới map
 ```
 
+## Stone & Tree classes (js/Stone.js, js/Tree.js)
+Static obstacles trên map, Matter body category `0x0002`, collide với player `0x0001`.
+
+- `sprite.stoneInstance` / `sprite.treeInstance` — reference ngược dùng trong MainScene để detect attack
+- `takeDamage()` → **return ngay, không làm gì** (farming bị disabled intentionally)
+- Nếu muốn enable farming: uncomment code trong `destroy()` — Stone có sẵn particle effect, Tree có rebuild tilemap collision
+
 ## Thêm map mới
 1. Tạo file Tiled JSON mới, dùng cùng tileset `RPG Nature Tileset`
 2. Load trong `SceneLoading.loadFullAssets()` với key mới

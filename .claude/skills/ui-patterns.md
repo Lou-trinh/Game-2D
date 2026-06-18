@@ -74,3 +74,6 @@ shutdown() { this._unsubFriends?.(); }
 destroy()  { this._unsubFriends?.(); }
 ```
 Nếu chỉ có `destroy` mà thiếu `shutdown`, listener sẽ leak khi scene dừng tạm thời.
+
+## Assets chưa implement
+`assets/images/ui/voice_on.png` và `voice_off.png` tồn tại nhưng **không có JS nào dùng** — placeholder cho sound toggle chưa implement. Không nhầm với feature đã có.

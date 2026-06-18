@@ -44,6 +44,7 @@ js/
 | `.claude/skills/input-controls.md` | Keyboard mapping, mobile joystick/buttons, camera, collision categories |
 | `.claude/skills/loot-system.md` | dropLoot, item types, magnet pickup, Chest spawn + open flow |
 | `.claude/skills/combat-effects.md` | AoE grenade/bomb, fire/electric zone, DoT, visual effects, audio keys |
+| `.claude/skills/hud.md` | ResourceUI API, HP bar, ammo icons, inventory popup, mobile vs desktop layout |
 
 ## Không làm
 - KHÔNG dùng `signInWithRedirect` trên mobile
