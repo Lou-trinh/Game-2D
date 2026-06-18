@@ -2084,14 +2084,18 @@ export default class MenuScene extends Phaser.Scene {
         if (user) {
             const myProfile = { uid: user.uid, displayName: user.displayName || 'Bạn', photoURL: user.photoURL || '' };
             if (isHost) {
-                createRoom(roomCode, myProfile).catch(() => {});
+                // Render host slot immediately (optimistic) so UI isn't blank
+                renderSlots([{ ...myProfile, isHost: true, joinedAt: Date.now() }]);
+                // Then persist to Firestore and start live listener
+                createRoom(roomCode, myProfile)
+                    .then(() => {
+                        if (!this.lobbyPopup) return; // lobby closed while creating
+                        this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
+                    })
+                    .catch(() => {});
             } else {
                 joinRoom(roomCode, myProfile).catch(() => {});
-            }
-            this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
-
-            // Guests listen for host starting the game
-            if (!isHost) {
+                this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
                 this._lobbyStatusUnsub = onRoomStatusChange(roomCode, (roomData) => {
                     if (roomData.status === 'started') {
                         this.registry.set('selectedCharacter', this.selectedCharacterKey);
