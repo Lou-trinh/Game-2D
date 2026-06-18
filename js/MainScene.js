@@ -664,14 +664,11 @@ export default class MainScene extends Phaser.Scene {
         const { sprite, nameText, hpBg, hpBar } = entry;
         if (!sprite?.active || entry.prevAlive === false || entry._targetX === undefined) return;
         const dist = Phaser.Math.Distance.Between(sprite.x, sprite.y, entry._targetX, entry._targetY);
-        if (dist > 200) {
+        if (dist > 300) {
           sprite.setPosition(entry._targetX, entry._targetY);
-          entry._smoothVelX = 0; entry._smoothVelY = 0;
         } else {
-          sprite.x += (entry._smoothVelX || 0) * delta;
-          sprite.y += (entry._smoothVelY || 0) * delta;
-          sprite.x += (entry._targetX - sprite.x) * 0.15;
-          sprite.y += (entry._targetY - sprite.y) * 0.15;
+          sprite.x += (entry._targetX - sprite.x) * 0.2;
+          sprite.y += (entry._targetY - sprite.y) * 0.2;
         }
         sprite.setDepth(sprite.y);
         const sx = sprite.x, sy = sprite.y;
@@ -679,6 +676,20 @@ export default class MainScene extends Phaser.Scene {
         if (hpBg?.active) hpBg.setPosition(sx, sy - 28).setDepth(sy + 2);
         if (hpBar?.active) hpBar.setPosition(sx - 16, sy - 28).setDepth(sy + 3);
       });
+    }
+
+    // Move remote (visual-only) bullets
+    if (this._remoteBullets?.length) {
+      const dt_s = delta / 1000;
+      for (let i = this._remoteBullets.length - 1; i >= 0; i--) {
+        const rb = this._remoteBullets[i];
+        if (!rb.sprite?.active) { this._remoteBullets.splice(i, 1); continue; }
+        const moved = Math.sqrt(rb.vx * rb.vx + rb.vy * rb.vy) * dt_s;
+        rb.sprite.x += rb.vx * dt_s;
+        rb.sprite.y += rb.vy * dt_s;
+        rb.distLeft -= moved;
+        if (rb.distLeft <= 0) { try { rb.sprite.destroy(); } catch (_) {} this._remoteBullets.splice(i, 1); }
+      }
     }
 
     // Smoothed velocity interpolation for guest enemy sprites
@@ -703,7 +714,7 @@ export default class MainScene extends Phaser.Scene {
           sp._hpGfx.setDepth(sp.y + 10);
           sp._hpGfx.fillStyle(0x000000, 0.75);
           sp._hpGfx.fillRect(bx, by, 30, 5);
-          const col = pct > 0.8 ? 0x00ff00 : pct > 0.5 ? 0xffee00 : pct > 0.25 ? 0xffaa00 : 0xff3300;
+          const col = 0xff2222;
           sp._hpGfx.fillStyle(col, 1);
           sp._hpGfx.fillRect(bx, by, pct * 30, 5);
         }
@@ -1069,8 +1080,12 @@ export default class MainScene extends Phaser.Scene {
   }
 
   getNearestPlayer(fromX, fromY) {
-    let nearest = this.player;
-    let nearestDist = Phaser.Math.Distance.Between(fromX, fromY, this.player.x, this.player.y);
+    let nearest = null;
+    let nearestDist = Infinity;
+    if (this.player && !this.player.isDead) {
+      nearestDist = Phaser.Math.Distance.Between(fromX, fromY, this.player.x, this.player.y);
+      nearest = this.player;
+    }
     if (this._otherPlayerSprites) {
       Object.values(this._otherPlayerSprites).forEach(entry => {
         if (!entry.sprite?.active || entry.prevAlive === false) return;
@@ -1078,7 +1093,7 @@ export default class MainScene extends Phaser.Scene {
         if (dist < nearestDist) { nearestDist = dist; nearest = entry.sprite; }
       });
     }
-    return nearest;
+    return nearest || this.player;
   }
 
   _initMultiplayer() {
@@ -1166,18 +1181,8 @@ export default class MainScene extends Phaser.Scene {
           hpBar.setVisible(true);
         }
 
-        // Smoothed velocity interpolation
+        // Update lerp target
         if (!isDead) {
-          const now2 = Date.now();
-          const dt = entry._lastUpdateAt ? (now2 - entry._lastUpdateAt) : 100;
-          const prevX = entry._targetX ?? p.x;
-          const prevY = entry._targetY ?? p.y;
-          const mVx = (p.x - prevX) / Math.max(dt, 16);
-          const mVy = (p.y - prevY) / Math.max(dt, 16);
-          const S = 0.5;
-          entry._smoothVelX = entry._smoothVelX !== undefined ? entry._smoothVelX * S + mVx * (1 - S) : mVx;
-          entry._smoothVelY = entry._smoothVelY !== undefined ? entry._smoothVelY * S + mVy * (1 - S) : mVy;
-          entry._lastUpdateAt = now2;
           entry._targetX = p.x;
           entry._targetY = p.y;
           sprite.setFlipX(p.flipX || false);
@@ -1197,17 +1202,18 @@ export default class MainScene extends Phaser.Scene {
           hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
         }
 
-        // Render remote player's bullets (visual only)
+        // Spawn remote bullets starting at current sprite pos (no visual delay)
         if (p.shots?.length) {
+          if (!this._remoteBullets) this._remoteBullets = [];
           p.shots.forEach(s => {
-            const b = this.add.sprite(s.x, s.y, s.tex || 'bullet')
-              .setScale(0.4).setAngle(s.angle || 0).setDepth(s.y + 50);
-            this.tweens.add({
-              targets: b,
-              x: s.x + Math.cos(s.rad) * (s.range || 600),
-              y: s.y + Math.sin(s.rad) * (s.range || 600),
-              duration: (s.range || 600) / (s.speed || 1) * 1000,
-              onComplete: () => { try { b.destroy(); } catch (_) {} },
+            const startX = sprite.x, startY = sprite.y;
+            const b = this.add.sprite(startX, startY, s.tex || 'bullet')
+              .setScale(0.4).setAngle(s.angle || 0).setDepth(startY + 50);
+            this._remoteBullets.push({
+              sprite: b,
+              vx: Math.cos(s.rad) * (s.speed || 1000),
+              vy: Math.sin(s.rad) * (s.speed || 1000),
+              distLeft: s.range || 600,
             });
           });
         }
