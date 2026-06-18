@@ -31,6 +31,10 @@ js/
 | `.claude/skills/ui-patterns.md` | Panel array-destroy, button pattern, DOM input, `_domPos()` |
 | `.claude/skills/gameplay.md` | Enemy spawn phases, depth sorting, tilemap, item pickup |
 | `.claude/skills/economy.md` | localStorage economy, weapon ownership, inventory slots |
+| `.claude/skills/characters.md` | Danh sách nhân vật, stats, asset loading, flow chọn nhân vật |
+| `.claude/skills/weapons.md` | 55 vũ khí, categories, fields, storage, gotchas |
+| `.claude/skills/monsters.md` | 10 loại quái, stats, spawn phases, collision, multiplayer |
+| `.claude/skills/maps.md` | Tiled map, layers, collision, spawn gates, thêm map mới |
 
 ## Không làm
 - KHÔNG dùng `signInWithRedirect` trên mobile
