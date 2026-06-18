@@ -39,6 +39,11 @@ js/
 | `.claude/skills/friends.md` | Friends panel (3 tab), Firestore, badge, listener lifecycle |
 | `.claude/skills/inventory-shop.md` | Inventory xem stats, weapon slots equip, SceneShop mua, Economy localStorage |
 | `.claude/skills/room-invite.md` | Tạo phòng, gửi/nhận invite, lobby flow, start game, state variables |
+| `.claude/skills/death-revive.md` | GameOverScene (3 lựa chọn), ReviveScene (ad + diamond), revivePlayer() |
+| `.claude/skills/player-skills.md` | skill_2 portal teleport, surf trail, CharacterSelectScene UI |
+| `.claude/skills/input-controls.md` | Keyboard mapping, mobile joystick/buttons, camera, collision categories |
+| `.claude/skills/loot-system.md` | dropLoot, item types, magnet pickup, Chest spawn + open flow |
+| `.claude/skills/combat-effects.md` | AoE grenade/bomb, fire/electric zone, DoT, visual effects, audio keys |
 
 ## Không làm
 - KHÔNG dùng `signInWithRedirect` trên mobile

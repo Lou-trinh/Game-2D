@@ -50,7 +50,20 @@ Glock_17, Grenade, MP5, Shovel — player bắt đầu với 4 vũ khí này.
 scene.load.image(weapon.texture, `assets/images/weapons/${weapon.texture}.png`);
 ```
 
+## Ammo & Reload System
+`ammoData` per-slot object: `{ current, max }` — track riêng từng slot.
+
+**Reload flow:**
+```
+R key → play 'reload_sound'
+→ circular progress indicator (graphics.arc) tween trong reload duration
+→ bounce animation (ammo count sprite nhảy lên)
+→ ammoData[slot].current = max
+```
+Revive reset ammo tất cả slots về max.
+
 ## Gotchas
 - Melee: `attackType: 'melee'`, origin `(0.0, 1.0)` thay vì `(0.3, 0.7)`
 - Shotgun: mỗi lần bắn spawn `projectileCount` viên đạn với random spread
 - `fireRate` không set = fire rate theo tốc độ click/hold; có set = capped
+- AoE / DoT effects (grenade, gasoline, electric) — xem `combat-effects.md`
