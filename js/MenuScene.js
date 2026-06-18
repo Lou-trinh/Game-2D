@@ -489,7 +489,7 @@ export default class MenuScene extends Phaser.Scene {
         this._roomInviteUnsub = onRoomInviteChange(user.uid, (invites) => {
             console.log('[RoomInvite] onSnapshot fired, invites:', invites);
             invites.forEach(invite => {
-                const key = `${invite.uid || invite.displayName}_${invite.roomCode}`;
+                const key = `${invite.uid || invite.displayName}_${invite.roomCode}_${invite.sentAt || 0}`;
                 if (!this._shownInvites.has(key)) {
                     this._shownInvites.add(key);
                     console.log('[RoomInvite] Showing popup for:', invite);

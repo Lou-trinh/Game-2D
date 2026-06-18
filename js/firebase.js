@@ -181,7 +181,10 @@ export async function sendRoomInvite(fromUid, fromProfile, toUid, roomCode) {
 
 export function onRoomInviteChange(uid, callback) {
   return onSnapshot(collection(db, 'players', uid, 'roomInvites'), snap => {
-    callback(snap.docs.map(d => d.data()));
+    const fresh = snap.docChanges()
+      .filter(c => c.type === 'added' || c.type === 'modified')
+      .map(c => c.doc.data());
+    if (fresh.length) callback(fresh);
   });
 }
 
