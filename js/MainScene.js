@@ -708,6 +708,17 @@ export default class MainScene extends Phaser.Scene {
             sp._hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
           }
         }
+        // Guest-side melee damage: enemy sprite close to local player
+        if (this.player && !this.player.isDead && sp._dmg) {
+          const dist = Phaser.Math.Distance.Between(sp.x, sp.y, this.player.x, this.player.y);
+          if (dist < 48) {
+            const now = Date.now();
+            if (now - (sp._lastHitPlayer || 0) >= (sp._cooldown || 1000)) {
+              sp._lastHitPlayer = now;
+              if (this.player.takeDamage) this.player.takeDamage(sp._dmg);
+            }
+          }
+        }
       });
     }
 
@@ -1190,6 +1201,8 @@ export default class MainScene extends Phaser.Scene {
                 animKey: e.sprite.anims?.currentAnim?.key || '',
                 hp: e.health || 100,
                 maxHp: e.maxHealth || 100,
+                dmg: e.damageAmount || 10,
+                cooldown: e.damageCooldown || 1000,
               });
             });
           });
@@ -1245,6 +1258,9 @@ export default class MainScene extends Phaser.Scene {
             sp._targetY = e.y;
             sp._hpBg  = this.add.rectangle(e.x, e.y - 18, 30, 4, 0x000000).setDepth(e.y + 1);
             sp._hpBar = this.add.rectangle(e.x - 15, e.y - 18, 30, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(e.y + 2);
+            sp._dmg = e.dmg || 10;
+            sp._cooldown = e.cooldown || 1000;
+            sp._lastHitPlayer = 0;
             this._guestEnemySprites[key] = sp;
             const proxy = new GuestEnemyProxy(sp, e.id, e.hp || 100, this, roomCode);
             proxy.maxHp = e.maxHp || e.hp || 100;
