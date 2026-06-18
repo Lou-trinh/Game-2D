@@ -24,6 +24,7 @@ class GuestEnemyProxy {
     this.sprite = sprite;
     this.mpId = mpId;
     this.hp = hp;
+    this.maxHp = hp;
     this.isDead = false;
     this._scene = scene;
     this._roomCode = roomCode;
@@ -699,7 +700,14 @@ export default class MainScene extends Phaser.Scene {
         }
         sp.setDepth(sp.y);
         if (sp._hpBg?.active)  sp._hpBg.setPosition(sp.x, sp.y - 18).setDepth(sp.y + 1);
-        if (sp._hpBar?.active) sp._hpBar.setPosition(sp.x - 15, sp.y - 18).setDepth(sp.y + 2);
+        if (sp._hpBar?.active) {
+          sp._hpBar.setPosition(sp.x - 15, sp.y - 18).setDepth(sp.y + 2);
+          if (sp._proxy && sp._proxy.maxHp > 0) {
+            const pct = Math.max(0, sp._proxy.hp / sp._proxy.maxHp);
+            sp._hpBar.width = pct * 30;
+            sp._hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
+          }
+        }
       });
     }
 
@@ -1239,6 +1247,8 @@ export default class MainScene extends Phaser.Scene {
             sp._hpBar = this.add.rectangle(e.x - 15, e.y - 18, 30, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(e.y + 2);
             this._guestEnemySprites[key] = sp;
             const proxy = new GuestEnemyProxy(sp, e.id, e.hp || 100, this, roomCode);
+            proxy.maxHp = e.maxHp || e.hp || 100;
+            sp._proxy = proxy;
             this._guestEnemyProxies[key] = proxy;
             this.guestEnemies.push(proxy);
           }
@@ -1255,15 +1265,11 @@ export default class MainScene extends Phaser.Scene {
           if (e.animKey && this.anims.exists(e.animKey) && sp.anims?.currentAnim?.key !== e.animKey) {
             sp.play(e.animKey, true);
           }
-          // Sync HP from host + update HP bar
+          // Sync HP from host (HP bar update handled per-frame in update())
           const proxy = this._guestEnemyProxies[key];
           if (proxy && !proxy.isDead && e.hp !== undefined) {
             proxy.hp = Math.min(proxy.hp, e.hp);
-          }
-          if (sp._hpBar && e.maxHp) {
-            const pct = Math.max(0, (e.hp || 0) / e.maxHp);
-            sp._hpBar.width = pct * 30;
-            sp._hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
+            if (e.maxHp) proxy.maxHp = e.maxHp;
           }
         });
       });
