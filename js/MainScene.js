@@ -1126,9 +1126,7 @@ export default class MainScene extends Phaser.Scene {
           maxHealth: this.player.maxHealth || 100,
           updatedAt: Date.now(),
         };
-        if (this._pendingShots?.length) {
-          state.shots = this._pendingShots.splice(0);
-        }
+        state.shots = this._pendingShots.splice(0); // always write (clears Firestore when empty)
         updatePlayerState(roomCode, user.uid, state).catch(() => {});
       },
     });
@@ -1202,8 +1200,8 @@ export default class MainScene extends Phaser.Scene {
           hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
         }
 
-        // Spawn remote bullets starting at current sprite pos (no visual delay)
-        if (p.shots?.length) {
+        // Spawn remote bullets — only when alive and shots array is non-empty
+        if (!isDead && p.shots?.length) {
           if (!this._remoteBullets) this._remoteBullets = [];
           p.shots.forEach(s => {
             const startX = sprite.x, startY = sprite.y;
