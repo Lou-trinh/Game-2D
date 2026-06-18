@@ -388,6 +388,18 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       projectile.setData('hitEnemies', []); // Track hit enemies for piercing
 
       this.activeArrows.push(projectile);
+
+      // Record shot for remote players to render
+      if (this.scene._pendingShots) {
+        this.scene._pendingShots.push({
+          x: Math.round(this.x), y: Math.round(this.y),
+          rad: projectileAngle,
+          angle: Phaser.Math.RadToDeg(projectileAngle) + (isRocket ? 0 : 90),
+          speed: speed,
+          range: weapon?.range || projectileConfig.range || 600,
+          tex: textureOverride || projectileConfig.texture || 'bullet',
+        });
+      }
     }
   }
 

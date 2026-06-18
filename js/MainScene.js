@@ -46,8 +46,7 @@ class GuestEnemyProxy {
       this.isDead = true;
       sendEnemyKill(this._roomCode, this.mpId).catch(() => {});
       if (sp?.active) {
-        try { if (sp._hpBg?.active)  sp._hpBg.destroy();  } catch (_) {}
-        try { if (sp._hpBar?.active) sp._hpBar.destroy(); } catch (_) {}
+        try { if (sp._hpGfx?.active) sp._hpGfx.destroy(); } catch (_) {}
         this._scene.tweens.add({
           targets: sp, alpha: 0, duration: 300,
           onComplete: () => { try { sp.destroy(); } catch (_) {} },
@@ -697,14 +696,16 @@ export default class MainScene extends Phaser.Scene {
           sp.y += (sp._targetY - sp.y) * 0.18;
         }
         sp.setDepth(sp.y);
-        if (sp._hpBg?.active)  sp._hpBg.setPosition(sp.x, sp.y - 18).setDepth(sp.y + 1);
-        if (sp._hpBar?.active) {
-          sp._hpBar.setPosition(sp.x - 15, sp.y - 18).setDepth(sp.y + 2);
-          if (sp._proxy && sp._proxy.maxHp > 0) {
-            const pct = Math.max(0, sp._proxy.hp / sp._proxy.maxHp);
-            sp._hpBar.width = pct * 30;
-            sp._hpBar.setFillStyle(pct > 0.8 ? 0x00ff00 : pct > 0.5 ? 0xffee00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
-          }
+        if (sp._hpGfx?.active && sp._proxy) {
+          const pct = Math.max(0, sp._proxy.hp / Math.max(sp._proxy.maxHp, 1));
+          const bx = sp.x - 15, by = sp.y - 20;
+          sp._hpGfx.clear();
+          sp._hpGfx.setDepth(sp.y + 10);
+          sp._hpGfx.fillStyle(0x000000, 0.75);
+          sp._hpGfx.fillRect(bx, by, 30, 5);
+          const col = pct > 0.8 ? 0x00ff00 : pct > 0.5 ? 0xffee00 : pct > 0.25 ? 0xffaa00 : 0xff3300;
+          sp._hpGfx.fillStyle(col, 1);
+          sp._hpGfx.fillRect(bx, by, pct * 30, 5);
         }
         // Dead-reckoning: if broadcast stale >350ms, move toward nearest player
         if (sp._lastUpdateAt && (Date.now() - sp._lastUpdateAt) > 350) {
@@ -1090,6 +1091,7 @@ export default class MainScene extends Phaser.Scene {
     const selectedCharKey = this.registry.get('selectedCharacter') || 'player_1';
     this._otherPlayerSprites = {};
     this._guestEnemySprites = {};
+    this._pendingShots = [];
 
     // Sync own player position every 100ms
     this._syncTimer = this.time.addEvent({
@@ -1097,7 +1099,7 @@ export default class MainScene extends Phaser.Scene {
       loop: true,
       callback: () => {
         if (!this.player || !this.player.active) return;
-        updatePlayerState(roomCode, user.uid, {
+        const state = {
           x: Math.round(this.player.x),
           y: Math.round(this.player.y),
           flipX: this.player.flipX,
@@ -1108,7 +1110,11 @@ export default class MainScene extends Phaser.Scene {
           health: this.player.health || 0,
           maxHealth: this.player.maxHealth || 100,
           updatedAt: Date.now(),
-        }).catch(() => {});
+        };
+        if (this._pendingShots?.length) {
+          state.shots = this._pendingShots.splice(0);
+        }
+        updatePlayerState(roomCode, user.uid, state).catch(() => {});
       },
     });
 
@@ -1190,6 +1196,21 @@ export default class MainScene extends Phaser.Scene {
           hpBar.width = pct * 32;
           hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
         }
+
+        // Render remote player's bullets (visual only)
+        if (p.shots?.length) {
+          p.shots.forEach(s => {
+            const b = this.add.sprite(s.x, s.y, s.tex || 'bullet')
+              .setScale(0.4).setAngle(s.angle || 0).setDepth(s.y + 50);
+            this.tweens.add({
+              targets: b,
+              x: s.x + Math.cos(s.rad) * (s.range || 600),
+              y: s.y + Math.sin(s.rad) * (s.range || 600),
+              duration: (s.range || 600) / (s.speed || 1) * 1000,
+              onComplete: () => { try { b.destroy(); } catch (_) {} },
+            });
+          });
+        }
       });
     });
 
@@ -1250,8 +1271,7 @@ export default class MainScene extends Phaser.Scene {
         Object.keys(this._guestEnemySprites).forEach(id => {
           if (!activeIds.has(id)) {
             const _sp = this._guestEnemySprites[id];
-            try { if (_sp?._hpBg?.active)  _sp._hpBg.destroy();  } catch (_) {}
-            try { if (_sp?._hpBar?.active) _sp._hpBar.destroy(); } catch (_) {}
+            try { if (_sp?._hpGfx?.active) _sp._hpGfx.destroy(); } catch (_) {}
             try { _sp.destroy(); } catch (_) {}
             delete this._guestEnemySprites[id];
             const proxy = this._guestEnemyProxies?.[id];
@@ -1271,8 +1291,7 @@ export default class MainScene extends Phaser.Scene {
             const sp = this.add.sprite(e.x, e.y, e.textureKey).setDepth(e.y);
             sp._targetX = e.x;
             sp._targetY = e.y;
-            sp._hpBg  = this.add.rectangle(e.x, e.y - 18, 30, 4, 0x000000).setDepth(e.y + 1);
-            sp._hpBar = this.add.rectangle(e.x - 15, e.y - 18, 30, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(e.y + 2);
+            sp._hpGfx = this.add.graphics().setDepth(e.y + 10);
             sp._dmg = e.dmg || 10;
             sp._cooldown = e.cooldown || 1000;
             sp._lastHitPlayer = 0;
