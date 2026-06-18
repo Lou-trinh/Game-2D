@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import Player from './Player';
 import { CharacterTypes, getCharacterConfig } from './Character';
-import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange } from './firebase';
+import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange, sendEnemyKill, onEnemyKills } from './firebase';
 import Bear from './Bear';
 import Stone from './Stone';
 import Tree from './Tree';
@@ -19,11 +19,48 @@ import { Economy } from './utils/Economy';
 import ResourceUI from './ResourceUI';
 import MobileControls from './MobileControls';
 
+class GuestEnemyProxy {
+  constructor(sprite, mpId, hp, scene, roomCode) {
+    this.sprite = sprite;
+    this.mpId = mpId;
+    this.hp = hp;
+    this.isDead = false;
+    this._scene = scene;
+    this._roomCode = roomCode;
+  }
+  get x() { return this.sprite?.x || 0; }
+  get y() { return this.sprite?.y || 0; }
+  getHitbox() {
+    return new Phaser.Geom.Rectangle(this.x - 12, this.y - 12, 24, 24);
+  }
+  takeDamage(dmg) {
+    if (this.isDead) return;
+    this.hp -= dmg;
+    const sp = this.sprite;
+    if (sp?.active) {
+      sp.setTint(0xff0000);
+      this._scene.time.delayedCall(100, () => { if (sp?.active) sp.clearTint(); });
+    }
+    if (this.hp <= 0) {
+      this.isDead = true;
+      sendEnemyKill(this._roomCode, this.mpId).catch(() => {});
+      if (sp?.active) {
+        this._scene.tweens.add({
+          targets: sp, alpha: 0, duration: 300,
+          onComplete: () => { try { sp.destroy(); } catch (_) {} },
+        });
+      }
+      this._scene.guestEnemies = this._scene.guestEnemies.filter(p => p !== this);
+    }
+  }
+}
+
 export default class MainScene extends Phaser.Scene {
   constructor() {
     super('MainScene');
     this.player = null;
     this._mpIdCounter = 0;
+    this.guestEnemies = [];
     this.bears = [];
     this.stones = [];
     this.trees = [];
@@ -548,6 +585,7 @@ export default class MainScene extends Phaser.Scene {
     this.summonedMonsters = [];
     this.chests = [];
     this.items = [];
+    this.guestEnemies = [];
 
     // Initialize inputs
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -617,6 +655,45 @@ export default class MainScene extends Phaser.Scene {
     }
 
     this.player.update();
+
+    // Lerp other player sprites (smooth multiplayer movement)
+    if (this._otherPlayerSprites) {
+      Object.values(this._otherPlayerSprites).forEach(entry => {
+        const { sprite, nameText, hpBg, hpBar } = entry;
+        if (!sprite?.active || entry.prevAlive === false || entry._targetX === undefined) return;
+        const dx = entry._targetX - sprite.x;
+        const dy = entry._targetY - sprite.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 150) {
+          sprite.setPosition(entry._targetX, entry._targetY);
+        } else {
+          sprite.x += dx * 0.2;
+          sprite.y += dy * 0.2;
+        }
+        sprite.setDepth(sprite.y);
+        const sx = sprite.x, sy = sprite.y;
+        if (nameText?.active) nameText.setPosition(sx, sy - 38).setDepth(sy + 2);
+        if (hpBg?.active) hpBg.setPosition(sx, sy - 28).setDepth(sy + 2);
+        if (hpBar?.active) hpBar.setPosition(sx - 16, sy - 28).setDepth(sy + 3);
+      });
+    }
+
+    // Lerp guest enemy sprites (smooth multiplayer movement)
+    if (this._guestEnemySprites) {
+      Object.values(this._guestEnemySprites).forEach(sp => {
+        if (!sp?.active || sp._targetX === undefined) return;
+        const dx = sp._targetX - sp.x;
+        const dy = sp._targetY - sp.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 200) {
+          sp.setPosition(sp._targetX, sp._targetY);
+        } else {
+          sp.x += dx * 0.2;
+          sp.y += dy * 0.2;
+        }
+        sp.setDepth(sp.y);
+      });
+    }
 
     this.bears.forEach(bear => {
       bear.update();
@@ -1006,7 +1083,7 @@ export default class MainScene extends Phaser.Scene {
           }).setOrigin(0.5).setDepth(p.y + 2);
           const hpBg = this.add.rectangle(p.x, p.y - 28, 32, 4, 0x000000).setDepth(p.y + 2);
           const hpBar = this.add.rectangle(p.x - 16, p.y - 28, 32, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(p.y + 3);
-          this._otherPlayerSprites[p.uid] = { sprite, nameText, hpBg, hpBar, prevAlive: true };
+          this._otherPlayerSprites[p.uid] = { sprite, nameText, hpBg, hpBar, prevAlive: true, _targetX: p.x, _targetY: p.y };
         }
 
         const entry = this._otherPlayerSprites[p.uid];
@@ -1032,9 +1109,11 @@ export default class MainScene extends Phaser.Scene {
           hpBar.setVisible(true);
         }
 
-        // Position update (skip y for ghost — tween controls it)
+        // Update target position (lerp handled in update())
         if (!isDead) {
-          sprite.setPosition(p.x, p.y).setFlipX(p.flipX || false).setDepth(p.y);
+          entry._targetX = p.x;
+          entry._targetY = p.y;
+          sprite.setFlipX(p.flipX || false);
           if (p.animKey && this.anims.exists(p.animKey) && sprite.anims?.currentAnim?.key !== p.animKey) {
             sprite.play(p.animKey, true);
           }
@@ -1042,14 +1121,11 @@ export default class MainScene extends Phaser.Scene {
           sprite.setX(p.x).setDepth(p.y);
         }
 
-        nameText.setPosition(p.x, p.y - (isDead ? 22 : 38)).setDepth(p.y + 2);
         nameText.setColor(isDead ? '#aaaaaa' : '#ffff88');
 
-        // Health bar
+        // Health bar (width/color only — position follows sprite in update())
         if (!isDead) {
           const pct = Math.max(0, (p.health || 0) / (p.maxHealth || 100));
-          hpBg.setPosition(p.x, p.y - 28).setDepth(p.y + 2);
-          hpBar.setPosition(p.x - 16, p.y - 28).setDepth(p.y + 3);
           hpBar.width = pct * 32;
           hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
         }
@@ -1077,11 +1153,26 @@ export default class MainScene extends Phaser.Scene {
                 y: Math.round(e.sprite.y),
                 flipX: e.sprite.flipX,
                 animKey: e.sprite.anims?.currentAnim?.key || '',
+                hp: e.health || 100,
+                maxHp: e.maxHealth || 100,
               });
             });
           });
           updateGameState(roomCode, { enemies, updatedAt: Date.now() }).catch(() => {});
         },
+      });
+
+      // Listen for guest kill events and apply them
+      this._killsUnsub = onEnemyKills(roomCode, (mpId) => {
+        if (!this.scene.isActive('MainScene')) return;
+        const allGroups = [
+          this.bears, this.wolves, this.treeMen, this.forestGuardians,
+          this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
+        ];
+        for (const group of allGroups) {
+          const enemy = group.find(e => e && e.mpId === mpId && !e.isDead);
+          if (enemy) { enemy.takeDamage(9999); break; }
+        }
       });
     } else {
       // Guest: disable own spawn timer, render enemies from host
@@ -1097,19 +1188,39 @@ export default class MainScene extends Phaser.Scene {
           if (!activeIds.has(id)) {
             try { this._guestEnemySprites[id].destroy(); } catch (_) {}
             delete this._guestEnemySprites[id];
+            const proxy = this._guestEnemyProxies?.[id];
+            if (proxy) {
+              proxy.isDead = true;
+              this.guestEnemies = this.guestEnemies.filter(p => p !== proxy);
+              delete this._guestEnemyProxies[id];
+            }
           }
         });
 
         // Create/update enemy sprites
+        this._guestEnemyProxies = this._guestEnemyProxies || {};
         enemies.forEach(e => {
           const key = String(e.id);
           if (!this._guestEnemySprites[key]) {
-            this._guestEnemySprites[key] = this.add.sprite(e.x, e.y, e.textureKey).setDepth(e.y);
+            const sp = this.add.sprite(e.x, e.y, e.textureKey).setDepth(e.y);
+            sp._targetX = e.x;
+            sp._targetY = e.y;
+            this._guestEnemySprites[key] = sp;
+            const proxy = new GuestEnemyProxy(sp, e.id, e.hp || 100, this, roomCode);
+            this._guestEnemyProxies[key] = proxy;
+            this.guestEnemies.push(proxy);
           }
           const sp = this._guestEnemySprites[key];
-          sp.setPosition(e.x, e.y).setFlipX(e.flipX || false).setDepth(e.y);
+          sp._targetX = e.x;
+          sp._targetY = e.y;
+          sp.setFlipX(e.flipX || false);
           if (e.animKey && this.anims.exists(e.animKey) && sp.anims?.currentAnim?.key !== e.animKey) {
             sp.play(e.animKey, true);
+          }
+          // Sync HP from host (take lower value to respect guest damage)
+          const proxy = this._guestEnemyProxies[key];
+          if (proxy && !proxy.isDead && e.hp !== undefined) {
+            proxy.hp = Math.min(proxy.hp, e.hp);
           }
         });
       });
@@ -1124,6 +1235,9 @@ export default class MainScene extends Phaser.Scene {
     if (this._enemyBroadcastTimer) { this._enemyBroadcastTimer.remove(); this._enemyBroadcastTimer = null; }
     if (this._otherPlayersUnsub) { this._otherPlayersUnsub(); this._otherPlayersUnsub = null; }
     if (this._gameStateUnsub) { this._gameStateUnsub(); this._gameStateUnsub = null; }
+    if (this._killsUnsub) { this._killsUnsub(); this._killsUnsub = null; }
+    if (this._guestEnemyProxies) { this._guestEnemyProxies = null; }
+    this.guestEnemies = [];
     if (this._otherPlayerSprites) {
       Object.values(this._otherPlayerSprites).forEach(entry => {
         try { if (entry.floatTween) entry.floatTween.stop(); } catch (_) {}

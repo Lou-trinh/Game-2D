@@ -1909,7 +1909,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.scene.smallMushrooms,
         this.scene.stones,
         this.scene.trees,
-        this.scene.chests
+        this.scene.chests,
+        this.scene.guestEnemies || [],
       ];
 
       let hitEnemy = false;

@@ -188,3 +188,20 @@ export function onRoomInviteChange(uid, callback) {
 export async function declineRoomInvite(uid, fromUid) {
   await deleteDoc(doc(db, 'players', uid, 'roomInvites', fromUid));
 }
+
+export async function sendEnemyKill(roomCode, mpId) {
+  await setDoc(doc(db, 'rooms', roomCode, 'kills', String(mpId)), {
+    mpId, at: Date.now(),
+  });
+}
+
+export function onEnemyKills(roomCode, callback) {
+  return onSnapshot(collection(db, 'rooms', roomCode, 'kills'), snap => {
+    snap.docChanges()
+      .filter(c => c.type === 'added')
+      .forEach(c => {
+        callback(c.data().mpId);
+        deleteDoc(c.ref).catch(() => {});
+      });
+  });
+}
