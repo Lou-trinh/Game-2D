@@ -32,7 +32,7 @@ class GuestEnemyProxy {
   get x() { return this.sprite?.x || 0; }
   get y() { return this.sprite?.y || 0; }
   getHitbox() {
-    return new Phaser.Geom.Rectangle(this.x - 12, this.y - 12, 24, 24);
+    return new Phaser.Geom.Rectangle(this.x - 24, this.y - 24, 48, 48);
   }
   takeDamage(dmg) {
     if (this.isDead) return;
@@ -659,7 +659,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.player.update();
 
-    // Snapshot interpolation for other player sprites
+    // Smoothed velocity interpolation for other player sprites
     if (this._otherPlayerSprites) {
       Object.values(this._otherPlayerSprites).forEach(entry => {
         const { sprite, nameText, hpBg, hpBar } = entry;
@@ -667,11 +667,12 @@ export default class MainScene extends Phaser.Scene {
         const dist = Phaser.Math.Distance.Between(sprite.x, sprite.y, entry._targetX, entry._targetY);
         if (dist > 200) {
           sprite.setPosition(entry._targetX, entry._targetY);
-        } else if (entry._interpDt > 0) {
-          entry._interpT = Math.min((entry._interpT || 0) + delta, entry._interpDt);
-          const alpha = entry._interpT / entry._interpDt;
-          sprite.x = (entry._fromX ?? entry._targetX) + alpha * (entry._targetX - (entry._fromX ?? entry._targetX));
-          sprite.y = (entry._fromY ?? entry._targetY) + alpha * (entry._targetY - (entry._fromY ?? entry._targetY));
+          entry._smoothVelX = 0; entry._smoothVelY = 0;
+        } else {
+          sprite.x += (entry._smoothVelX || 0) * delta;
+          sprite.y += (entry._smoothVelY || 0) * delta;
+          sprite.x += (entry._targetX - sprite.x) * 0.15;
+          sprite.y += (entry._targetY - sprite.y) * 0.15;
         }
         sprite.setDepth(sprite.y);
         const sx = sprite.x, sy = sprite.y;
@@ -681,18 +682,19 @@ export default class MainScene extends Phaser.Scene {
       });
     }
 
-    // Snapshot interpolation for guest enemy sprites
+    // Smoothed velocity interpolation for guest enemy sprites
     if (this._guestEnemySprites) {
       Object.values(this._guestEnemySprites).forEach(sp => {
         if (!sp?.active || sp._targetX === undefined) return;
         const dist = Phaser.Math.Distance.Between(sp.x, sp.y, sp._targetX, sp._targetY);
-        if (dist > 200) {
+        if (dist > 250) {
           sp.setPosition(sp._targetX, sp._targetY);
-        } else if (sp._interpDt > 0) {
-          sp._interpT = Math.min((sp._interpT || 0) + delta, sp._interpDt);
-          const alpha = sp._interpT / sp._interpDt;
-          sp.x = (sp._fromX ?? sp._targetX) + alpha * (sp._targetX - (sp._fromX ?? sp._targetX));
-          sp.y = (sp._fromY ?? sp._targetY) + alpha * (sp._targetY - (sp._fromY ?? sp._targetY));
+          sp._smoothVelX = 0; sp._smoothVelY = 0;
+        } else {
+          sp.x += (sp._smoothVelX || 0) * delta;
+          sp.y += (sp._smoothVelY || 0) * delta;
+          sp.x += (sp._targetX - sp.x) * 0.1;
+          sp.y += (sp._targetY - sp.y) * 0.1;
         }
         sp.setDepth(sp.y);
         if (sp._hpBg?.active)  sp._hpBg.setPosition(sp.x, sp.y - 18).setDepth(sp.y + 1);
@@ -701,7 +703,7 @@ export default class MainScene extends Phaser.Scene {
           if (sp._proxy && sp._proxy.maxHp > 0) {
             const pct = Math.max(0, sp._proxy.hp / sp._proxy.maxHp);
             sp._hpBar.width = pct * 30;
-            sp._hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
+            sp._hpBar.setFillStyle(pct > 0.8 ? 0x00ff00 : pct > 0.5 ? 0xffee00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
           }
         }
         // Guest-side melee damage: enemy sprite close to local player
@@ -1145,14 +1147,18 @@ export default class MainScene extends Phaser.Scene {
           hpBar.setVisible(true);
         }
 
-        // Snapshot interpolation: from current sprite pos → new target over measured dt
+        // Smoothed velocity interpolation
         if (!isDead) {
-          const dt = entry._lastUpdateAt ? (Date.now() - entry._lastUpdateAt) : 100;
-          entry._fromX = sprite.x;
-          entry._fromY = sprite.y;
-          entry._interpDt = Math.min(Math.max(dt, 50), 400);
-          entry._interpT = 0;
-          entry._lastUpdateAt = Date.now();
+          const now2 = Date.now();
+          const dt = entry._lastUpdateAt ? (now2 - entry._lastUpdateAt) : 100;
+          const prevX = entry._targetX ?? p.x;
+          const prevY = entry._targetY ?? p.y;
+          const mVx = (p.x - prevX) / Math.max(dt, 16);
+          const mVy = (p.y - prevY) / Math.max(dt, 16);
+          const S = 0.5;
+          entry._smoothVelX = entry._smoothVelX !== undefined ? entry._smoothVelX * S + mVx * (1 - S) : mVx;
+          entry._smoothVelY = entry._smoothVelY !== undefined ? entry._smoothVelY * S + mVy * (1 - S) : mVy;
+          entry._lastUpdateAt = now2;
           entry._targetX = p.x;
           entry._targetY = p.y;
           sprite.setFlipX(p.flipX || false);
@@ -1265,12 +1271,14 @@ export default class MainScene extends Phaser.Scene {
             this.guestEnemies.push(proxy);
           }
           const sp = this._guestEnemySprites[key];
-          const dt = sp._lastUpdateAt ? (Date.now() - sp._lastUpdateAt) : 400;
-          sp._fromX = sp.x;
-          sp._fromY = sp.y;
-          sp._interpDt = Math.min(Math.max(dt, 50), 600);
-          sp._interpT = 0;
-          sp._lastUpdateAt = Date.now();
+          const now3 = Date.now();
+          const dt = sp._lastUpdateAt ? (now3 - sp._lastUpdateAt) : 400;
+          const mVx = (e.x - (sp._targetX ?? e.x)) / Math.max(dt, 16);
+          const mVy = (e.y - (sp._targetY ?? e.y)) / Math.max(dt, 16);
+          const S = 0.4;
+          sp._smoothVelX = sp._smoothVelX !== undefined ? sp._smoothVelX * S + mVx * (1 - S) : mVx;
+          sp._smoothVelY = sp._smoothVelY !== undefined ? sp._smoothVelY * S + mVy * (1 - S) : mVy;
+          sp._lastUpdateAt = now3;
           sp._targetX = e.x;
           sp._targetY = e.y;
           sp.setFlipX(e.flipX || false);
