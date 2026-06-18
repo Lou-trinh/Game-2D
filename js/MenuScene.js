@@ -1680,18 +1680,28 @@ export default class MenuScene extends Phaser.Scene {
                 ibHit.on('pointerout', () => { drawIb(false); ibTxt.setColor('#ffffff'); });
                 ibHit.on('pointerdown', () => {
                     const me = auth.currentUser;
-                    console.log('[RoomInvite] Mời clicked — me:', me?.uid, 'friend.uid:', friend.uid, 'roomCode:', roomCode);
                     if (me && roomCode) {
+                        ibHit.disableInteractive();
+                        ibTxt.setText('...');
                         const myProfile = { uid: me.uid, displayName: me.displayName || 'Player', photoURL: me.photoURL || '' };
                         sendRoomInvite(me.uid, myProfile, friend.uid, roomCode)
-                            .then(() => console.log('[RoomInvite] Write OK to friend:', friend.uid))
-                            .catch(e => console.error('[RoomInvite] Write FAILED:', e));
+                            .then(() => {
+                                ibTxt.setText('Mời');
+                                ibHit.setInteractive({ useHandCursor: true });
+                                toastFriend.setText(`✓ Đã gửi lời mời cho ${friend.displayName}!`).setColor('#1abc9c').setAlpha(1);
+                                this.time.delayedCall(2500, () => { if (toastFriend.active) toastFriend.setAlpha(0); });
+                            })
+                            .catch(() => {
+                                ibTxt.setText('Mời');
+                                ibHit.setInteractive({ useHandCursor: true });
+                                toastFriend.setText('✗ Gửi thất bại, thử lại').setColor('#ff5555').setAlpha(1);
+                                this.time.delayedCall(2500, () => { if (toastFriend.active) toastFriend.setAlpha(0); });
+                            });
                     } else {
-                        console.warn('[RoomInvite] Fallback copy — me:', !!me, 'roomCode:', roomCode);
                         navigator.clipboard.writeText(inviteLink).catch(() => {});
+                        toastFriend.setText('✓ Đã sao chép link mời!').setColor('#1abc9c').setAlpha(1);
+                        this.time.delayedCall(2500, () => { if (toastFriend.active) toastFriend.setAlpha(0); });
                     }
-                    toastFriend.setAlpha(1);
-                    this.time.delayedCall(2500, () => { if (toastFriend.active) toastFriend.setAlpha(0); });
                 });
             });
         };
