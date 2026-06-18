@@ -2622,7 +2622,7 @@ export default class MenuScene extends Phaser.Scene {
                 }
                 localStorage.setItem('current_uid', user.uid);
                 saveUserProfile(user.uid, user.displayName || 'Player', user.photoURL || '').catch(() => {});
-                await Economy.syncFromCloud();
+                try { await Economy.syncFromCloud(); } catch (_) {}
                 this._startFriendRequestListener();
                 this._startRoomInviteListener();
                 if (this.diamondText) this.diamondText.setText(Economy.getDiamonds().toLocaleString());

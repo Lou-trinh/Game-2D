@@ -81,3 +81,5 @@ rooms/{roomCode}/players/{uid}         — { isHost, joinedAt, ...profile }
 - `showFriendsList` chỉ hiện tối đa **5 bạn** (`slice(0, 5)`)
 - Guest tự động chuyển sang MainScene khi `status === 'started'` — không cần UI thêm
 - Host là `players[0]` với `isHost === true` — sort theo `joinedAt` ascending
+- **⚠️ CRITICAL**: `_startRoomInviteListener()` được gọi sau `await Economy.syncFromCloud()` trong onAuthChange. Nếu syncFromCloud throw (network lỗi), listener KHÔNG được gọi → invite không đến. Phải wrap trong `try/catch` để listeners luôn chạy.
+- `_shownInvites` key gồm `sentAt` — nếu host gửi lại invite cùng room, sentAt mới sẽ trigger popup mới
