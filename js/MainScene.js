@@ -693,8 +693,8 @@ export default class MainScene extends Phaser.Scene {
         } else {
           sp.x += (sp._smoothVelX || 0) * delta;
           sp.y += (sp._smoothVelY || 0) * delta;
-          sp.x += (sp._targetX - sp.x) * 0.1;
-          sp.y += (sp._targetY - sp.y) * 0.1;
+          sp.x += (sp._targetX - sp.x) * 0.18;
+          sp.y += (sp._targetY - sp.y) * 0.18;
         }
         sp.setDepth(sp.y);
         if (sp._hpBg?.active)  sp._hpBg.setPosition(sp.x, sp.y - 18).setDepth(sp.y + 1);
@@ -706,6 +706,19 @@ export default class MainScene extends Phaser.Scene {
             sp._hpBar.setFillStyle(pct > 0.8 ? 0x00ff00 : pct > 0.5 ? 0xffee00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
           }
         }
+        // Dead-reckoning: if broadcast stale >350ms, move toward nearest player
+        if (sp._lastUpdateAt && (Date.now() - sp._lastUpdateAt) > 350) {
+          const target = this.getNearestPlayer(sp.x, sp.y);
+          const dx = target.x - sp.x;
+          const dy = target.y - sp.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > 50) {
+            const spd = 0.055; // ~55px/s estimated enemy speed
+            sp.x += (dx / d) * spd * delta;
+            sp.y += (dy / d) * spd * delta;
+          }
+        }
+
         // Guest-side melee damage: enemy sprite close to local player
         if (this.player && !this.player.isDead && sp._dmg) {
           const dist = Phaser.Math.Distance.Between(sp.x, sp.y, this.player.x, this.player.y);
@@ -1181,9 +1194,9 @@ export default class MainScene extends Phaser.Scene {
     });
 
     if (isHost) {
-      // Host: broadcast all enemy states every 400ms
+      // Host: broadcast all enemy states every 200ms
       this._enemyBroadcastTimer = this.time.addEvent({
-        delay: 400,
+        delay: 200,
         loop: true,
         callback: () => {
           const allEnemyGroups = [
