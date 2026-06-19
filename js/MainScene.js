@@ -685,6 +685,15 @@ export default class MainScene extends Phaser.Scene {
         if (nameText?.active) nameText.setPosition(sx, sy - 38).setDepth(sy + 2);
         if (hpBg?.active) hpBg.setPosition(sx, sy - 28).setDepth(sy + 2);
         if (hpBar?.active) hpBar.setPosition(sx - 16, sy - 28).setDepth(sy + 3);
+        // Weapon image follows sprite
+        if (entry.weaponImg?.active && entry.prevAlive !== false) {
+          const wFlip = sprite.flipX;
+          const offX = wFlip ? -10 : 10;
+          entry.weaponImg.setPosition(sx + offX, sy + 2);
+          entry.weaponImg.setFlipX(wFlip);
+          entry.weaponImg.setAngle(wFlip ? -(entry._weaponAngle || 0) : (entry._weaponAngle || 0));
+          entry.weaponImg.setDepth(sy + 1);
+        }
       });
     }
 
@@ -713,6 +722,7 @@ export default class MainScene extends Phaser.Scene {
               if (d < 28) {
                 rb.hitIds.add(enemy.mpId);
                 enemy.takeDamage(rb.dmg);
+                this.spawnBloodEffect(rb.sprite.x, rb.sprite.y, rb.vx, rb.vy);
                 rb.distLeft = 0;
                 break outer;
               }
@@ -1106,6 +1116,18 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  spawnBloodEffect(x, y, vx, vy) {
+    if (!this.textures.exists('effect_3')) return;
+    const blood = this.add.sprite(x, y, 'effect_3', 'blood15')
+      .setScale(0.4).setDepth(y + 5).setFlipX((vx || 0) < 0);
+    if (this.anims.exists('blood')) {
+      blood.play('blood');
+      blood.once('animationcomplete', () => { try { blood.destroy(); } catch (_) {} });
+    } else {
+      this.time.delayedCall(300, () => { try { blood.destroy(); } catch (_) {} });
+    }
+  }
+
   getNearestPlayer(fromX, fromY) {
     let nearest = null;
     let nearestDist = Infinity;
@@ -1169,6 +1191,8 @@ export default class MainScene extends Phaser.Scene {
           vy: vel.y,
           flipX: this.player.flipX,
           animKey: this.player.anims?.currentAnim?.key || '',
+          weaponKey: this.player.weaponSlots?.[this.player.activeSlot] || null,
+          weaponAngle: this.player.weapon?.angle || 0,
           characterKey: selectedCharKey,
           displayName: user.displayName || 'Player',
           alive: !this.player.isDead,
@@ -1188,9 +1212,10 @@ export default class MainScene extends Phaser.Scene {
       const activeUids = new Set(others.map(p => p.uid));
       Object.keys(this._otherPlayerSprites).forEach(uid => {
         if (!activeUids.has(uid)) {
-          const { sprite, nameText } = this._otherPlayerSprites[uid];
+          const { sprite, nameText, weaponImg } = this._otherPlayerSprites[uid];
           try { if (sprite.active) sprite.destroy(); } catch (_) {}
           try { if (nameText.active) nameText.destroy(); } catch (_) {}
+          try { if (weaponImg?.active) weaponImg.destroy(); } catch (_) {}
           delete this._otherPlayerSprites[uid];
         }
       });
@@ -1203,7 +1228,7 @@ export default class MainScene extends Phaser.Scene {
           }).setOrigin(0.5).setDepth(p.y + 2);
           const hpBg = this.add.rectangle(p.x, p.y - 28, 32, 4, 0x000000).setDepth(p.y + 2);
           const hpBar = this.add.rectangle(p.x - 16, p.y - 28, 32, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(p.y + 3);
-          this._otherPlayerSprites[p.uid] = { sprite, nameText, hpBg, hpBar, prevAlive: true, _targetX: p.x, _targetY: p.y };
+          this._otherPlayerSprites[p.uid] = { sprite, nameText, hpBg, hpBar, weaponImg: null, _weaponKey: null, prevAlive: true, _targetX: p.x, _targetY: p.y };
         }
 
         const entry = this._otherPlayerSprites[p.uid];
@@ -1221,12 +1246,14 @@ export default class MainScene extends Phaser.Scene {
           });
           hpBg.setVisible(false);
           hpBar.setVisible(false);
+          if (entry.weaponImg?.active) entry.weaponImg.setVisible(false);
         } else if (!isDead && entry.prevAlive === false) {
           entry.prevAlive = true;
           sprite.setTexture(p.characterKey || 'player_1').setScale(1);
           if (entry.floatTween) { entry.floatTween.stop(); entry.floatTween = null; }
           hpBg.setVisible(true);
           hpBar.setVisible(true);
+          if (entry.weaponImg?.active) entry.weaponImg.setVisible(true);
         }
 
         // Update lerp target + dead-reckoning data
@@ -1236,9 +1263,17 @@ export default class MainScene extends Phaser.Scene {
           entry._vx = p.vx || 0;
           entry._vy = p.vy || 0;
           entry._lastUpdateAt = now;
+          entry._weaponAngle = p.weaponAngle || 0;
           sprite.setFlipX(p.flipX || false);
           if (p.animKey && this.anims.exists(p.animKey) && sprite.anims?.currentAnim?.key !== p.animKey) {
             sprite.play(p.animKey, true);
+          }
+          // Create or swap weapon image when weaponKey changes
+          if (p.weaponKey && p.weaponKey !== entry._weaponKey && this.textures.exists(p.weaponKey)) {
+            try { if (entry.weaponImg?.active) entry.weaponImg.destroy(); } catch (_) {}
+            entry.weaponImg = this.add.image(sprite.x, sprite.y, p.weaponKey)
+              .setScale(0.5).setOrigin(0.3, 0.7).setDepth(sprite.depth + 1);
+            entry._weaponKey = p.weaponKey;
           }
         } else {
           sprite.setX(p.x).setDepth(p.y);
