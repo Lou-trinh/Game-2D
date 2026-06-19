@@ -704,6 +704,7 @@ export default class MainScene extends Phaser.Scene {
         this.bears, this.wolves, this.treeMen, this.forestGuardians,
         this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
       ] : null;
+      const guestEnemyProxies = !this._isHost ? Object.values(this._guestEnemyProxies || {}) : null;
       for (let i = this._remoteBullets.length - 1; i >= 0; i--) {
         const rb = this._remoteBullets[i];
         if (!rb.sprite?.active) { this._remoteBullets.splice(i, 1); continue; }
@@ -726,6 +727,22 @@ export default class MainScene extends Phaser.Scene {
                 rb.distLeft = 0;
                 break outer;
               }
+            }
+          }
+        }
+
+        // Guest: check hit against guest enemy proxies (host's bullets)
+        if (guestEnemyProxies && rb.distLeft > 0) {
+          for (const proxy of guestEnemyProxies) {
+            if (!proxy || proxy.isDead || !proxy.sprite?.active) continue;
+            if (rb.hitIds.has(proxy.mpId)) continue;
+            const d = Phaser.Math.Distance.Between(rb.sprite.x, rb.sprite.y, proxy.sprite.x, proxy.sprite.y);
+            if (d < 28) {
+              rb.hitIds.add(proxy.mpId);
+              proxy.takeDamage(rb.dmg);
+              this.spawnBloodEffect(rb.sprite.x, rb.sprite.y, rb.vx, rb.vy);
+              rb.distLeft = 0;
+              break;
             }
           }
         }
