@@ -1121,6 +1121,8 @@ export default class MainScene extends Phaser.Scene {
     // Sync own player position every 200ms (reduced from 100ms to avoid Firestore quota)
     this._lastSentX = null;
     this._lastSentY = null;
+    this._lastSentHealth = null;
+    this._lastSentAlive = null;
     this._syncTimer = this.time.addEvent({
       delay: 200,
       loop: true,
@@ -1128,11 +1130,19 @@ export default class MainScene extends Phaser.Scene {
         if (!this.player || !this.player.active) return;
         const newX = Math.round(this.player.x);
         const newY = Math.round(this.player.y);
+        const newHealth = this.player.health || 0;
+        const newAlive = !this.player.isDead;
         const hasPendingShots = this._pendingShots.length > 0;
-        // Skip write only when truly idle (no movement AND no shots pending)
-        if (!hasPendingShots && newX === this._lastSentX && newY === this._lastSentY) return;
+        const hasChanged = hasPendingShots
+          || newX !== this._lastSentX
+          || newY !== this._lastSentY
+          || newHealth !== this._lastSentHealth
+          || newAlive !== this._lastSentAlive;
+        if (!hasChanged) return;
         this._lastSentX = newX;
         this._lastSentY = newY;
+        this._lastSentHealth = newHealth;
+        this._lastSentAlive = newAlive;
         const vel = this.player.body?.velocity || { x: 0, y: 0 };
         const state = {
           x: newX,
