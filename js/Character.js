@@ -23,9 +23,9 @@ export const CharacterConfigs = {
             defense: 8
         },
         assets: {
-            atlas: 'assets/images/player_1/player_1.png',
-            atlasJson: 'assets/images/player_1/player_1_atlas.json',
-            anim: 'assets/images/player_1/player_1_anim.json'
+            atlas: 'assets/images/players/player_1/player_1.png',
+            atlasJson: 'assets/images/players/player_1/player_1_atlas.json',
+            anim: 'assets/images/players/player_1/player_1_anim.json'
         },
         weapon: {
             texture: 'M4A1',
