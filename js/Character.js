@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 
 // Character configurations
 export const CharacterTypes = {
-    PLAYER_1: 'player_1'
+    PLAYER_1: 'player_1',
+    CHARACTER_02: 'character_02',
 };
 
 export const CharacterConfigs = {
@@ -47,6 +48,80 @@ export const CharacterConfigs = {
             }
         },
         unlocked: true
+    },
+    [CharacterTypes.CHARACTER_02]: {
+        key: 'character_02',
+        name: 'CHARACTER 02',
+        icon: '👧',
+        color: 0xe74c3c,
+        description: '',
+        texture: 'character_02_idle',
+        idleFrame: 'Sprite-0002 0.',
+        walkAnim: 'run_front',
+        idleAnim: 'idle',
+        stats: {
+            health: 100,
+            damage: 20,
+            speed: 3.5,
+            defense: 5
+        },
+        assets: {
+            atlas: 'assets/images/players/player_2/character_02_idle.png',
+            atlasJson: 'assets/images/players/player_2/character_02_idle_atlas.json',
+            anim: 'assets/images/players/player_2/character_02_idle_anim.json'
+        },
+        extraAssets: [
+            {
+                key: 'character_02_idle_back',
+                atlas: 'assets/images/players/player_2/character_02_idle_back.png',
+                atlasJson: 'assets/images/players/player_2/character_02_idle_back_atlas.json',
+                anim: 'assets/images/players/player_2/character_02_idle_back_anim.json'
+            },
+            {
+                key: 'character_02_idle_right',
+                atlas: 'assets/images/players/player_2/character_02_idle_right.png',
+                atlasJson: 'assets/images/players/player_2/character_02_idle_right_atlas.json',
+                anim: 'assets/images/players/player_2/character_02_idle_right_anim.json'
+            },
+            {
+                key: 'character_02_run_front',
+                atlas: 'assets/images/players/player_2/character_02_run_front.png',
+                atlasJson: 'assets/images/players/player_2/character_02_run_front_atlas.json',
+                anim: 'assets/images/players/player_2/character_02_run_front_anim.json'
+            },
+            {
+                key: 'character_02_run_back',
+                atlas: 'assets/images/players/player_2/character_02_run_back.png',
+                atlasJson: 'assets/images/players/player_2/character_02_run_back_atlas.json',
+                anim: 'assets/images/players/player_2/character_02_run_back_anim.json'
+            },
+            {
+                key: 'character_02_run_right',
+                atlas: 'assets/images/players/player_2/character_02_run_right.png',
+                atlasJson: 'assets/images/players/player_2/character_02_run_right_atlas.json',
+                anim: 'assets/images/players/player_2/character_02_run_right_anim.json'
+            },
+        ],
+        weapon: {
+            texture: 'Glock_17',
+            path: 'assets/images/weapons/Glock_17.png',
+            scale: 0.6,
+            offsetX: 7,
+            offsetY: 5,
+            attackType: 'gun_fire',
+            showSkillEffect: false,
+            projectile: {
+                texture: 'bullet',
+                speed: 900,
+                range: 200,
+                damage: 20,
+                scale: 0.4
+            },
+            ammo: {
+                max: 30
+            }
+        },
+        unlocked: true
     }
 };
 
@@ -56,6 +131,14 @@ export function preloadCharacters(scene) {
         if (config.assets && config.unlocked) {
             scene.load.atlas(config.key, config.assets.atlas, config.assets.atlasJson);
             scene.load.animation(`${config.key}_anim`, config.assets.anim);
+        }
+
+        // Preload extra assets (e.g., character_02 has separate atlas per animation)
+        if (config.extraAssets) {
+            config.extraAssets.forEach(extra => {
+                scene.load.atlas(extra.key, extra.atlas, extra.atlasJson);
+                scene.load.animation(`${extra.key}_anim`, extra.anim);
+            });
         }
 
         // Preload transform form assets (e.g., Taoist -> Mino)

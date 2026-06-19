@@ -1,0 +1,16 @@
+{
+    "anims": [
+        {
+            "key": "run_right",
+            "repeat": -1,
+            "frames": [
+                { "key": "character_02_run_right", "frame": "character_02_run_right 0.ase", "duration": 100 },
+                { "key": "character_02_run_right", "frame": "character_02_run_right 1.ase", "duration": 100 },
+                { "key": "character_02_run_right", "frame": "character_02_run_right 2.ase", "duration": 100 },
+                { "key": "character_02_run_right", "frame": "character_02_run_right 3.ase", "duration": 100 },
+                { "key": "character_02_run_right", "frame": "character_02_run_right 4.ase", "duration": 100 },
+                { "key": "character_02_run_right", "frame": "character_02_run_right 5.ase", "duration": 100 }
+            ]
+        }
+    ]
+}
