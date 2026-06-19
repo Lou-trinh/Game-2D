@@ -2,8 +2,7 @@ import Phaser from 'phaser';
 
 // Character configurations
 export const CharacterTypes = {
-    PLAYER_1: 'player_1',
-    CHARACTER_01: 'character_01',
+    PLAYER_1: 'player_1'
 };
 
 export const CharacterConfigs = {
@@ -45,48 +44,6 @@ export const CharacterConfigs = {
             },
             ammo: {
                 max: 60
-            }
-        },
-        unlocked: true
-    },
-    [CharacterTypes.CHARACTER_01]: {
-        key: 'character_01',
-        name: 'CHARACTER 01',
-        icon: '⚔️',
-        color: 0x1a6b3a,
-        description: '',
-        texture: 'character_01',
-        idleFrame: 'character01_01',
-        walkAnim: 'run_front',
-        idleAnim: 'run_front',
-        stats: {
-            health: 100,
-            damage: 20,
-            speed: 3.5,
-            defense: 5
-        },
-        assets: {
-            atlas: 'assets/images/players/character_01/character_01.png',
-            atlasJson: 'assets/images/players/character_01/character_01_atlas.json',
-            anim: 'assets/images/players/character_01/character_01_anim.json'
-        },
-        weapon: {
-            texture: 'Glock_17',
-            path: 'assets/images/weapons/Glock_17.png',
-            scale: 0.6,
-            offsetX: 7,
-            offsetY: 5,
-            attackType: 'gun_fire',
-            showSkillEffect: false,
-            projectile: {
-                texture: 'bullet',
-                speed: 900,
-                range: 200,
-                damage: 20,
-                scale: 0.4
-            },
-            ammo: {
-                max: 30
             }
         },
         unlocked: true
