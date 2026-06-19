@@ -1109,7 +1109,7 @@ export default class MainScene extends Phaser.Scene {
     this._guestEnemySprites = {};
     this._pendingShots = [];
 
-    // Sync own player position every 200ms (reduce Firestore write frequency)
+    // Sync own player position every 200ms (reduced from 100ms to avoid Firestore quota)
     this._lastSentX = null;
     this._lastSentY = null;
     this._syncTimer = this.time.addEvent({
@@ -1117,11 +1117,11 @@ export default class MainScene extends Phaser.Scene {
       loop: true,
       callback: () => {
         if (!this.player || !this.player.active) return;
-        const shots = this._pendingShots.splice(0);
         const newX = Math.round(this.player.x);
         const newY = Math.round(this.player.y);
-        // Skip write if nothing changed and no shots (reduce idle writes)
-        if (shots.length === 0 && newX === this._lastSentX && newY === this._lastSentY) return;
+        const hasPendingShots = this._pendingShots.length > 0;
+        // Skip write only when truly idle (no movement AND no shots pending)
+        if (!hasPendingShots && newX === this._lastSentX && newY === this._lastSentY) return;
         this._lastSentX = newX;
         this._lastSentY = newY;
         const state = {
@@ -1135,7 +1135,7 @@ export default class MainScene extends Phaser.Scene {
           health: this.player.health || 0,
           maxHealth: this.player.maxHealth || 100,
           updatedAt: Date.now(),
-          shots,
+          shots: this._pendingShots.splice(0),
         };
         updatePlayerState(roomCode, user.uid, state).catch(err => console.warn('[MP] playerState write failed:', err?.code));
       },
