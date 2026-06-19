@@ -371,8 +371,8 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.animation('effect_9_anim', 'assets/images/effects/effect_9/electron_anim.json');
         this.load.atlas('effect_3', 'assets/images/effects/effect_3/blood.png', 'assets/images/effects/effect_3/blood_atlas.json');
         this.load.animation('effect_3_anim', 'assets/images/effects/effect_3/blood_anim.json');
-        this.load.atlas('tele_port', 'assets/images/skill/skill_2/tele_port.png', 'assets/images/skill/skill_2/tele_port_atlas.json');
-        this.load.animation('tele_port_anim', 'assets/images/skill/skill_2/tele_port_anim.json');
+        this.load.atlas('tele_port', 'assets/images/teleport/skill_2/tele_port.png', 'assets/images/teleport/skill_2/tele_port_atlas.json');
+        this.load.animation('tele_port_anim', 'assets/images/teleport/skill_2/tele_port_anim.json');
         this.load.atlas('bear', 'assets/images/monsters/bear/bear.png', 'assets/images/monsters/bear/bear_atlas.json');
         this.load.animation('bear_anim', 'assets/images/monsters/bear/bear_anim.json');
         this.load.atlas('tree_man', 'assets/images/monsters/tree_man/tree_man.png', 'assets/images/monsters/tree_man/tree_man_atlas.json');
@@ -400,8 +400,8 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.image('button_out', 'assets/images/inventory/button/button_out.png');
         this.load.image('backpack', 'assets/images/inventory/backpack.png');
         this.load.image('diamond', 'assets/images/item/diamon.png');
-        this.load.atlas('gate', 'assets/images/skill/skill_3/gate.png', 'assets/images/skill/skill_3/gate_atlas.json');
-        this.load.animation('gate_anim', 'assets/images/skill/skill_3/gate_anim.json');
+        this.load.atlas('gate', 'assets/images/teleport/skill_3/gate.png', 'assets/images/teleport/skill_3/gate_atlas.json');
+        this.load.animation('gate_anim', 'assets/images/teleport/skill_3/gate_anim.json');
         this.load.audio('rifle_shot', 'assets/sounds/rifle.mp3');
         this.load.audio('reload_sound', 'assets/sounds/reload.mp3');
         this.load.audio('grenade_explosion', 'assets/sounds/grenade.wav');

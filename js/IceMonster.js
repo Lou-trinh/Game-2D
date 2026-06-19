@@ -59,10 +59,10 @@ export default class IceMonster {
     static preload(scene) {
         scene.load.atlas(
             'ice_monster',
-            'assets/images/skill/ice_monster/ice_monster.png',
-            'assets/images/skill/ice_monster/ice_monster_atlas.json'
+            'assets/images/teleport/ice_monster/ice_monster.png',
+            'assets/images/teleport/ice_monster/ice_monster_atlas.json'
         );
-        scene.load.animation('ice_monster_anim', 'assets/images/skill/ice_monster/ice_monster_anim.json');
+        scene.load.animation('ice_monster_anim', 'assets/images/teleport/ice_monster/ice_monster_anim.json');
     }
 
     createHealthBar(scene) {

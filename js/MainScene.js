@@ -107,8 +107,8 @@ export default class MainScene extends Phaser.Scene {
     this.load.image('diamond', 'assets/images/item/diamon.png');
 
     // Skill 3 (Gate)
-    this.load.atlas('gate', 'assets/images/skill/skill_3/gate.png', 'assets/images/skill/skill_3/gate_atlas.json');
-    this.load.animation('gate_anim', 'assets/images/skill/skill_3/gate_anim.json');
+    this.load.atlas('gate', 'assets/images/teleport/skill_3/gate.png', 'assets/images/teleport/skill_3/gate_atlas.json');
+    this.load.animation('gate_anim', 'assets/images/teleport/skill_3/gate_anim.json');
   }
 
   getSpawnPool() {
