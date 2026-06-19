@@ -729,26 +729,21 @@ export default class MainScene extends Phaser.Scene {
       Object.values(this._guestEnemySprites).forEach(sp => {
         if (!sp?.active || sp._targetX === undefined) return;
 
-        // Dead-reckoning: when broadcast is stale, advance the TARGET (not the sprite directly)
-        if (sp._lastUpdateAt && (Date.now() - sp._lastUpdateAt) > 350) {
-          const target = this.getNearestPlayer(sp._targetX, sp._targetY);
-          const dx = target.x - sp._targetX;
-          const dy = target.y - sp._targetY;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d > 50) {
-            const spd = 0.055;
-            sp._targetX += (dx / d) * spd * delta;
-            sp._targetY += (dy / d) * spd * delta;
-          }
+        // Dead-reckoning: advance target by last known velocity between host broadcasts
+        const staleness = Date.now() - (sp._lastUpdateAt || 0);
+        if (staleness < 1000 && (sp._vx || sp._vy)) {
+          sp._targetX += sp._vx * delta / 16.67;
+          sp._targetY += sp._vy * delta / 16.67;
         }
 
-        // Pure lerp — same approach as remote player sprites (stable, no overshoot)
+        // Delta-time lerp (same half-life formula as remote players)
         const dist = Phaser.Math.Distance.Between(sp.x, sp.y, sp._targetX, sp._targetY);
         if (dist > 300) {
           sp.setPosition(sp._targetX, sp._targetY);
         } else {
-          sp.x += (sp._targetX - sp.x) * 0.2;
-          sp.y += (sp._targetY - sp.y) * 0.2;
+          const lerpT = 1 - Math.pow(0.5, delta / 50);
+          sp.x += (sp._targetX - sp.x) * lerpT;
+          sp.y += (sp._targetY - sp.y) * lerpT;
         }
 
         sp.setDepth(sp.y);
@@ -1297,6 +1292,8 @@ export default class MainScene extends Phaser.Scene {
                 t: e.mpType || '',
                 x: Math.round(e.sprite.x),
                 y: Math.round(e.sprite.y),
+                vx: e.sprite.body?.velocity?.x || 0,
+                vy: e.sprite.body?.velocity?.y || 0,
                 flipX: e.sprite.flipX,
                 animKey: e.sprite.anims?.currentAnim?.key || '',
                 hp: Math.round(e.health || 100),
@@ -1379,6 +1376,8 @@ export default class MainScene extends Phaser.Scene {
             sp._lastUpdateAt = Date.now();
             sp._targetX = e.x;
             sp._targetY = e.y;
+            sp._vx = e.vx || 0;
+            sp._vy = e.vy || 0;
             sp.setFlipX(e.flipX || false);
             if (e.animKey && this.anims.exists(e.animKey) && sp.anims?.currentAnim?.key !== e.animKey) {
               sp.play(e.animKey, true);
