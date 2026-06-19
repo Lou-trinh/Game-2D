@@ -1,7 +1,7 @@
 {
     "anims": [
         {
-            "key": "idle",
+            "key": "character_02_idle",
             "repeat": -1,
             "frames": [
                 { "key": "character_02_idle", "frame": "Sprite-0002 0.", "duration": 400 },

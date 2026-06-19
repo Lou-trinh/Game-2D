@@ -1,7 +1,7 @@
 {
     "anims": [
         {
-            "key": "run_back",
+            "key": "character_02_run_back",
             "repeat": -1,
             "frames": [
                 { "key": "character_02_run_back", "frame": "character_02_run_back 0.ase", "duration": 100 },

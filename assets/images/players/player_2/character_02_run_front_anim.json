@@ -1,7 +1,7 @@
 {
     "anims": [
         {
-            "key": "run_front",
+            "key": "character_02_run_front",
             "repeat": -1,
             "frames": [
                 { "key": "character_02_run_front", "frame": "Sprite-0004 0.", "duration": 100 },
