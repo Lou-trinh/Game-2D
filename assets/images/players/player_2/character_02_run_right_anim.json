@@ -1,7 +1,7 @@
 {
     "anims": [
         {
-            "key": "run_right",
+            "key": "character_02_run_right",
             "repeat": -1,
             "frames": [
                 { "key": "character_02_run_right", "frame": "character_02_run_right 0.ase", "duration": 100 },

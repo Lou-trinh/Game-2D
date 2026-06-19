@@ -57,8 +57,8 @@ export const CharacterConfigs = {
         description: '',
         texture: 'character_02_idle',
         idleFrame: 'Sprite-0002 0.',
-        walkAnim: 'run_front',
-        idleAnim: 'idle',
+        walkAnim: 'character_02_run_front',
+        idleAnim: 'character_02_idle',
         stats: {
             health: 100,
             damage: 20,
