@@ -2151,18 +2151,12 @@ export default class MenuScene extends Phaser.Scene {
 
     updateSpotlight() {
         const config = getCharacterConfig(this.selectedCharacterKey);
-        this.spotlightSprite.setTexture(config.texture);
+        this.spotlightSprite.setTexture(config.texture, config.idleFrame);
         if (config.idleAnim) {
             this.spotlightSprite.play(config.idleAnim);
         }
         this.spotlightSprite.setOrigin(0.5, 1);
-
-        // Character specific elevation
-        if (this.selectedCharacterKey === 'player_1') {
-            this.spotlightSprite.setY(this.scale.height / 2 + 55); // Lowered
-        } else {
-            this.spotlightSprite.setY(this.scale.height / 2 + 35); // Lowered
-        }
+        this.spotlightSprite.setY(this.scale.height / 2 + 55);
 
         // Update Info
         this.charNameText.setText(config.name.toUpperCase());
