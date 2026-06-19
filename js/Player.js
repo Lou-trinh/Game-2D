@@ -398,6 +398,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           speed: speed,
           range: weapon?.range || projectileConfig.range || 600,
           tex: textureOverride || projectileConfig.texture || 'bullet',
+          dmg: baseDamage + (this.bonusDamage || 0),
         });
       }
     }

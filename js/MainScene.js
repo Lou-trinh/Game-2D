@@ -688,9 +688,13 @@ export default class MainScene extends Phaser.Scene {
       });
     }
 
-    // Move remote (visual-only) bullets
+    // Move remote bullets + apply damage to host's real enemies
     if (this._remoteBullets?.length) {
       const dt_s = delta / 1000;
+      const hostEnemyGroups = this._isHost ? [
+        this.bears, this.wolves, this.treeMen, this.forestGuardians,
+        this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
+      ] : null;
       for (let i = this._remoteBullets.length - 1; i >= 0; i--) {
         const rb = this._remoteBullets[i];
         if (!rb.sprite?.active) { this._remoteBullets.splice(i, 1); continue; }
@@ -698,6 +702,24 @@ export default class MainScene extends Phaser.Scene {
         rb.sprite.x += rb.vx * dt_s;
         rb.sprite.y += rb.vy * dt_s;
         rb.distLeft -= moved;
+
+        // Host: check hit against real enemies
+        if (hostEnemyGroups && rb.distLeft > 0) {
+          outer: for (const group of hostEnemyGroups) {
+            for (const enemy of (group || [])) {
+              if (!enemy || enemy.isDead || !enemy.sprite?.active) continue;
+              if (rb.hitIds.has(enemy.mpId)) continue;
+              const d = Phaser.Math.Distance.Between(rb.sprite.x, rb.sprite.y, enemy.sprite.x, enemy.sprite.y);
+              if (d < 28) {
+                rb.hitIds.add(enemy.mpId);
+                enemy.takeDamage(rb.dmg);
+                rb.distLeft = 0;
+                break outer;
+              }
+            }
+          }
+        }
+
         if (rb.distLeft <= 0) { try { rb.sprite.destroy(); } catch (_) {} this._remoteBullets.splice(i, 1); }
       }
     }
@@ -1113,6 +1135,7 @@ export default class MainScene extends Phaser.Scene {
     if (!user) return;
 
     const isHost = this.registry.get('isMultiplayerHost') !== false;
+    this._isHost = isHost;
     const selectedCharKey = this.registry.get('selectedCharacter') || 'player_1';
     this._otherPlayerSprites = {};
     this._guestEnemySprites = {};
@@ -1247,6 +1270,8 @@ export default class MainScene extends Phaser.Scene {
               vx: Math.cos(s.rad) * (s.speed || 1000),
               vy: Math.sin(s.rad) * (s.speed || 1000),
               distLeft: s.range || 600,
+              dmg: s.dmg || 25,
+              hitIds: new Set(),
             });
           });
         }
