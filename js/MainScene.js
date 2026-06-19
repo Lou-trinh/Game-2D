@@ -1109,15 +1109,24 @@ export default class MainScene extends Phaser.Scene {
     this._guestEnemySprites = {};
     this._pendingShots = [];
 
-    // Sync own player position every 100ms
+    // Sync own player position every 200ms (reduce Firestore write frequency)
+    this._lastSentX = null;
+    this._lastSentY = null;
     this._syncTimer = this.time.addEvent({
-      delay: 100,
+      delay: 200,
       loop: true,
       callback: () => {
         if (!this.player || !this.player.active) return;
+        const shots = this._pendingShots.splice(0);
+        const newX = Math.round(this.player.x);
+        const newY = Math.round(this.player.y);
+        // Skip write if nothing changed and no shots (reduce idle writes)
+        if (shots.length === 0 && newX === this._lastSentX && newY === this._lastSentY) return;
+        this._lastSentX = newX;
+        this._lastSentY = newY;
         const state = {
-          x: Math.round(this.player.x),
-          y: Math.round(this.player.y),
+          x: newX,
+          y: newY,
           flipX: this.player.flipX,
           animKey: this.player.anims?.currentAnim?.key || '',
           characterKey: selectedCharKey,
@@ -1126,9 +1135,9 @@ export default class MainScene extends Phaser.Scene {
           health: this.player.health || 0,
           maxHealth: this.player.maxHealth || 100,
           updatedAt: Date.now(),
+          shots,
         };
-        state.shots = this._pendingShots.splice(0); // always write (clears Firestore when empty)
-        updatePlayerState(roomCode, user.uid, state).catch(() => {});
+        updatePlayerState(roomCode, user.uid, state).catch(err => console.warn('[MP] playerState write failed:', err?.code));
       },
     });
 
@@ -1220,9 +1229,9 @@ export default class MainScene extends Phaser.Scene {
     });
 
     if (isHost) {
-      // Host: broadcast all enemy states every 200ms
+      // Host: broadcast all enemy states every 500ms (reduced from 200ms to avoid Firestore throttling)
       this._enemyBroadcastTimer = this.time.addEvent({
-        delay: 200,
+        delay: 500,
         loop: true,
         callback: () => {
           const allEnemyGroups = [
@@ -1235,19 +1244,19 @@ export default class MainScene extends Phaser.Scene {
               if (!e || e.isDead || !e.sprite || !e.sprite.active) return;
               enemies.push({
                 id: e.mpId,
-                textureKey: e.sprite.texture.key,
+                t: e.mpType || '',
                 x: Math.round(e.sprite.x),
                 y: Math.round(e.sprite.y),
                 flipX: e.sprite.flipX,
                 animKey: e.sprite.anims?.currentAnim?.key || '',
-                hp: e.health || 100,
+                hp: Math.round(e.health || 100),
                 maxHp: e.maxHealth || 100,
                 dmg: e.damageAmount || 10,
-                cooldown: e.damageCooldown || 1000,
+                cd: e.damageCooldown || 1000,
               });
             });
           });
-          updateGameState(roomCode, { enemies, updatedAt: Date.now() }).catch(() => {});
+          updateGameState(roomCode, { enemies, updatedAt: Date.now() }).catch(err => console.warn('[MP] gameState write failed:', err?.code));
         },
       });
 
@@ -1291,35 +1300,46 @@ export default class MainScene extends Phaser.Scene {
         // Create/update enemy sprites
         this._guestEnemyProxies = this._guestEnemyProxies || {};
         enemies.forEach(e => {
-          const key = String(e.id);
-          if (!this._guestEnemySprites[key]) {
-            const sp = this.add.sprite(e.x, e.y, e.textureKey).setDepth(e.y);
+          try {
+            const key = String(e.id);
+            if (!this._guestEnemySprites[key]) {
+              // Map mpType to texture key (same as spawn pool names)
+              const texMap = {
+                bear: 'bear', treeman: 'treeman', forestguardian: 'forest_guardian',
+                gnollbrute: 'gnoll_brute', gnollshaman: 'gnoll_shaman',
+                wolf: 'wolf', mushroom: 'mushroom', smallmushroom: 'small_mushroom',
+                golem: 'golem',
+              };
+              const texKey = (e.t && texMap[e.t]) ? texMap[e.t] : (e.textureKey || 'bear');
+              const sp = this.add.sprite(e.x, e.y, texKey).setDepth(e.y);
+              sp._targetX = e.x;
+              sp._targetY = e.y;
+              sp._hpGfx = this.add.graphics().setDepth(e.y + 10);
+              sp._dmg = e.dmg || 10;
+              sp._cooldown = e.cd || e.cooldown || 1000;
+              sp._lastHitPlayer = 0;
+              this._guestEnemySprites[key] = sp;
+              const proxy = new GuestEnemyProxy(sp, e.id, e.hp || 100, this, roomCode);
+              proxy.maxHp = e.maxHp || e.hp || 100;
+              sp._proxy = proxy;
+              this._guestEnemyProxies[key] = proxy;
+              this.guestEnemies.push(proxy);
+            }
+            const sp = this._guestEnemySprites[key];
+            sp._lastUpdateAt = Date.now();
             sp._targetX = e.x;
             sp._targetY = e.y;
-            sp._hpGfx = this.add.graphics().setDepth(e.y + 10);
-            sp._dmg = e.dmg || 10;
-            sp._cooldown = e.cooldown || 1000;
-            sp._lastHitPlayer = 0;
-            this._guestEnemySprites[key] = sp;
-            const proxy = new GuestEnemyProxy(sp, e.id, e.hp || 100, this, roomCode);
-            proxy.maxHp = e.maxHp || e.hp || 100;
-            sp._proxy = proxy;
-            this._guestEnemyProxies[key] = proxy;
-            this.guestEnemies.push(proxy);
-          }
-          const sp = this._guestEnemySprites[key];
-          sp._lastUpdateAt = Date.now();
-          sp._targetX = e.x;
-          sp._targetY = e.y;
-          sp.setFlipX(e.flipX || false);
-          if (e.animKey && this.anims.exists(e.animKey) && sp.anims?.currentAnim?.key !== e.animKey) {
-            sp.play(e.animKey, true);
-          }
-          // Sync HP from host (HP bar update handled per-frame in update())
-          const proxy = this._guestEnemyProxies[key];
-          if (proxy && !proxy.isDead && e.hp !== undefined) {
-            proxy.hp = Math.min(proxy.hp, e.hp);
-            if (e.maxHp) proxy.maxHp = e.maxHp;
+            sp.setFlipX(e.flipX || false);
+            if (e.animKey && this.anims.exists(e.animKey) && sp.anims?.currentAnim?.key !== e.animKey) {
+              sp.play(e.animKey, true);
+            }
+            const proxy = this._guestEnemyProxies[key];
+            if (proxy && !proxy.isDead && e.hp !== undefined) {
+              proxy.hp = Math.min(proxy.hp, e.hp);
+              if (e.maxHp) proxy.maxHp = e.maxHp;
+            }
+          } catch (err) {
+            console.warn('[Guest] enemy sprite error id=' + e.id, err);
           }
         });
       });
