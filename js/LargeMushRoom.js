@@ -60,12 +60,12 @@ export default class LargeMushRoom {
   static preload(scene) {
     scene.load.atlas(
       'largemushroom',
-      'assets/images/large_mush_room/largemushroom.png',
-      'assets/images/large_mush_room/largemushroom_atlas.json'
+      'assets/images/monsters/large_mush_room/largemushroom.png',
+      'assets/images/monsters/large_mush_room/largemushroom_atlas.json'
     );
     scene.load.animation(
       'largemushroom_anim',
-      'assets/images/large_mush_room/largemushroom_anim.json'
+      'assets/images/monsters/large_mush_room/largemushroom_anim.json'
     );
 
     scene.load.image('blood', 'assets/images/item/blood.png');

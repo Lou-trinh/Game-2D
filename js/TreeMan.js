@@ -57,10 +57,10 @@ export default class TreeMan {
   static preload(scene) {
     scene.load.atlas(
       'tree_man',
-      'assets/images/tree_man/tree_man.png',
-      'assets/images/tree_man/tree_man_atlas.json'
+      'assets/images/monsters/tree_man/tree_man.png',
+      'assets/images/monsters/tree_man/tree_man_atlas.json'
     );
-    scene.load.animation('tree_man_anim', 'assets/images/tree_man/tree_man_anim.json');
+    scene.load.animation('tree_man_anim', 'assets/images/monsters/tree_man/tree_man_anim.json');
 
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');

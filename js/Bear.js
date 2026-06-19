@@ -57,10 +57,10 @@ export default class Bear {
   static preload(scene) {
     scene.load.atlas(
       'bear',
-      'assets/images/bear/bear.png',
-      'assets/images/bear/bear_atlas.json'
+      'assets/images/monsters/bear/bear.png',
+      'assets/images/monsters/bear/bear_atlas.json'
     );
-    scene.load.animation('bear_anim', 'assets/images/bear/bear_anim.json');
+    scene.load.animation('bear_anim', 'assets/images/monsters/bear/bear_anim.json');
 
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');

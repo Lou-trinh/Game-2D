@@ -57,10 +57,10 @@ export default class Wolf {
   static preload(scene) {
     scene.load.atlas(
       'wolf',
-      'assets/images/wolf/wolf.png',
-      'assets/images/wolf/wolf_atlas.json'
+      'assets/images/monsters/wolf/wolf.png',
+      'assets/images/monsters/wolf/wolf_atlas.json'
     );
-    scene.load.animation('wolf_anim', 'assets/images/wolf/wolf_anim.json');
+    scene.load.animation('wolf_anim', 'assets/images/monsters/wolf/wolf_anim.json');
 
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');

@@ -60,10 +60,10 @@ export default class Golem {
   static preload(scene) {
     scene.load.atlas(
       'golem',
-      'assets/images/golem/golem.png',
-      'assets/images/golem/golem_atlas.json'
+      'assets/images/monsters/golem/golem.png',
+      'assets/images/monsters/golem/golem_atlas.json'
     );
-    scene.load.animation('golem_anim', 'assets/images/golem/golem_anim.json');
+    scene.load.animation('golem_anim', 'assets/images/monsters/golem/golem_anim.json');
 
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');

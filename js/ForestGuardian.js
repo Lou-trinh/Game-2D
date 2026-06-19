@@ -61,10 +61,10 @@ export default class ForestGuardian {
   static preload(scene) {
     scene.load.atlas(
       'forest_guardian',
-      'assets/images/forest_guardian/forest_guardian.png',
-      'assets/images/forest_guardian/forest_guardian_atlas.json'
+      'assets/images/monsters/forest_guardian/forest_guardian.png',
+      'assets/images/monsters/forest_guardian/forest_guardian_atlas.json'
     );
-    scene.load.animation('forest_guardian_anim', 'assets/images/forest_guardian/forest_guardian_anim.json');
+    scene.load.animation('forest_guardian_anim', 'assets/images/monsters/forest_guardian/forest_guardian_anim.json');
 
     // Load tornado effect
     scene.load.atlas(

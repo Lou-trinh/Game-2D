@@ -58,10 +58,10 @@ export default class GnollShaman {
   static preload(scene) {
     scene.load.atlas(
       'gnollshaman',
-      'assets/images/gnoll_shaman/gnollshaman.png',
-      'assets/images/gnoll_shaman/gnollshaman_atlas.json'
+      'assets/images/monsters/gnoll_shaman/gnollshaman.png',
+      'assets/images/monsters/gnoll_shaman/gnollshaman_atlas.json'
     );
-    scene.load.animation('gnollshaman_anim', 'assets/images/gnoll_shaman/gnollshaman_anim.json');
+    scene.load.animation('gnollshaman_anim', 'assets/images/monsters/gnoll_shaman/gnollshaman_anim.json');
 
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');

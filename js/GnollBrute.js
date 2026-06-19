@@ -57,10 +57,10 @@ export default class GnollBrute {
   static preload(scene) {
     scene.load.atlas(
       'gnollbrute',
-      'assets/images/gnoll_brute/gnollbrute.png',
-      'assets/images/gnoll_brute/gnollbrute_atlas.json'
+      'assets/images/monsters/gnoll_brute/gnollbrute.png',
+      'assets/images/monsters/gnoll_brute/gnollbrute_atlas.json'
     );
-    scene.load.animation('gnollbrute_anim', 'assets/images/gnoll_brute/gnollbrute_anim.json');
+    scene.load.animation('gnollbrute_anim', 'assets/images/monsters/gnoll_brute/gnollbrute_anim.json');
 
     scene.load.image('blood', 'assets/images/item/blood.png');
     scene.load.image('blood2', 'assets/images/item/blood2.png');
