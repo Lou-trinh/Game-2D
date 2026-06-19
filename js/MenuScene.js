@@ -1684,18 +1684,23 @@ export default class MenuScene extends Phaser.Scene {
                         ibHit.disableInteractive();
                         ibTxt.setText('...');
                         const myProfile = { uid: me.uid, displayName: me.displayName || 'Player', photoURL: me.photoURL || '' };
-                        sendRoomInvite(me.uid, myProfile, friend.uid, roomCode)
-                            .then(() => {
-                                ibTxt.setText('Mời');
-                                ibHit.setInteractive({ useHandCursor: true });
-                                toastFriend.setText(`✓ Đã gửi lời mời cho ${friend.displayName}!`).setColor('#1abc9c').setAlpha(1);
+                        const resetBtn = () => {
+                            if (ibTxt.active) ibTxt.setText('Mời');
+                            if (ibHit.active) ibHit.setInteractive({ useHandCursor: true });
+                        };
+                        const showToast = (msg, color) => {
+                            if (toastFriend.active) {
+                                toastFriend.setText(msg).setColor(color).setAlpha(1);
                                 this.time.delayedCall(2500, () => { if (toastFriend.active) toastFriend.setAlpha(0); });
-                            })
-                            .catch(() => {
-                                ibTxt.setText('Mời');
-                                ibHit.setInteractive({ useHandCursor: true });
-                                toastFriend.setText('✗ Gửi thất bại, thử lại').setColor('#ff5555').setAlpha(1);
-                                this.time.delayedCall(2500, () => { if (toastFriend.active) toastFriend.setAlpha(0); });
+                            }
+                        };
+                        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000));
+                        Promise.race([sendRoomInvite(me.uid, myProfile, friend.uid, roomCode), timeout])
+                            .then(() => { resetBtn(); showToast(`✓ Đã gửi lời mời cho ${friend.displayName}!`, '#1abc9c'); })
+                            .catch(err => {
+                                console.warn('[Invite] sendRoomInvite failed:', err?.code || err?.message);
+                                resetBtn();
+                                showToast('✗ Gửi thất bại, thử lại', '#ff5555');
                             });
                     } else {
                         navigator.clipboard.writeText(inviteLink).catch(() => {});
