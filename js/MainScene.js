@@ -45,6 +45,7 @@ class GuestEnemyProxy {
     if (this.hp <= 0) {
       this.isDead = true;
       sendEnemyKill(this._roomCode, this.mpId).catch(() => {});
+      this._scene.dropLoot(this.x, this.y, 1, 'coin');
       if (sp?.active) {
         try { if (sp._hpGfx?.active) sp._hpGfx.destroy(); } catch (_) {}
         this._scene.tweens.add({

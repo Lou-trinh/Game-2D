@@ -1178,7 +1178,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.scene.golems,
       this.scene.mushrooms,
       this.scene.smallMushrooms,
-      this.scene.chests
+      this.scene.chests,
+      this.scene.guestEnemies || [],
     ];
 
     let nearestEnemy = null;
