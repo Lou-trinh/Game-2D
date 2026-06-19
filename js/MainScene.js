@@ -693,20 +693,33 @@ export default class MainScene extends Phaser.Scene {
       }
     }
 
-    // Smoothed velocity interpolation for guest enemy sprites
+    // Lerp guest enemy sprites toward host-broadcast target positions
     if (this._guestEnemySprites) {
       Object.values(this._guestEnemySprites).forEach(sp => {
         if (!sp?.active || sp._targetX === undefined) return;
-        const dist = Phaser.Math.Distance.Between(sp.x, sp.y, sp._targetX, sp._targetY);
-        if (dist > 250) {
-          sp.setPosition(sp._targetX, sp._targetY);
-          sp._smoothVelX = 0; sp._smoothVelY = 0;
-        } else {
-          sp.x += (sp._smoothVelX || 0) * delta;
-          sp.y += (sp._smoothVelY || 0) * delta;
-          sp.x += (sp._targetX - sp.x) * 0.18;
-          sp.y += (sp._targetY - sp.y) * 0.18;
+
+        // Dead-reckoning: when broadcast is stale, advance the TARGET (not the sprite directly)
+        if (sp._lastUpdateAt && (Date.now() - sp._lastUpdateAt) > 350) {
+          const target = this.getNearestPlayer(sp._targetX, sp._targetY);
+          const dx = target.x - sp._targetX;
+          const dy = target.y - sp._targetY;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > 50) {
+            const spd = 0.055;
+            sp._targetX += (dx / d) * spd * delta;
+            sp._targetY += (dy / d) * spd * delta;
+          }
         }
+
+        // Pure lerp — same approach as remote player sprites (stable, no overshoot)
+        const dist = Phaser.Math.Distance.Between(sp.x, sp.y, sp._targetX, sp._targetY);
+        if (dist > 300) {
+          sp.setPosition(sp._targetX, sp._targetY);
+        } else {
+          sp.x += (sp._targetX - sp.x) * 0.2;
+          sp.y += (sp._targetY - sp.y) * 0.2;
+        }
+
         sp.setDepth(sp.y);
         if (sp._hpGfx?.active && sp._proxy) {
           const pct = Math.max(0, sp._proxy.hp / Math.max(sp._proxy.maxHp, 1));
@@ -715,21 +728,8 @@ export default class MainScene extends Phaser.Scene {
           sp._hpGfx.setDepth(sp.y + 10);
           sp._hpGfx.fillStyle(0x000000, 0.75);
           sp._hpGfx.fillRect(bx, by, 30, 5);
-          const col = 0xff2222;
-          sp._hpGfx.fillStyle(col, 1);
+          sp._hpGfx.fillStyle(0xff2222, 1);
           sp._hpGfx.fillRect(bx, by, pct * 30, 5);
-        }
-        // Dead-reckoning: if broadcast stale >350ms, move toward nearest player
-        if (sp._lastUpdateAt && (Date.now() - sp._lastUpdateAt) > 350) {
-          const target = this.getNearestPlayer(sp.x, sp.y);
-          const dx = target.x - sp.x;
-          const dy = target.y - sp.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d > 50) {
-            const spd = 0.055; // ~55px/s estimated enemy speed
-            sp.x += (dx / d) * spd * delta;
-            sp.y += (dy / d) * spd * delta;
-          }
         }
 
         // Guest-side melee damage: enemy sprite close to local player
@@ -1308,14 +1308,7 @@ export default class MainScene extends Phaser.Scene {
             this.guestEnemies.push(proxy);
           }
           const sp = this._guestEnemySprites[key];
-          const now3 = Date.now();
-          const dt = sp._lastUpdateAt ? (now3 - sp._lastUpdateAt) : 400;
-          const mVx = (e.x - (sp._targetX ?? e.x)) / Math.max(dt, 16);
-          const mVy = (e.y - (sp._targetY ?? e.y)) / Math.max(dt, 16);
-          const S = 0.4;
-          sp._smoothVelX = sp._smoothVelX !== undefined ? sp._smoothVelX * S + mVx * (1 - S) : mVx;
-          sp._smoothVelY = sp._smoothVelY !== undefined ? sp._smoothVelY * S + mVy * (1 - S) : mVy;
-          sp._lastUpdateAt = now3;
+          sp._lastUpdateAt = Date.now();
           sp._targetX = e.x;
           sp._targetY = e.y;
           sp.setFlipX(e.flipX || false);
