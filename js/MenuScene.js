@@ -1,7 +1,7 @@
 import { getAllCharacters, getCharacterConfig } from './Character';
 import { Economy } from './utils/Economy';
 import { WeaponData, WeaponCategories, getWeaponsByCategory, getWeaponByKey, getWeaponsByCategories } from './data/WeaponData';
-import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, onFriendRequestsChange, createRoom, joinRoom, onRoomPlayersChange, leaveRoom, setRoomStatus, onRoomStatusChange, sendRoomInvite, onRoomInviteChange, declineRoomInvite } from './firebase.js';
+import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, onFriendRequestsChange, createRoom, joinRoom, onRoomPlayersChange, leaveRoom, setRoomStatus, onRoomStatusChange, sendRoomInvite, onRoomInviteChange, declineRoomInvite, updatePlayerInRoom } from './firebase.js';
 
 export default class MenuScene extends Phaser.Scene {
     constructor() {
@@ -2020,8 +2020,8 @@ export default class MenuScene extends Phaser.Scene {
                     avG.lineStyle(2, 0x1abc9c, 0.8);
                     avG.strokeCircle(sx + slotW / 2, slotY + 54, 22);
                     this._lobbySlotEls.push(avG);
-                    const sprKey = p.uid === auth.currentUser?.uid ? (this.selectedCharacterKey || 'player_1') : 'player_1';
-                    const spr = this.add.sprite(sx + slotW / 2, slotY + 62, sprKey).setScale(1.5).setDepth(202);
+                    const charCfg = getCharacterConfig(p.characterKey || 'player_1');
+                    const spr = this.add.sprite(sx + slotW / 2, slotY + 62, charCfg.texture, charCfg.idleFrame).setScale(1.5).setDepth(202);
                     this._lobbySlotEls.push(spr);
                     this._lobbySlotEls.push(
                         this.add.text(sx + slotW / 2, slotY + 84, p.displayName || 'Người chơi', { fontSize: '9px', color: '#1abc9c', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
@@ -2097,7 +2097,7 @@ export default class MenuScene extends Phaser.Scene {
         const user = auth.currentUser;
         this._lobbyRoomCode = roomCode;
         if (user) {
-            const myProfile = { uid: user.uid, displayName: user.displayName || 'Bạn', photoURL: user.photoURL || '' };
+            const myProfile = { uid: user.uid, displayName: user.displayName || 'Bạn', photoURL: user.photoURL || '', characterKey: this.selectedCharacterKey || 'player_1' };
             if (isHost) {
                 // Show host slot immediately so UI isn't blank while createRoom writes to Firestore
                 renderSlots([{ ...myProfile, isHost: true, joinedAt: Date.now() }]);
@@ -2147,6 +2147,12 @@ export default class MenuScene extends Phaser.Scene {
 
         this.updateSpotlight();
         this.updateWeaponList();
+
+        // Sync character selection to room if currently in lobby
+        const user = auth.currentUser;
+        if (user && this._lobbyRoomCode) {
+            updatePlayerInRoom(this._lobbyRoomCode, user.uid, { characterKey: key }).catch(() => {});
+        }
     }
 
     updateSpotlight() {

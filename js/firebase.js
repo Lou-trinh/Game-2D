@@ -129,6 +129,10 @@ export async function joinRoom(roomCode, playerProfile) {
   });
 }
 
+export async function updatePlayerInRoom(roomCode, uid, data) {
+  await setDoc(doc(db, 'rooms', roomCode, 'players', uid), data, { merge: true });
+}
+
 export function onRoomPlayersChange(roomCode, callback) {
   return onSnapshot(collection(db, 'rooms', roomCode, 'players'), snap => {
     const players = snap.docs.map(d => d.data()).sort((a, b) => {
