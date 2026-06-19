@@ -283,8 +283,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   setupKeyboardInput(scene) {
     // Setup R key for reload.
     scene.input.keyboard.on('keydown-R', () => {
-      // Player 1 Reload
-      if (this.characterType === CharacterTypes.PLAYER_1) {
+      // Gun character reload
+      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_01) {
         this.reloadWeapon();
       }
     });
@@ -314,8 +314,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const projectileConfig = this.characterConfig.weapon?.projectile;
     if (!projectileConfig) return;
 
-    // Decrement ammo for Player 1
-    if (this.characterType === CharacterTypes.PLAYER_1) {
+    // Decrement ammo for gun characters
+    if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_01) {
       const ammo = this.ammoData[this.activeSlot];
       if (ammo) {
         // Reduced decrement here as it's now handled in attack() for gun_fire
@@ -406,8 +406,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   attack() {
     if (this.isAttacking || this.isDead) return;
 
-    // Player 1 specific check for ammo before attacking
-    if (this.characterType === CharacterTypes.PLAYER_1) {
+    // Gun character ammo check before attacking
+    if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_01) {
       if (this.currentAmmo <= 0) {
         console.log('❌ Out of ammo! Cannot attack.');
         // Optional: Play empty click sound
@@ -552,8 +552,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.lastAttackAngle = this.flipX ? Math.PI : 0;
       }
 
-      // Consume ammo if Player 1
-      if (this.characterType === CharacterTypes.PLAYER_1) {
+      // Consume ammo for gun characters
+      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_01) {
         const ammo = this.ammoData[this.activeSlot];
         if (ammo && ammo.current > 0) {
           ammo.current--;
@@ -1688,7 +1688,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     // Check for attack input (Space held down)
     if (this.keySpace?.isDown || this.mobileFireHeld) {
-      if (this.characterType === CharacterTypes.PLAYER_1) {
+      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_01) {
         const weaponKey = this.weaponSlots[this.activeSlot];
         const weapon = getWeaponByKey(weaponKey);
         const isMelee = weapon && weapon.category === WeaponCategories.MELEE;
@@ -1771,6 +1771,23 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       } else if (!this.isDashing) {
         this.setVelocity(0, 0);
         this.anims.play('idle', true);
+      }
+    } else if (this.characterType === CharacterTypes.CHARACTER_01) {
+      // --- CHARACTER_01 DIRECTIONAL ANIMATION (separate left/right, no flip) ---
+      if (vel.length() > 0 && !this.isDashing) {
+        vel.normalize().scale(speed);
+        this.setVelocity(vel.x, vel.y);
+        let animToPlay = 'run_front';
+        if (Math.abs(vel.y) >= Math.abs(vel.x)) {
+          animToPlay = vel.y < 0 ? 'run_top' : 'run_front';
+        } else {
+          animToPlay = vel.x > 0 ? 'run_right' : 'run_left';
+        }
+        this.setFlipX(false);
+        this.anims.play(animToPlay, true);
+      } else if (!this.isDashing) {
+        this.setVelocity(0, 0);
+        this.anims.play('run_front', true);
       }
     } else {
       // --- EXISTING LOGIC FOR OTHER CHARACTERS ---

@@ -301,6 +301,8 @@ export default class SceneLoading extends Phaser.Scene {
     loadFullAssets() {
         this.load.atlas('player_1', 'assets/images/players/player_1/player_1.png', 'assets/images/players/player_1/player_1_atlas.json');
         this.load.animation('player_1_anim', 'assets/images/players/player_1/player_1_anim.json');
+        this.load.atlas('character_01', 'assets/images/players/character_01/character_01.png', 'assets/images/players/character_01/character_01_atlas.json');
+        this.load.animation('character_01_anim', 'assets/images/players/character_01/character_01_anim.json');
         this.load.image('M4A1', 'assets/images/weapons/M4A1.png');
         this.load.image('AK47', 'assets/images/weapons/AK47.png');
         this.load.image('Glock_17', 'assets/images/weapons/Glock_17.png');
