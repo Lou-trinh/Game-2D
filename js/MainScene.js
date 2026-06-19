@@ -41,6 +41,12 @@ class GuestEnemyProxy {
     if (sp?.active) {
       sp.setTint(0xff0000);
       this._scene.time.delayedCall(100, () => { if (sp?.active) sp.clearTint(); });
+      // Blood puddle
+      if (this._scene.textures.exists('blood2')) {
+        const blood = this._scene.add.image(sp.x + Phaser.Math.Between(-10, 10), sp.y + 15, 'blood2')
+          .setDepth(0).setScale(Phaser.Math.FloatBetween(0.2, 0.4));
+        this._scene.tweens.add({ targets: blood, alpha: 0, duration: 5000, ease: 'Power2', onComplete: () => { try { blood.destroy(); } catch (_) {} } });
+      }
     }
     if (this.hp <= 0) {
       this.isDead = true;
