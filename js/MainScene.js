@@ -664,12 +664,21 @@ export default class MainScene extends Phaser.Scene {
       Object.values(this._otherPlayerSprites).forEach(entry => {
         const { sprite, nameText, hpBg, hpBar } = entry;
         if (!sprite?.active || entry.prevAlive === false || entry._targetX === undefined) return;
+
+        // Dead-reckoning: advance target between Firestore updates using last known velocity
+        const staleness = Date.now() - (entry._lastUpdateAt || 0);
+        if (staleness < 500 && (entry._vx || entry._vy)) {
+          entry._targetX += entry._vx * delta / 16.67;
+          entry._targetY += entry._vy * delta / 16.67;
+        }
+
         const dist = Phaser.Math.Distance.Between(sprite.x, sprite.y, entry._targetX, entry._targetY);
         if (dist > 300) {
           sprite.setPosition(entry._targetX, entry._targetY);
         } else {
-          sprite.x += (entry._targetX - sprite.x) * 0.2;
-          sprite.y += (entry._targetY - sprite.y) * 0.2;
+          const lerpT = 1 - Math.pow(0.5, delta / 50);
+          sprite.x += (entry._targetX - sprite.x) * lerpT;
+          sprite.y += (entry._targetY - sprite.y) * lerpT;
         }
         sprite.setDepth(sprite.y);
         const sx = sprite.x, sy = sprite.y;
@@ -1124,9 +1133,12 @@ export default class MainScene extends Phaser.Scene {
         if (!hasPendingShots && newX === this._lastSentX && newY === this._lastSentY) return;
         this._lastSentX = newX;
         this._lastSentY = newY;
+        const vel = this.player.body?.velocity || { x: 0, y: 0 };
         const state = {
           x: newX,
           y: newY,
+          vx: vel.x,
+          vy: vel.y,
           flipX: this.player.flipX,
           animKey: this.player.anims?.currentAnim?.key || '',
           characterKey: selectedCharKey,
@@ -1189,10 +1201,13 @@ export default class MainScene extends Phaser.Scene {
           hpBar.setVisible(true);
         }
 
-        // Update lerp target
+        // Update lerp target + dead-reckoning data
         if (!isDead) {
           entry._targetX = p.x;
           entry._targetY = p.y;
+          entry._vx = p.vx || 0;
+          entry._vy = p.vy || 0;
+          entry._lastUpdateAt = now;
           sprite.setFlipX(p.flipX || false);
           if (p.animKey && this.anims.exists(p.animKey) && sprite.anims?.currentAnim?.key !== p.animKey) {
             sprite.play(p.animKey, true);
