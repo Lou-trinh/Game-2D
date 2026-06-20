@@ -1139,6 +1139,18 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  spawnMuzzleFlash(x, y, rad) {
+    if (!this.textures.exists('effect_7')) return;
+    const flash = this.add.sprite(x, y, 'effect_7')
+      .setScale(0.5).setAngle(Phaser.Math.RadToDeg(rad)).setDepth(y + 100);
+    if (this.anims.exists('shoot')) {
+      flash.play('shoot');
+      flash.once('animationcomplete', () => { try { flash.destroy(); } catch (_) {} });
+    } else {
+      this.time.delayedCall(200, () => { try { flash.destroy(); } catch (_) {} });
+    }
+  }
+
   spawnBloodEffect(x, y, vx, vy) {
     if (!this.textures.exists('effect_3')) return;
     const blood = this.add.sprite(x, y, 'effect_3', 'blood15')
@@ -1326,6 +1338,7 @@ export default class MainScene extends Phaser.Scene {
               dmg: s.dmg || 25,
               hitIds: new Set(),
             });
+            this.spawnMuzzleFlash(startX, startY, s.rad);
           });
         }
       });
