@@ -1,0 +1,40 @@
+﻿{
+    "anims":  [
+                  {
+                      "key":  "character_03_run_front",
+                      "repeat":  -1,
+                      "frames":  [
+                                     {
+                                         "key":  "character_03_run_front",
+                                         "frame":  "character_03_run_front 0.ase",
+                                         "duration":  100
+                                     },
+                                     {
+                                         "key":  "character_03_run_front",
+                                         "frame":  "character_03_run_front 1.ase",
+                                         "duration":  150
+                                     },
+                                     {
+                                         "key":  "character_03_run_front",
+                                         "frame":  "character_03_run_front 2.ase",
+                                         "duration":  150
+                                     },
+                                     {
+                                         "key":  "character_03_run_front",
+                                         "frame":  "character_03_run_front 3.ase",
+                                         "duration":  100
+                                     },
+                                     {
+                                         "key":  "character_03_run_front",
+                                         "frame":  "character_03_run_front 4.ase",
+                                         "duration":  150
+                                     },
+                                     {
+                                         "key":  "character_03_run_front",
+                                         "frame":  "character_03_run_front 5.ase",
+                                         "duration":  150
+                                     }
+                                 ]
+                  }
+              ]
+}

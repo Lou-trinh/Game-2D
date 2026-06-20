@@ -4,6 +4,7 @@ import Phaser from 'phaser';
 export const CharacterTypes = {
     PLAYER_1: 'player_1',
     CHARACTER_02: 'character_02',
+    PLAYER_3: 'player_3',
 };
 
 export const CharacterConfigs = {
@@ -151,6 +152,80 @@ export const CharacterConfigs = {
             },
             ammo: {
                 max: 30
+            }
+        },
+        unlocked: true
+    },
+    [CharacterTypes.PLAYER_3]: {
+        key: 'player_3',
+        name: 'CHARACTER 03',
+        icon: '🧑',
+        color: 0x9b59b6,
+        description: '',
+        texture: 'character_03_idle',
+        idleFrame: 'character_03_idle 0.ase',
+        walkAnim: 'character_03_run_front',
+        idleAnim: 'character_03_idle',
+        stats: {
+            health: 100,
+            damage: 22,
+            speed: 3.2,
+            defense: 6
+        },
+        assets: {
+            atlas: 'assets/images/players/player_3/character_03_idle.png',
+            atlasJson: 'assets/images/players/player_3/character_03_idle_atlas.json',
+            anim: 'assets/images/players/player_3/character_03_idle_anim.json'
+        },
+        extraAssets: [
+            {
+                key: 'character_03_idle_back',
+                atlas: 'assets/images/players/player_3/character_03_idle_back.png',
+                atlasJson: 'assets/images/players/player_3/character_03_idle_back_atlas.json',
+                anim: 'assets/images/players/player_3/character_03_idle_back_anim.json'
+            },
+            {
+                key: 'character_03_idle_right',
+                atlas: 'assets/images/players/player_3/character_03_idle_right.png',
+                atlasJson: 'assets/images/players/player_3/character_03_idle_right_atlas.json',
+                anim: 'assets/images/players/player_3/character_03_idle_right_anim.json'
+            },
+            {
+                key: 'character_03_run_front',
+                atlas: 'assets/images/players/player_3/character_03_run_front.png',
+                atlasJson: 'assets/images/players/player_3/character_03_run_front_atlas.json',
+                anim: 'assets/images/players/player_3/character_03_run_front_anim.json'
+            },
+            {
+                key: 'character_03_run_back',
+                atlas: 'assets/images/players/player_3/character_03_run_back.png',
+                atlasJson: 'assets/images/players/player_3/character_03_run_back_atlas.json',
+                anim: 'assets/images/players/player_3/character_03_run_back_anim.json'
+            },
+            {
+                key: 'character_03_run_right',
+                atlas: 'assets/images/players/player_3/character_03_run_right.png',
+                atlasJson: 'assets/images/players/player_3/character_03_run_right_atlas.json',
+                anim: 'assets/images/players/player_3/character_03_run_right_anim.json'
+            },
+        ],
+        weapon: {
+            texture: 'Glock_17',
+            path: 'assets/images/weapons/Glock_17.png',
+            scale: 0.6,
+            offsetX: 7,
+            offsetY: 5,
+            attackType: 'gun_fire',
+            showSkillEffect: false,
+            projectile: {
+                texture: 'bullet',
+                speed: 950,
+                range: 190,
+                damage: 22,
+                scale: 0.4
+            },
+            ammo: {
+                max: 45
             }
         },
         unlocked: true

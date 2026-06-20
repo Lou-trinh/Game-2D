@@ -284,7 +284,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // Setup R key for reload.
     scene.input.keyboard.on('keydown-R', () => {
       // Gun character reload
-      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02) {
+      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02 || this.characterType === CharacterTypes.PLAYER_3) {
         this.reloadWeapon();
       }
     });
@@ -315,7 +315,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (!projectileConfig) return;
 
     // Decrement ammo for gun characters
-    if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02) {
+    if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02 || this.characterType === CharacterTypes.PLAYER_3) {
       const ammo = this.ammoData[this.activeSlot];
       if (ammo) {
         // Reduced decrement here as it's now handled in attack() for gun_fire
@@ -408,7 +408,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.isAttacking || this.isDead) return;
 
     // Gun character ammo check before attacking
-    if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02) {
+    if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02 || this.characterType === CharacterTypes.PLAYER_3) {
       if (this.currentAmmo <= 0) {
         console.log('❌ Out of ammo! Cannot attack.');
         // Optional: Play empty click sound
@@ -554,7 +554,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       }
 
       // Consume ammo for gun characters
-      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02) {
+      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02 || this.characterType === CharacterTypes.PLAYER_3) {
         const ammo = this.ammoData[this.activeSlot];
         if (ammo && ammo.current > 0) {
           ammo.current--;
@@ -1713,7 +1713,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     // Check for attack input (Space held down)
     if (this.keySpace?.isDown || this.mobileFireHeld) {
-      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02) {
+      if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02 || this.characterType === CharacterTypes.PLAYER_3) {
         const weaponKey = this.weaponSlots[this.activeSlot];
         const weapon = getWeaponByKey(weaponKey);
         const isMelee = weapon && weapon.category === WeaponCategories.MELEE;
@@ -1841,6 +1841,49 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         } else {
           this.setFlipX(false);
           this.anims.play('character_02_idle', true);
+        }
+      }
+    } else if (this.characterType === CharacterTypes.PLAYER_3) {
+      // --- CHARACTER_03: separate atlas per animation, directional idle ---
+      if (vel.length() > 0 && !this.isDashing) {
+        vel.normalize().scale(speed);
+        this.setVelocity(vel.x, vel.y);
+        if (Math.abs(vel.y) >= Math.abs(vel.x)) {
+          if (vel.y < 0) {
+            this.setFlipX(false);
+            this.anims.play('character_03_run_back', true);
+            this._lastDir = 'back';
+          } else {
+            this.setFlipX(false);
+            this.anims.play('character_03_run_front', true);
+            this._lastDir = 'front';
+          }
+        } else {
+          if (vel.x > 0) {
+            this.setFlipX(false);
+            this.anims.play('character_03_run_right', true);
+            this._lastDir = 'right';
+          } else {
+            this.setFlipX(true);
+            this.anims.play('character_03_run_right', true);
+            this._lastDir = 'left';
+          }
+        }
+      } else if (!this.isDashing) {
+        this.setVelocity(0, 0);
+        const dir = this._lastDir || 'front';
+        if (dir === 'back') {
+          this.setFlipX(false);
+          this.anims.play('character_03_idle_back', true);
+        } else if (dir === 'right') {
+          this.setFlipX(false);
+          this.anims.play('character_03_idle_right', true);
+        } else if (dir === 'left') {
+          this.setFlipX(true);
+          this.anims.play('character_03_idle_right', true);
+        } else {
+          this.setFlipX(false);
+          this.anims.play('character_03_idle', true);
         }
       }
     } else {

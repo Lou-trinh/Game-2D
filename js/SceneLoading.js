@@ -323,6 +323,18 @@ export default class SceneLoading extends Phaser.Scene {
         this.load.animation('character_02_run_back_anim', 'assets/images/players/player_2/character_02_run_back_anim.json');
         this.load.atlas('character_02_run_right', 'assets/images/players/player_2/character_02_run_right.png', 'assets/images/players/player_2/character_02_run_right_atlas.json');
         this.load.animation('character_02_run_right_anim', 'assets/images/players/player_2/character_02_run_right_anim.json');
+        this.load.atlas('character_03_idle', 'assets/images/players/player_3/character_03_idle.png', 'assets/images/players/player_3/character_03_idle_atlas.json');
+        this.load.animation('character_03_idle_anim', 'assets/images/players/player_3/character_03_idle_anim.json');
+        this.load.atlas('character_03_idle_back', 'assets/images/players/player_3/character_03_idle_back.png', 'assets/images/players/player_3/character_03_idle_back_atlas.json');
+        this.load.animation('character_03_idle_back_anim', 'assets/images/players/player_3/character_03_idle_back_anim.json');
+        this.load.atlas('character_03_idle_right', 'assets/images/players/player_3/character_03_idle_right.png', 'assets/images/players/player_3/character_03_idle_right_atlas.json');
+        this.load.animation('character_03_idle_right_anim', 'assets/images/players/player_3/character_03_idle_right_anim.json');
+        this.load.atlas('character_03_run_front', 'assets/images/players/player_3/character_03_run_front.png', 'assets/images/players/player_3/character_03_run_front_atlas.json');
+        this.load.animation('character_03_run_front_anim', 'assets/images/players/player_3/character_03_run_front_anim.json');
+        this.load.atlas('character_03_run_back', 'assets/images/players/player_3/character_03_run_back.png', 'assets/images/players/player_3/character_03_run_back_atlas.json');
+        this.load.animation('character_03_run_back_anim', 'assets/images/players/player_3/character_03_run_back_anim.json');
+        this.load.atlas('character_03_run_right', 'assets/images/players/player_3/character_03_run_right.png', 'assets/images/players/player_3/character_03_run_right_atlas.json');
+        this.load.animation('character_03_run_right_anim', 'assets/images/players/player_3/character_03_run_right_anim.json');
         this.load.image('M4A1', 'assets/images/weapons/M4A1.png');
         this.load.image('AK47', 'assets/images/weapons/AK47.png');
         this.load.image('Glock_17', 'assets/images/weapons/Glock_17.png');
