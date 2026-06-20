@@ -13,10 +13,10 @@ export const CharacterConfigs = {
         icon: '👤',
         color: 0x34495e,
         description: '',
-        texture: 'player_1',
-        idleFrame: 'player_1', // Using first frame of idle
-        walkAnim: 'run_front', // Default walk for generic logic (will be overridden)
-        idleAnim: 'idle',
+        texture: 'character_01_idle',
+        idleFrame: 'character_01_idle 0.ase',
+        walkAnim: 'character_01_run_front',
+        idleAnim: 'character_01_idle',
         stats: {
             health: 100,
             damage: 25,
@@ -24,10 +24,42 @@ export const CharacterConfigs = {
             defense: 8
         },
         assets: {
-            atlas: 'assets/images/players/player_1/player_1.png',
-            atlasJson: 'assets/images/players/player_1/player_1_atlas.json',
-            anim: 'assets/images/players/player_1/player_1_anim.json'
+            atlas: 'assets/images/players/player_1/character_01_idle.png',
+            atlasJson: 'assets/images/players/player_1/character_01_idle_atlas.json',
+            anim: 'assets/images/players/player_1/character_01_idle_anim.json'
         },
+        extraAssets: [
+            {
+                key: 'character_01_idle_back',
+                atlas: 'assets/images/players/player_1/character_01_idle_back.png',
+                atlasJson: 'assets/images/players/player_1/character_01_idle_back_atlas.json',
+                anim: 'assets/images/players/player_1/character_01_idle_back_anim.json'
+            },
+            {
+                key: 'character_01_idle_right',
+                atlas: 'assets/images/players/player_1/character_01_idle_right.png',
+                atlasJson: 'assets/images/players/player_1/character_01_idle_right_atlas.json',
+                anim: 'assets/images/players/player_1/character_01_idle_right_anim.json'
+            },
+            {
+                key: 'character_01_run_front',
+                atlas: 'assets/images/players/player_1/character_01_run_front.png',
+                atlasJson: 'assets/images/players/player_1/character_01_run_front_atlas.json',
+                anim: 'assets/images/players/player_1/character_01_run_front_anim.json'
+            },
+            {
+                key: 'character_01_run_back',
+                atlas: 'assets/images/players/player_1/character_01_run_back.png',
+                atlasJson: 'assets/images/players/player_1/character_01_run_back_atlas.json',
+                anim: 'assets/images/players/player_1/character_01_run_back_anim.json'
+            },
+            {
+                key: 'character_01_run_right',
+                atlas: 'assets/images/players/player_1/character_01_run_right.png',
+                atlasJson: 'assets/images/players/player_1/character_01_run_right_atlas.json',
+                anim: 'assets/images/players/player_1/character_01_run_right_anim.json'
+            },
+        ],
         weapon: {
             texture: 'M4A1',
             path: 'assets/images/weapons/M4A1.png',

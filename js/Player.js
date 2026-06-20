@@ -1734,44 +1734,47 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       : this.characterConfig.idleAnim;
 
     if (this.characterType === CharacterTypes.PLAYER_1) {
-      // --- PLAYER 1 SPECIFIC DIRECTIONAL ANIMATION LOGIC ---
+      // --- CHARACTER_01: separate atlas per animation, directional idle ---
       if (vel.length() > 0 && !this.isDashing) {
         vel.normalize().scale(speed);
         this.setVelocity(vel.x, vel.y);
-
-        // Determine animation based on direction
-        let animToPlay = 'run_front'; // Default
-
-        if (vel.y < 0) {
-          animToPlay = 'run_top';
-          this.setFlipX(false);
-        } else if (vel.y > 0) {
-          animToPlay = 'run_front';
-          this.setFlipX(false);
-        } else if (vel.x > 0) {
-          animToPlay = 'run_right_left';
-          this.setFlipX(false);
-        } else if (vel.x < 0) {
-          animToPlay = 'run_right_left';
-          this.setFlipX(true); // Flip for left
-        }
-
-        // Prioritize vertical movement if moving diagonally? 
-        // Let's refine: if moving vertically, use top/front. If mostly horizontal, use right/left.
         if (Math.abs(vel.y) >= Math.abs(vel.x)) {
-          if (vel.y < 0) animToPlay = 'run_top';
-          else animToPlay = 'run_front';
-          this.setFlipX(false); // Reset flip for vertical
+          if (vel.y < 0) {
+            this.setFlipX(false);
+            this.anims.play('character_01_run_back', true);
+            this._lastDir = 'back';
+          } else {
+            this.setFlipX(false);
+            this.anims.play('character_01_run_front', true);
+            this._lastDir = 'front';
+          }
         } else {
-          animToPlay = 'run_right_left';
-          if (vel.x < 0) this.setFlipX(true);
-          else this.setFlipX(false);
+          if (vel.x > 0) {
+            this.setFlipX(false);
+            this.anims.play('character_01_run_right', true);
+            this._lastDir = 'right';
+          } else {
+            this.setFlipX(true);
+            this.anims.play('character_01_run_right', true);
+            this._lastDir = 'left';
+          }
         }
-
-        this.anims.play(animToPlay, true);
       } else if (!this.isDashing) {
         this.setVelocity(0, 0);
-        this.anims.play('idle', true);
+        const dir = this._lastDir || 'front';
+        if (dir === 'back') {
+          this.setFlipX(false);
+          this.anims.play('character_01_idle_back', true);
+        } else if (dir === 'right') {
+          this.setFlipX(false);
+          this.anims.play('character_01_idle_right', true);
+        } else if (dir === 'left') {
+          this.setFlipX(true);
+          this.anims.play('character_01_idle_right', true);
+        } else {
+          this.setFlipX(false);
+          this.anims.play('character_01_idle', true);
+        }
       }
     } else if (this.characterType === CharacterTypes.CHARACTER_02) {
       // --- CHARACTER_02: separate atlas per animation, directional idle ---
