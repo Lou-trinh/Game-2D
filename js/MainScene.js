@@ -1161,30 +1161,105 @@ export default class MainScene extends Phaser.Scene {
       onComplete: () => {
         const ex = grenade.x, ey = grenade.y;
         try { grenade.destroy(); } catch (_) {}
-        // Explosion visual
-        if (this.textures.exists('effect_4')) {
-          const explosion = this.add.sprite(ex, ey, 'effect_4').setScale(1.5).setDepth(ey + 100);
-          if (this.anims.exists('effect_4')) {
-            explosion.play('effect_4');
-            explosion.once('animationcomplete', () => { try { explosion.destroy(); } catch (_) {} });
-          } else {
-            this.time.delayedCall(1000, () => { try { explosion.destroy(); } catch (_) {} });
+        const wKey = s.weaponKey || 'Grenade';
+        const isFireBomb = wKey === 'Gasoline_Bomb' || wKey === 'Electric_Bomb';
+        if (isFireBomb) {
+          // Glass break effect
+          if (this.textures.exists('effect_5')) {
+            const burst = this.add.sprite(ex, ey, 'effect_5').setScale(1.2).setDepth(ey + 100);
+            if (this.anims.exists('effect_5')) {
+              burst.play({ key: 'effect_5', repeat: 0 });
+              burst.once('animationcomplete', () => { try { burst.destroy(); } catch (_) {} });
+            } else {
+              this.time.delayedCall(1500, () => { try { burst.destroy(); } catch (_) {} });
+            }
+          }
+          this.spawnRemoteFireZone(ex, ey, wKey);
+        } else {
+          // Regular grenade explosion
+          if (this.textures.exists('effect_4')) {
+            const explosion = this.add.sprite(ex, ey, 'effect_4').setScale(1.5).setDepth(ey + 100);
+            if (this.anims.exists('effect_4')) {
+              explosion.play('effect_4');
+              explosion.once('animationcomplete', () => { try { explosion.destroy(); } catch (_) {} });
+            } else {
+              this.time.delayedCall(1000, () => { try { explosion.destroy(); } catch (_) {} });
+            }
+          }
+          // AoE damage — host side only
+          if (!this._isHost) return;
+          const aoeRadius = 80;
+          const aoeDamage = 120;
+          const groups = [
+            this.bears, this.wolves, this.treeMen, this.forestGuardians,
+            this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
+          ];
+          for (const group of groups) {
+            for (const enemy of (group || [])) {
+              if (!enemy || enemy.isDead || !enemy.sprite?.active) continue;
+              const d = Phaser.Math.Distance.Between(ex, ey, enemy.sprite.x, enemy.sprite.y);
+              if (d <= aoeRadius) enemy.takeDamage(aoeDamage);
+            }
           }
         }
-        // AoE damage — host side only (host is authoritative)
-        if (!this._isHost) return;
-        const aoeRadius = 80;
-        const aoeDamage = 120;
-        const groups = [
-          this.bears, this.wolves, this.treeMen, this.forestGuardians,
-          this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
-        ];
-        for (const group of groups) {
-          for (const enemy of (group || [])) {
-            if (!enemy || enemy.isDead || !enemy.sprite?.active) continue;
-            const d = Phaser.Math.Distance.Between(ex, ey, enemy.sprite.x, enemy.sprite.y);
-            if (d <= aoeRadius) enemy.takeDamage(aoeDamage);
+      }
+    });
+  }
+
+  spawnRemoteFireZone(x, y, weaponKey) {
+    const fireEffect = weaponKey === 'Electric_Bomb' ? 'effect_8' : 'effect_6';
+    if (!this.textures.exists(fireEffect)) return;
+    const fireRadius = 90;
+    const damagePerTick = 10;
+    const duration = 7000;
+    const tickInterval = 500;
+
+    const fireSprites = [];
+    for (let i = 0; i < 10; i++) {
+      const ox = (Math.random() - 0.5) * 80;
+      const oy = (Math.random() - 0.5) * 80;
+      const fire = this.add.sprite(x + ox, y + oy, fireEffect)
+        .setDepth(y + oy)
+        .setScale(fireEffect === 'effect_8' ? 0.5 + Math.random() * 0.3 : 1.8 + Math.random() * 0.7);
+      if (this.anims.exists(fireEffect)) fire.play(fireEffect);
+      fireSprites.push(fire);
+    }
+
+    const startTime = this.time.now;
+    const zoneTimer = this.time.addEvent({
+      delay: tickInterval,
+      repeat: Math.floor(duration / tickInterval),
+      callback: () => {
+        const elapsed = this.time.now - startTime;
+        // Damage host enemies
+        if (this._isHost) {
+          const groups = [
+            this.bears, this.wolves, this.treeMen, this.forestGuardians,
+            this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
+          ];
+          for (const group of groups) {
+            for (const enemy of (group || [])) {
+              if (!enemy || enemy.isDead || !enemy.sprite?.active) continue;
+              if (Phaser.Math.Distance.Between(x, y, enemy.sprite.x, enemy.sprite.y) <= fireRadius) {
+                enemy.takeDamage(damagePerTick);
+              }
+            }
           }
+        }
+        // Damage guest enemy proxies
+        if (!this._isHost && this.guestEnemies?.length) {
+          for (const proxy of this.guestEnemies) {
+            if (!proxy || proxy.isDead || !proxy.sprite?.active) continue;
+            if (Phaser.Math.Distance.Between(x, y, proxy.sprite.x, proxy.sprite.y) <= fireRadius) {
+              proxy.takeDamage(damagePerTick);
+            }
+          }
+        }
+        if (elapsed >= duration) {
+          fireSprites.forEach(s => {
+            this.tweens.add({ targets: s, alpha: 0, duration: 500, onComplete: () => { try { s.destroy(); } catch (_) {} } });
+          });
+          zoneTimer.remove();
         }
       }
     });
