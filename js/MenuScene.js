@@ -2162,7 +2162,7 @@ export default class MenuScene extends Phaser.Scene {
             this.spotlightSprite.play(config.idleAnim);
         }
         this.spotlightSprite.setOrigin(0.5, 1);
-        this.spotlightSprite.setY(this.scale.height / 2 + 90);
+        this.spotlightSprite.setY(this.scale.height / 2 + 110);
 
         // Update Info
         this.charNameText.setText(config.name.toUpperCase());
