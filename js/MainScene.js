@@ -769,12 +769,12 @@ export default class MainScene extends Phaser.Scene {
           sp._targetY += sp._vy * delta / 16.67;
         }
 
-        // Delta-time lerp (same half-life formula as remote players)
+        // Delta-time lerp — half-life 30ms for snappier enemy movement
         const dist = Phaser.Math.Distance.Between(sp.x, sp.y, sp._targetX, sp._targetY);
         if (dist > 300) {
           sp.setPosition(sp._targetX, sp._targetY);
         } else {
-          const lerpT = 1 - Math.pow(0.5, delta / 50);
+          const lerpT = 1 - Math.pow(0.5, delta / 30);
           sp.x += (sp._targetX - sp.x) * lerpT;
           sp.y += (sp._targetY - sp.y) * lerpT;
         }
@@ -1405,9 +1405,9 @@ export default class MainScene extends Phaser.Scene {
     });
 
     if (isHost) {
-      // Host: broadcast all enemy states every 500ms (reduced from 200ms to avoid Firestore throttling)
+      // Host: broadcast all enemy states every 250ms
       this._enemyBroadcastTimer = this.time.addEvent({
-        delay: 500,
+        delay: 250,
         loop: true,
         callback: () => {
           const allEnemyGroups = [
