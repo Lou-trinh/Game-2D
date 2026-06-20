@@ -2179,11 +2179,9 @@ export default class MenuScene extends Phaser.Scene {
         const categories = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }];
 
         const equipped = JSON.parse(localStorage.getItem('equipped_weapons') || '{}');
-        if (this.selectedCharacterKey === 'player_1') {
-            if (!equipped.slot1) equipped.slot1 = 'Glock_17';
-            if (!equipped.slot2) equipped.slot2 = 'MP5';
-            if (!equipped.slot4) equipped.slot4 = 'Grenade';
-        }
+        if (!equipped.slot1) equipped.slot1 = 'Glock_17';
+        if (!equipped.slot2) equipped.slot2 = 'MP5';
+        if (!equipped.slot4) equipped.slot4 = 'Grenade';
         Object.keys(equipped).forEach(slot => {
             if (equipped[slot] && !Economy.isWeaponOwned(equipped[slot])) delete equipped[slot];
         });
