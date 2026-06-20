@@ -817,6 +817,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.scene._pendingShots.push({
         type: 'grenade',
         tex: texture,
+        startX: Math.round(startX),
+        startY: Math.round(startY),
         targetX: Math.round(targetX),
         targetY: Math.round(targetY),
         weaponKey: weaponKey || 'Grenade',
@@ -916,6 +918,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
       });
     });
+
+    // AOE for guest enemy proxies (guest side)
+    if (this.scene.guestEnemies?.length) {
+      this.scene.guestEnemies.forEach(proxy => {
+        if (!proxy || proxy.isDead || !proxy.sprite?.active) return;
+        const dist = Phaser.Math.Distance.Between(ex, ey, proxy.sprite.x, proxy.sprite.y);
+        if (dist <= aoeRadius) proxy.takeDamage(aoeDamage);
+      });
+    }
 
     // AOE Logic for Player (Self damage)
     if (!this.isDead) {

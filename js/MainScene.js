@@ -1139,33 +1139,52 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
-  spawnRemoteGrenade(startX, startY, s) {
+  spawnRemoteGrenade(fromX, fromY, s) {
     const tex = s.tex || 'Grenade';
     if (!this.textures.exists(tex)) return;
-    const grenade = this.add.sprite(startX, startY, tex).setScale(0.6).setDepth(startY + 50);
-    const targetX = s.targetX || startX;
-    const targetY = s.targetY || startY;
+    const ox = s.startX ?? fromX;
+    const oy = s.startY ?? fromY;
+    const grenade = this.add.sprite(ox, oy, tex).setScale(0.6).setDepth(oy + 50);
+    const targetX = s.targetX ?? ox;
+    const targetY = s.targetY ?? oy;
     const arcHeight = s.arcHeight || 100;
     const duration = s.duration || 700;
     this.tweens.addCounter({
       from: 0, to: 1, duration,
       onUpdate: (tween) => {
         const t = tween.getValue();
-        const cx = startX + (targetX - startX) * t;
-        const cy = startY + (targetY - startY) * t;
+        const cx = ox + (targetX - ox) * t;
+        const cy = oy + (targetY - oy) * t;
         grenade.setPosition(cx, cy - 4 * arcHeight * t * (1 - t));
         grenade.angle += 15;
       },
       onComplete: () => {
         const ex = grenade.x, ey = grenade.y;
         try { grenade.destroy(); } catch (_) {}
-        if (!this.textures.exists('effect_4')) return;
-        const explosion = this.add.sprite(ex, ey, 'effect_4').setScale(1.5).setDepth(ey + 100);
-        if (this.anims.exists('effect_4')) {
-          explosion.play('effect_4');
-          explosion.once('animationcomplete', () => { try { explosion.destroy(); } catch (_) {} });
-        } else {
-          this.time.delayedCall(1000, () => { try { explosion.destroy(); } catch (_) {} });
+        // Explosion visual
+        if (this.textures.exists('effect_4')) {
+          const explosion = this.add.sprite(ex, ey, 'effect_4').setScale(1.5).setDepth(ey + 100);
+          if (this.anims.exists('effect_4')) {
+            explosion.play('effect_4');
+            explosion.once('animationcomplete', () => { try { explosion.destroy(); } catch (_) {} });
+          } else {
+            this.time.delayedCall(1000, () => { try { explosion.destroy(); } catch (_) {} });
+          }
+        }
+        // AoE damage — host side only (host is authoritative)
+        if (!this._isHost) return;
+        const aoeRadius = 80;
+        const aoeDamage = 120;
+        const groups = [
+          this.bears, this.wolves, this.treeMen, this.forestGuardians,
+          this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
+        ];
+        for (const group of groups) {
+          for (const enemy of (group || [])) {
+            if (!enemy || enemy.isDead || !enemy.sprite?.active) continue;
+            const d = Phaser.Math.Distance.Between(ex, ey, enemy.sprite.x, enemy.sprite.y);
+            if (d <= aoeRadius) enemy.takeDamage(aoeDamage);
+          }
         }
       }
     });
