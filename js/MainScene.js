@@ -1206,6 +1206,32 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
+  _applyBurnToSprite(targetSprite, fireEffect) {
+    if (!targetSprite?.active || targetSprite._isBurning) return;
+    const bodyEffectKey = fireEffect === 'effect_8' ? 'effect_9' : fireEffect;
+    if (!this.textures.exists(bodyEffectKey)) return;
+    targetSprite._isBurning = true;
+    const burnSprite = this.add.sprite(targetSprite.x, targetSprite.y - 10, bodyEffectKey)
+      .setScale(bodyEffectKey === 'effect_9' ? 0.8 : 1.2)
+      .setDepth(targetSprite.depth + 1);
+    if (this.anims.exists(bodyEffectKey)) burnSprite.play(bodyEffectKey);
+    const onUpdate = () => {
+      if (!targetSprite?.active || !burnSprite?.active) {
+        this.events.off('update', onUpdate);
+        try { if (burnSprite?.active) burnSprite.destroy(); } catch (_) {}
+        return;
+      }
+      burnSprite.setPosition(targetSprite.x, targetSprite.y - 10);
+      burnSprite.setDepth(targetSprite.depth + 1);
+    };
+    this.events.on('update', onUpdate);
+    this.time.delayedCall(7000, () => {
+      this.events.off('update', onUpdate);
+      try { if (burnSprite?.active) burnSprite.destroy(); } catch (_) {}
+      if (targetSprite) targetSprite._isBurning = false;
+    });
+  }
+
   spawnRemoteFireZone(x, y, weaponKey) {
     const fireEffect = weaponKey === 'Electric_Bomb' ? 'effect_8' : 'effect_6';
     if (!this.textures.exists(fireEffect)) return;
@@ -1231,7 +1257,6 @@ export default class MainScene extends Phaser.Scene {
       repeat: Math.floor(duration / tickInterval),
       callback: () => {
         const elapsed = this.time.now - startTime;
-        // Damage host enemies
         if (this._isHost) {
           const groups = [
             this.bears, this.wolves, this.treeMen, this.forestGuardians,
@@ -1242,16 +1267,17 @@ export default class MainScene extends Phaser.Scene {
               if (!enemy || enemy.isDead || !enemy.sprite?.active) continue;
               if (Phaser.Math.Distance.Between(x, y, enemy.sprite.x, enemy.sprite.y) <= fireRadius) {
                 enemy.takeDamage(damagePerTick);
+                this._applyBurnToSprite(enemy.sprite, fireEffect);
               }
             }
           }
         }
-        // Damage guest enemy proxies
         if (!this._isHost && this.guestEnemies?.length) {
           for (const proxy of this.guestEnemies) {
             if (!proxy || proxy.isDead || !proxy.sprite?.active) continue;
             if (Phaser.Math.Distance.Between(x, y, proxy.sprite.x, proxy.sprite.y) <= fireRadius) {
               proxy.takeDamage(damagePerTick);
+              this._applyBurnToSprite(proxy.sprite, fireEffect);
             }
           }
         }
