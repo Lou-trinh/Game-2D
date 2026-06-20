@@ -1,0 +1,25 @@
+﻿{
+    "anims":  [
+                  {
+                      "key":  "character_03_idle",
+                      "repeat":  -1,
+                      "frames":  [
+                                     {
+                                         "key":  "character_03_idle",
+                                         "frame":  "character_03_idle 0.ase",
+                                         "duration":  250
+                                     },
+                                     {
+                                         "key":  "character_03_idle",
+                                         "frame":  "character_03_idle 1.ase",
+                                         "duration":  250
+                                     },
+                                     {
+                                         "key":  "character_03_idle",
+                                         "frame":  "character_03_idle 2.ase",
+                                         "duration":  250
+                                     }
+                                 ]
+                  }
+              ]
+}
