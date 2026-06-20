@@ -1192,6 +1192,7 @@ export default class MainScene extends Phaser.Scene {
     this._otherPlayerSprites = {};
     this._guestEnemySprites = {};
     this._pendingShots = [];
+    this._shotSeq = 0;
 
     // Sync own player position every 200ms (reduced from 100ms to avoid Firestore quota)
     this._lastSentX = null;
@@ -1208,6 +1209,7 @@ export default class MainScene extends Phaser.Scene {
         const newHealth = this.player.health || 0;
         const newAlive = !this.player.isDead;
         const hasPendingShots = this._pendingShots.length > 0;
+        if (hasPendingShots) this._shotSeq++;
         const hasChanged = hasPendingShots
           || newX !== this._lastSentX
           || newY !== this._lastSentY
@@ -1235,6 +1237,7 @@ export default class MainScene extends Phaser.Scene {
           maxHealth: this.player.maxHealth || 100,
           updatedAt: Date.now(),
           shots: this._pendingShots.splice(0),
+          shotsSeq: this._shotSeq,
         };
         updatePlayerState(roomCode, user.uid, state).catch(err => console.warn('[MP] playerState write failed:', err?.code));
       },
@@ -1263,7 +1266,7 @@ export default class MainScene extends Phaser.Scene {
           }).setOrigin(0.5).setDepth(p.y + 2);
           const hpBg = this.add.rectangle(p.x, p.y - 28, 32, 4, 0x000000).setDepth(p.y + 2);
           const hpBar = this.add.rectangle(p.x - 16, p.y - 28, 32, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(p.y + 3);
-          this._otherPlayerSprites[p.uid] = { sprite, nameText, hpBg, hpBar, weaponImg: null, _weaponKey: null, prevAlive: true, _targetX: p.x, _targetY: p.y };
+          this._otherPlayerSprites[p.uid] = { sprite, nameText, hpBg, hpBar, weaponImg: null, _weaponKey: null, prevAlive: true, _targetX: p.x, _targetY: p.y, _lastShotsSeq: -1 };
         }
 
         const entry = this._otherPlayerSprites[p.uid];
@@ -1323,8 +1326,10 @@ export default class MainScene extends Phaser.Scene {
           hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
         }
 
-        // Spawn remote bullets — only when alive and shots array is non-empty
-        if (!isDead && p.shots?.length) {
+        // Spawn remote bullets — only when alive, shots non-empty, AND shotsSeq is new
+        const incomingShotsSeq = p.shotsSeq ?? -1;
+        if (!isDead && p.shots?.length && incomingShotsSeq !== entry._lastShotsSeq) {
+          entry._lastShotsSeq = incomingShotsSeq;
           if (!this._remoteBullets) this._remoteBullets = [];
           p.shots.forEach(s => {
             const startX = sprite.x, startY = sprite.y;
