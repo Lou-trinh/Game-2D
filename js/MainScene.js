@@ -1139,6 +1139,38 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
+  spawnRemoteGrenade(startX, startY, s) {
+    const tex = s.tex || 'Grenade';
+    if (!this.textures.exists(tex)) return;
+    const grenade = this.add.sprite(startX, startY, tex).setScale(0.6).setDepth(startY + 50);
+    const targetX = s.targetX || startX;
+    const targetY = s.targetY || startY;
+    const arcHeight = s.arcHeight || 100;
+    const duration = s.duration || 700;
+    this.tweens.addCounter({
+      from: 0, to: 1, duration,
+      onUpdate: (tween) => {
+        const t = tween.getValue();
+        const cx = startX + (targetX - startX) * t;
+        const cy = startY + (targetY - startY) * t;
+        grenade.setPosition(cx, cy - 4 * arcHeight * t * (1 - t));
+        grenade.angle += 15;
+      },
+      onComplete: () => {
+        const ex = grenade.x, ey = grenade.y;
+        try { grenade.destroy(); } catch (_) {}
+        if (!this.textures.exists('effect_4')) return;
+        const explosion = this.add.sprite(ex, ey, 'effect_4').setScale(1.5).setDepth(ey + 100);
+        if (this.anims.exists('effect_4')) {
+          explosion.play('effect_4');
+          explosion.once('animationcomplete', () => { try { explosion.destroy(); } catch (_) {} });
+        } else {
+          this.time.delayedCall(1000, () => { try { explosion.destroy(); } catch (_) {} });
+        }
+      }
+    });
+  }
+
   spawnMuzzleFlash(x, y, rad) {
     if (!this.textures.exists('effect_7')) return;
     const flash = this.add.sprite(x, y, 'effect_7')
@@ -1333,6 +1365,10 @@ export default class MainScene extends Phaser.Scene {
           if (!this._remoteBullets) this._remoteBullets = [];
           p.shots.forEach(s => {
             const startX = sprite.x, startY = sprite.y;
+            if (s.type === 'grenade') {
+              this.spawnRemoteGrenade(startX, startY, s);
+              return;
+            }
             const b = this.add.sprite(startX, startY, s.tex || 'bullet')
               .setScale(0.4).setAngle(s.angle || 0).setDepth(startY + 50);
             this._remoteBullets.push({

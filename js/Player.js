@@ -813,6 +813,19 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const duration = 700;
     const arcHeight = 100;
 
+    if (this.scene._pendingShots) {
+      this.scene._pendingShots.push({
+        type: 'grenade',
+        tex: texture,
+        targetX: Math.round(targetX),
+        targetY: Math.round(targetY),
+        weaponKey: weaponKey || 'Grenade',
+        duration,
+        arcHeight,
+        rad: 0, angle: 0, speed: 0, range: 0, dmg: 0,
+      });
+    }
+
     this.scene.tweens.addCounter({
       from: 0,
       to: 1,
