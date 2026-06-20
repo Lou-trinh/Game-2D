@@ -1338,7 +1338,7 @@ export default class MainScene extends Phaser.Scene {
               dmg: s.dmg || 25,
               hitIds: new Set(),
             });
-            this.spawnMuzzleFlash(startX, startY, s.rad);
+            this.spawnMuzzleFlash(startX + Math.cos(s.rad) * 20, startY + Math.sin(s.rad) * 20, s.rad);
           });
         }
       });
