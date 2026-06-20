@@ -10,7 +10,7 @@ export const CharacterTypes = {
 export const CharacterConfigs = {
     [CharacterTypes.PLAYER_1]: {
         key: 'player_1',
-        name: 'PHOENIX',
+        name: 'CHARACTER 01',
         icon: '👤',
         color: 0x34495e,
         description: '',
