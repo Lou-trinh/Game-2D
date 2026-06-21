@@ -1300,7 +1300,8 @@ export default class MainScene extends Phaser.Scene {
         if (dist < nearestDist) { nearestDist = dist; nearest = entry.sprite; }
       });
     }
-    return nearest || this.player;
+    // Don't fallback to dead player — return null so enemies idle instead of clustering on corpse
+    return nearest || (this.player?.isDead ? null : this.player);
   }
 
   _initMultiplayer() {
@@ -1535,7 +1536,13 @@ export default class MainScene extends Phaser.Scene {
         if (!this.scene.isActive('MainScene')) return;
         if (state.hostLeft && !this._hostLeft) {
           this._hostLeft = true;
-          return; // Keep current enemy sprites, local chase AI takes over
+          // Reset target positions to sprite's current visual position to prevent lerp rush
+          if (this._guestEnemySprites) {
+            Object.values(this._guestEnemySprites).forEach(sp => {
+              if (sp?.active) { sp._targetX = sp.x; sp._targetY = sp.y; sp._vx = 0; sp._vy = 0; }
+            });
+          }
+          return;
         }
         if (this._hostLeft) return; // Ignore further Firestore updates once local AI active
         const enemies = state.enemies || [];
