@@ -691,7 +691,7 @@ export default class MainScene extends Phaser.Scene {
         if (dist > 300) {
           sprite.setPosition(entry._targetX, entry._targetY);
         } else {
-          const lerpT = 1 - Math.pow(0.5, delta / 50);
+          const lerpT = 1 - Math.pow(0.5, delta / 80);
           sprite.x += (entry._targetX - sprite.x) * lerpT;
           sprite.y += (entry._targetY - sprite.y) * lerpT;
         }
@@ -1306,7 +1306,7 @@ export default class MainScene extends Phaser.Scene {
     this._lastSentHealth = null;
     this._lastSentAlive = null;
     this._syncTimer = this.time.addEvent({
-      delay: 200,
+      delay: 100,
       loop: true,
       callback: () => {
         if (!this.player || !this.player.active) return;
