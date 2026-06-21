@@ -6,7 +6,7 @@ import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, get
 export default class MenuScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MenuScene' });
-        this.selectedCharacterKey = 'player_1';
+        this.selectedCharacterKey = localStorage.getItem('selected_character') || 'player_1';
         this.selectedMap = 'map_1';
     }
 
@@ -2142,6 +2142,7 @@ export default class MenuScene extends Phaser.Scene {
 
     selectCharacter(key) {
         this.selectedCharacterKey = key;
+        localStorage.setItem('selected_character', key);
 
         this.charIcons.forEach(icon => icon.setSelected(icon.key === key));
 
