@@ -1556,7 +1556,7 @@ export default class MainScene extends Phaser.Scene {
           }
           // Start local spawn so new enemies keep appearing for remaining players
           this._localSpawnTimer = this.time.addEvent({
-            delay: 3000, loop: true,
+            delay: 1500, loop: true,
             callback: this._spawnLocalEnemy, callbackScope: this,
           });
           return;
@@ -1649,16 +1649,10 @@ export default class MainScene extends Phaser.Scene {
     if (!this.player || this.player.isDead) return;
     if (!this._guestEnemySprites) return;
 
-    // Rotate through 4 edges so enemies don't all come from one side
-    const _sides = [
-      { x: 80,  y: () => Phaser.Math.Between(120, 420) },
-      { x: 880, y: () => Phaser.Math.Between(120, 420) },
-      { x: () => Phaser.Math.Between(180, 780), y: 60  },
-      { x: () => Phaser.Math.Between(180, 780), y: 480 },
-    ];
-    const side = _sides[this._localEnemyCounter % 4];
-    const gateX = typeof side.x === 'function' ? side.x() : side.x;
-    const gateY = typeof side.y === 'function' ? side.y() : side.y;
+    // Alternate between the same 2 teleport gates as the host uses
+    this._localSpawnLeft = !this._localSpawnLeft;
+    const gateX = this._localSpawnLeft ? 100 : 860;
+    const gateY = 260;
 
     // All 9 enemy types with correct texture + animation + stats
     const _pool = [
