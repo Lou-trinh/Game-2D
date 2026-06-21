@@ -304,14 +304,10 @@ export default class MainScene extends Phaser.Scene {
     this._sessionDamage = 0;
     this._sessionHeal = 0;
     this._sessionFrag = 0;
+    this._sessionFragCommon = 0;
+    this._sessionFragRare = 0;
     this._allPlayersDead = false;
     this._mpDeathOverlay = null;
-    this._economySnapshot = {
-      coins: Economy.getCoins(),
-      diamonds: Economy.getDiamonds(),
-      fragCommon: Economy.getFragCommon(),
-      fragRare: Economy.getFragRare()
-    };
 
     const map = this.make.tilemap({ key: 'map' });
 
@@ -936,7 +932,7 @@ export default class MainScene extends Phaser.Scene {
 
   pickupFragCommon() {
     this._sessionFrag++;
-    Economy.addFragCommon(1);
+    this._sessionFragCommon++;
     if (this.resourceUI) this.resourceUI.updateResources();
     this.player.setTint(0xff8800);
     this.time.delayedCall(200, () => this.player.clearTint());
@@ -944,47 +940,25 @@ export default class MainScene extends Phaser.Scene {
 
   pickupFragRare() {
     this._sessionFrag++;
-    Economy.addFragRare(1);
+    this._sessionFragRare++;
     if (this.resourceUI) this.resourceUI.updateResources();
     this.player.setTint(0xcc44ff);
     this.time.delayedCall(200, () => this.player.clearTint());
   }
 
   pickupDiamond() {
-    if (!this.player.diamondCount) {
-      this.player.diamondCount = 0;
-    }
-
+    if (!this.player.diamondCount) this.player.diamondCount = 0;
     this.player.diamondCount += 1;
-    Economy.addDiamonds(1); // Persistent save
-    console.log(`💎 Picked up diamond! Total: ${this.player.diamondCount} (Persistent: ${Economy.getDiamonds()})`);
-
-    // Update UI
-    if (this.resourceUI) {
-      this.resourceUI.updateResources();
-    }
-
+    if (this.resourceUI) this.resourceUI.updateResources();
     this.player.setTint(0x00ffff);
-    this.time.delayedCall(150, () => {
-      this.player.clearTint();
-    });
+    this.time.delayedCall(150, () => this.player.clearTint());
   }
 
   pickupCoin() {
-    if (!this.player.coinCount) {
-      this.player.coinCount = 0;
-    }
-
+    if (!this.player.coinCount) this.player.coinCount = 0;
     this.player.coinCount += 1;
-    Economy.addCoins(1); // Persistent save
-    console.log(`💰 Picked up coin! Total: ${this.player.coinCount} (Persistent: ${Economy.getCoins()})`);
-
-    // Update UI
-    if (this.resourceUI) {
-      this.resourceUI.updateResources();
-    }
-
-    this.player.setTint(0xffff00); // Yellow tint for coin
+    if (this.resourceUI) this.resourceUI.updateResources();
+    this.player.setTint(0xffff00);
     this.time.delayedCall(150, () => {
       this.player.clearTint();
     });
@@ -1629,6 +1603,12 @@ export default class MainScene extends Phaser.Scene {
       this._allPlayersDead = true;
       if (this._spawnTimer) this._spawnTimer.paused = true;
     }
+
+    // Commit session economy gains — only on death
+    Economy.addCoins(this.player?.coinCount || 0);
+    Economy.addDiamonds(this.player?.diamondCount || 0);
+    Economy.addFragCommon(this._sessionFragCommon);
+    Economy.addFragRare(this._sessionFragRare);
     const { width, height } = this.scale;
     const D = 25000;
     const sf = 0;
