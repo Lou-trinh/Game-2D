@@ -1602,7 +1602,7 @@ export default class MainScene extends Phaser.Scene {
                 bear: 'bear_walk', wolf: 'wolf_walk', treeman: 'tree_man_walk',
                 forest_guardian: 'forest_guardian_walk', gnoll_brute: 'gnollbrute_walk',
                 gnoll_shaman: 'gnollshaman_walk', mushroom: 'mushroom_walk',
-                small_mushroom: 'small_mushroom_walk', golem: 'golem_walk',
+                small_mushroom: 'smallmushroom_walk', golem: 'golem_walk',
               };
               const _defAnimKey = _animMap[texKey];
               if (_defAnimKey && this.anims.exists(_defAnimKey)) sp.play(_defAnimKey, true);
@@ -1660,12 +1660,17 @@ export default class MainScene extends Phaser.Scene {
     const gateX = typeof side.x === 'function' ? side.x() : side.x;
     const gateY = typeof side.y === 'function' ? side.y() : side.y;
 
-    // Types with confirmed texture + animation keys
+    // All 9 enemy types with correct texture + animation + stats
     const _pool = [
-      { tex: 'bear',      anim: 'bear_walk',       speed: 0.7, hp: 100, dmg: 10 },
-      { tex: 'wolf',      anim: 'wolf_walk',        speed: 1.0, hp: 60,  dmg: 8  },
-      { tex: 'treeman',   anim: 'tree_man_walk',    speed: 0.4, hp: 150, dmg: 12 },
-      { tex: 'gnoll_brute', anim: 'gnollbrute_walk',speed: 0.8, hp: 180, dmg: 15 },
+      { tex: 'bear',            anim: 'bear_walk',            speed: 0.7,  hp: 100, dmg: 10 },
+      { tex: 'wolf',            anim: 'wolf_walk',            speed: 1.0,  hp: 100, dmg: 12 },
+      { tex: 'treeman',         anim: 'tree_man_walk',        speed: 0.4,  hp: 120, dmg: 8  },
+      { tex: 'forest_guardian', anim: 'forest_guardian_walk', speed: 0.8,  hp: 300, dmg: 20 },
+      { tex: 'gnoll_brute',     anim: 'gnollbrute_walk',      speed: 0.8,  hp: 150, dmg: 15 },
+      { tex: 'gnoll_shaman',    anim: 'gnollshaman_walk',     speed: 0.7,  hp: 80,  dmg: 10 },
+      { tex: 'mushroom',        anim: 'mushroom_walk',        speed: 0.4,  hp: 200, dmg: 10 },
+      { tex: 'small_mushroom',  anim: 'smallmushroom_walk',   speed: 0.6,  hp: 50,  dmg: 5  },
+      { tex: 'golem',           anim: 'golem_walk',           speed: 0.45, hp: 500, dmg: 10 },
     ];
     const def = _pool[this._localEnemyCounter % _pool.length];
 
