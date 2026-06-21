@@ -509,6 +509,7 @@ export default class ForestGuardian {
     if (this.isDead) return;
 
     this.isDead = true;
+      if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(100);
     console.log('💀 Forest Guardian died!');
 
@@ -560,3 +561,4 @@ export default class ForestGuardian {
     return this.sprite.y;
   }
 }
+

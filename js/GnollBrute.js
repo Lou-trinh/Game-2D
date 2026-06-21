@@ -362,6 +362,7 @@ export default class GnollBrute {
     if (this.isDead) return;
 
     this.isDead = true;
+      if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(35);
     console.log('💀 Gnoll Brute died!');
 
@@ -405,3 +406,4 @@ export default class GnollBrute {
     return this.sprite.y;
   }
 }
+

@@ -742,6 +742,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const targetHitbox = obj.getHitbox ? obj.getHitbox() : new Phaser.Geom.Rectangle(obj.x - 12, obj.y - 12, 24, 24);
         if (Phaser.Geom.Rectangle.Overlaps(hitRect, targetHitbox)) {
           obj.takeDamage(damage);
+          if (this.scene?._sessionDamage !== undefined) this.scene._sessionDamage += damage;
         }
       });
     });
@@ -914,6 +915,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           const dist = Phaser.Math.Distance.Between(ex, ey, enemy.sprite.x, enemy.sprite.y);
           if (dist <= aoeRadius) {
             enemy.takeDamage(aoeDamage);
+            if (this.scene?._sessionDamage !== undefined) this.scene._sessionDamage += aoeDamage;
           }
         }
       });
@@ -924,7 +926,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.scene.guestEnemies.forEach(proxy => {
         if (!proxy || proxy.isDead || !proxy.sprite?.active) return;
         const dist = Phaser.Math.Distance.Between(ex, ey, proxy.sprite.x, proxy.sprite.y);
-        if (dist <= aoeRadius) proxy.takeDamage(aoeDamage);
+        if (dist <= aoeRadius) {
+          proxy.takeDamage(aoeDamage);
+          if (this.scene?._sessionDamage !== undefined) this.scene._sessionDamage += aoeDamage;
+        }
       });
     }
 
@@ -2072,6 +2077,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
             this.createBloodSplatter(enemy.x, enemy.y, velocity, enemy);
 
             enemy.takeDamage(damage);
+            if (this.scene?._sessionDamage !== undefined) this.scene._sessionDamage += damage;
 
             // Handle Piercing vs Normal
             if (arrow.getData('pierce')) {

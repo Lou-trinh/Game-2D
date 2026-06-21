@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { Economy } from './utils/Economy';
 
 export default class IceMonster {
@@ -53,7 +53,7 @@ export default class IceMonster {
         // Store reference
         this.sprite.iceMonsterInstance = this;
 
-        console.log('❄️ Ice Monster summoned!');
+        console.log('â„ï¸ Ice Monster summoned!');
     }
 
     static preload(scene) {
@@ -253,7 +253,7 @@ export default class IceMonster {
             // Deal damage to enemy
             if (enemy.takeDamage) {
                 enemy.takeDamage(this.damageAmount);
-                console.log(`❄️ Ice Monster attacked enemy! Dealt ${this.damageAmount} damage`);
+                console.log(`â„ï¸ Ice Monster attacked enemy! Dealt ${this.damageAmount} damage`);
 
                 // Attack flash effect
                 this.sprite.setTint(0x66ffff);
@@ -320,7 +320,7 @@ export default class IceMonster {
             }
         });
 
-        console.log(`❄️ Ice Monster health: ${this.health}/${this.maxHealth}`);
+        console.log(`â„ï¸ Ice Monster health: ${this.health}/${this.maxHealth}`);
 
         // Update health bar
         this.updateHealthBar();
@@ -334,8 +334,9 @@ export default class IceMonster {
         if (this.isDead) return;
 
         this.isDead = true;
+      if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
         Economy.addExp(45);
-        console.log('💀 Ice Monster died!');
+        console.log('ðŸ’€ Ice Monster died!');
 
         // Hide health bar
         if (this.healthBar) this.healthBar.setVisible(false);
@@ -375,3 +376,4 @@ export default class IceMonster {
         return this.sprite.y;
     }
 }
+

@@ -416,6 +416,7 @@ export default class GnollShaman {
     if (this.isDead) return;
 
     this.isDead = true;
+      if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(40);
     console.log('💀 Gnoll Shaman died!');
 
@@ -463,3 +464,4 @@ export default class GnollShaman {
     return this.sprite.y;
   }
 }
+

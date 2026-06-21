@@ -416,6 +416,7 @@ export default class Wolf {
     if (this.isDead) return;
 
     this.isDead = true;
+      if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(15);
     console.log('💀 Wolf died!');
 
@@ -457,3 +458,4 @@ export default class Wolf {
     return this.sprite.y;
   }
 }
+

@@ -50,6 +50,7 @@ class GuestEnemyProxy {
     }
     if (this.hp <= 0) {
       this.isDead = true;
+      this._scene._sessionKills++;
       sendEnemyKill(this._roomCode, this.mpId).catch(() => {});
       this._scene.dropLoot(this.x, this.y, 1, 'coin');
       if (sp?.active) {
@@ -299,6 +300,10 @@ export default class MainScene extends Phaser.Scene {
     this.items = [];
     this.diamondCount = 0; // Track session diamonds
     this.coinCount = 0;    // Track session coins
+    this._sessionKills = 0;
+    this._sessionDamage = 0;
+    this._sessionHeal = 0;
+    this._sessionFrag = 0;
 
     const map = this.make.tilemap({ key: 'map' });
 
@@ -948,6 +953,7 @@ export default class MainScene extends Phaser.Scene {
     this.player.updateHealthBar();
 
     const actualHeal = this.player.health - oldHealth;
+    this._sessionHeal += actualHeal;
     console.log(`💊 Picked up blood! Healed ${actualHeal} HP`);
 
     this.player.setTint(0x00ff00);
@@ -957,6 +963,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   pickupFragCommon() {
+    this._sessionFrag++;
     Economy.addFragCommon(1);
     if (this.resourceUI) this.resourceUI.updateResources();
     this.player.setTint(0xff8800);
@@ -964,6 +971,7 @@ export default class MainScene extends Phaser.Scene {
   }
 
   pickupFragRare() {
+    this._sessionFrag++;
     Economy.addFragRare(1);
     if (this.resourceUI) this.resourceUI.updateResources();
     this.player.setTint(0xcc44ff);
@@ -1633,33 +1641,85 @@ export default class MainScene extends Phaser.Scene {
   _showMpDeathOverlay() {
     if (this._mpDeathOverlay) return;
     const { width, height } = this.scale;
-    const depth = 500;
-    const ov = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55).setDepth(depth).setScrollFactor(0);
-    const txt = this.add.text(width / 2, height / 2 - 30, '💀 Bạn đã chết', {
-      fontSize: '20px', color: '#ff4444', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(depth + 1).setScrollFactor(0);
-    const sub = this.add.text(width / 2, height / 2 + 10, 'Trận đấu vẫn tiếp tục...', {
-      fontSize: '12px', color: '#cccccc', stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(depth + 1).setScrollFactor(0);
+    const D = 500;
+    const sf = 0;
 
-    // Leave button
-    const btnG = this.add.graphics().setDepth(depth + 1).setScrollFactor(0);
-    btnG.fillStyle(0x7f1e1e, 1);
-    btnG.fillRoundedRect(width / 2 - 70, height / 2 + 40, 140, 36, 8);
-    const btnTxt = this.add.text(width / 2, height / 2 + 58, 'Rời trận', {
-      fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(depth + 2).setScrollFactor(0);
-    const btnHit = this.add.rectangle(width / 2, height / 2 + 58, 140, 36, 0, 0)
-      .setDepth(depth + 3).setScrollFactor(0).setInteractive({ useHandCursor: true });
-    btnHit.on('pointerover', () => btnG.fillStyle(0xb03030, 1).fillRoundedRect(width / 2 - 70, height / 2 + 40, 140, 36, 8));
-    btnHit.on('pointerout', () => btnG.fillStyle(0x7f1e1e, 1).fillRoundedRect(width / 2 - 70, height / 2 + 40, 140, 36, 8));
-    btnHit.on('pointerdown', () => {
+    const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.72).setDepth(D).setScrollFactor(sf);
+
+    // Panel
+    const pW = 300, pH = 248;
+    const pX = (width - pW) / 2, pY = (height - pH) / 2 - 10;
+    const bg = this.add.graphics().setDepth(D + 1).setScrollFactor(sf);
+    bg.fillStyle(0x1a2533, 0.97);
+    bg.fillRoundedRect(pX, pY, pW, pH, 12);
+    bg.lineStyle(2, 0x76c442, 1);
+    bg.strokeRoundedRect(pX, pY, pW, pH, 12);
+
+    // Title
+    const title = this.add.text(width / 2, pY + 18, '💀 KẾT QUẢ TRẬN ĐẤU', {
+      fontSize: '13px', fontStyle: 'bold', color: '#ff4444',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(D + 2).setScrollFactor(sf);
+
+    const sub = this.add.text(width / 2, pY + 34, 'Trận đấu vẫn tiếp tục...', {
+      fontSize: '9px', color: '#888888',
+    }).setOrigin(0.5).setDepth(D + 2).setScrollFactor(sf);
+
+    // Divider
+    const div = this.add.graphics().setDepth(D + 2).setScrollFactor(sf);
+    div.lineStyle(1, 0x4a5a6a, 0.8);
+    div.lineBetween(pX + 12, pY + 44, pX + pW - 12, pY + 44);
+
+    // Stats
+    const stats = [
+      { icon: '💀', label: 'Quái diệt được', value: (this._sessionKills || 0).toLocaleString() },
+      { icon: '⚔️', label: 'Damage gây ra',  value: (this._sessionDamage || 0).toLocaleString() },
+      { icon: '💊', label: 'Máu đã hồi',      value: (this._sessionHeal || 0).toLocaleString() },
+      { icon: '🪙', label: 'Xu đã nhặt',      value: (this.player?.coinCount || 0).toLocaleString() },
+      { icon: '💎', label: 'Kim cương nhặt',  value: (this.player?.diamondCount || 0).toLocaleString() },
+      { icon: '🔩', label: 'Mảnh đã nhặt',    value: (this._sessionFrag || 0).toLocaleString() },
+    ];
+
+    const statObjs = [];
+    stats.forEach((s, i) => {
+      const rowY = pY + 56 + i * 24;
+      const lbl = this.add.text(pX + 16, rowY, `${s.icon} ${s.label}`, {
+        fontSize: '10px', color: '#cccccc',
+      }).setDepth(D + 2).setScrollFactor(sf);
+      const val = this.add.text(pX + pW - 16, rowY, s.value, {
+        fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(1, 0).setDepth(D + 2).setScrollFactor(sf);
+      statObjs.push(lbl, val);
+    });
+
+    // Buttons
+    const btnY = pY + pH - 34;
+    const makeBtn = (cx, label, color, hoverColor, onClick) => {
+      const bW = 120, bH = 28;
+      const g = this.add.graphics().setDepth(D + 2).setScrollFactor(sf);
+      g.fillStyle(color, 1);
+      g.fillRoundedRect(cx - bW / 2, btnY - bH / 2, bW, bH, 7);
+      const t = this.add.text(cx, btnY, label, {
+        fontSize: '11px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(D + 3).setScrollFactor(sf);
+      const hit = this.add.rectangle(cx, btnY, bW, bH, 0, 0)
+        .setDepth(D + 4).setScrollFactor(sf).setInteractive({ useHandCursor: true });
+      hit.on('pointerover', () => { g.clear(); g.fillStyle(hoverColor, 1); g.fillRoundedRect(cx - bW / 2, btnY - bH / 2, bW, bH, 7); });
+      hit.on('pointerout',  () => { g.clear(); g.fillStyle(color, 1);      g.fillRoundedRect(cx - bW / 2, btnY - bH / 2, bW, bH, 7); });
+      hit.on('pointerdown', onClick);
+      return [g, t, hit];
+    };
+
+    const lobbyBtn = makeBtn(width / 2 - 68, '🏠 Về sảnh', 0x1e6b3e, 0x28a85c, () => {
       this.scene.stop('MainScene');
       this.scene.start('MenuScene');
     });
+    const exitBtn = makeBtn(width / 2 + 68, '🚪 Thoát game', 0x7f1e1e, 0xb03030, () => {
+      this.scene.stop('MainScene');
+      this.scene.start('SceneLoading');
+    });
 
-    this._mpDeathOverlay = [ov, txt, sub, btnG, btnTxt, btnHit];
+    this._mpDeathOverlay = [dim, bg, title, sub, div, ...statObjs, ...lobbyBtn, ...exitBtn];
   }
 
   _cleanupMultiplayer(roomCode, uid) {

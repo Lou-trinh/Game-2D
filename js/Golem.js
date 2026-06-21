@@ -373,6 +373,7 @@ export default class Golem {
   die() {
     if (this.isDead) return;
     this.isDead = true;
+      if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(50);
 
     this.healthBar?.setVisible(false);
@@ -407,3 +408,4 @@ export default class Golem {
   get x() { return this.sprite.x; }
   get y() { return this.sprite.y; }
 }
+

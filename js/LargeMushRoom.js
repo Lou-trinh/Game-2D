@@ -368,6 +368,7 @@ export default class LargeMushRoom {
     if (this.isDead) return;
 
     this.isDead = true;
+      if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(20);
     console.log('💀 LargeMushRoom died!');
 
@@ -470,3 +471,4 @@ export default class LargeMushRoom {
     return this.sprite.y;
   }
 }
+
