@@ -202,8 +202,9 @@ export default class ResourceUI {
         this.ammoText.setScrollFactor(0);
         this.ammoText.setDepth(2002);
 
-        // Hide ammo elements if not Player 1 (M4A1)
-        if (this.player.characterType !== 'player_1') {
+        // Hide ammo elements for non-gun characters
+        const _isGunChar = ['player_1', 'character_02', 'player_3'].includes(this.player.characterType);
+        if (!_isGunChar) {
             this.ammoIcon.setVisible(false);
             this.ammoText.setVisible(false);
             this.ammoBg.setVisible(false);
@@ -268,8 +269,7 @@ export default class ResourceUI {
             else this.ammoText.setColor('#ffff00');
 
             return;
-        } else if (this.player.characterType === 'player_1') {
-            // Re-show for other guns (only if Player 1)
+        } else if (['player_1', 'character_02', 'player_3'].includes(this.player.characterType)) {
             this.ammoText.setVisible(true);
             this.ammoIcon.setVisible(true);
             this.ammoBg.setVisible(true);
