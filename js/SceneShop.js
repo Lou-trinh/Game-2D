@@ -273,12 +273,18 @@ export default class SceneShop extends Phaser.Scene {
         // The simple check is: if we dragged, don't click.
 
         btn.on('pointerdown', () => {
-            this.isPointerDownOnList = true; // Also allow dragging starting from button
-            this.startY = this.input.activePointer.y;
+            const p = this.input.activePointer;
+            if (p.x < this.listX || p.x > this.listX + this.listW ||
+                p.y < this.listY || p.y > this.listY + this.listH) return;
+            this.isPointerDownOnList = true;
+            this.startY = p.y;
             this.startScrollY = this.gridContainer.y;
         });
 
         btn.on('pointerup', () => {
+            const p = this.input.activePointer;
+            if (p.x < this.listX || p.x > this.listX + this.listW ||
+                p.y < this.listY || p.y > this.listY + this.listH) return;
             if (!this.isDragging) {
                 if (isOwned) return;
                 this.buyWeapon(weapon, btn, btnText);
