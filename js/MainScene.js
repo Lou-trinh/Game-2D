@@ -304,6 +304,7 @@ export default class MainScene extends Phaser.Scene {
     this._sessionDamage = 0;
     this._sessionHeal = 0;
     this._sessionFrag = 0;
+    this._allPlayersDead = false;
 
     const map = this.make.tilemap({ key: 'map' });
 
@@ -810,72 +811,36 @@ export default class MainScene extends Phaser.Scene {
       });
     }
 
-    this.bears.forEach(bear => {
-      bear.update();
-    });
+    if (!this._allPlayersDead) {
+      this.bears.forEach(bear => { bear.update(); });
+      this.treeMen.forEach(treeMan => { treeMan.update(); });
+      this.forestGuardians.forEach(forestGuardian => { forestGuardian.update(); });
+      this.gnollBrutes.forEach(gnollBrute => { gnollBrute.update(); });
+      this.gnollShamans.forEach(gnollShaman => { gnollShaman.update(time, delta); });
+      this.wolves.forEach(wolf => { wolf.update(); });
+      this.mushrooms.forEach(mushroom => { mushroom.update(); });
+      this.smallMushrooms.forEach(smallMushroom => { smallMushroom.update(); });
+      this.golems.forEach(golem => { golem.update(); });
+      this.stones.forEach(stone => { stone.update(); });
+      this.trees.forEach(tree => { tree.update(); });
+      this.chests.forEach(chest => { chest.update(); });
 
-    this.treeMen.forEach(treeMan => {
-      treeMan.update();
-    });
-
-    this.forestGuardians.forEach(forestGuardian => {
-      forestGuardian.update();
-    });
-
-    this.gnollBrutes.forEach(gnollBrute => {
-      gnollBrute.update();
-    });
-
-    this.gnollShamans.forEach(gnollShaman => {
-      gnollShaman.update(time, delta);
-    });
-
-    this.wolves.forEach(wolf => {
-      wolf.update();
-    });
-
-    this.mushrooms.forEach(mushroom => {
-      mushroom.update();
-    });
-
-    this.smallMushrooms.forEach(smallMushroom => {
-      smallMushroom.update();
-    });
-
-    this.golems.forEach(golem => {
-      golem.update();
-    });
-
-    this.stones.forEach(stone => {
-      stone.update();
-    });
-
-    this.trees.forEach(tree => {
-      tree.update();
-    });
-
-    this.chests.forEach(chest => {
-      chest.update();
-    });
-
-    // Update summoned monsters
-    if (this.summonedMonsters && this.summonedMonsters.length > 0) {
-      // Clean up dead summons
-      this.summonedMonsters = this.summonedMonsters.filter(summon => {
-        if (!summon || summon.isDead) {
-          // Remove from player's active summons too
-          if (this.player && this.player.activeSummons) {
-            const index = this.player.activeSummons.indexOf(summon);
-            if (index > -1) {
-              this.player.activeSummons.splice(index, 1);
-              console.log(`🗑️ Removed dead summon. Active summons: ${this.player.activeSummons.length}`);
+      if (this.summonedMonsters && this.summonedMonsters.length > 0) {
+        this.summonedMonsters = this.summonedMonsters.filter(summon => {
+          if (!summon || summon.isDead) {
+            if (this.player && this.player.activeSummons) {
+              const index = this.player.activeSummons.indexOf(summon);
+              if (index > -1) {
+                this.player.activeSummons.splice(index, 1);
+                console.log(`🗑️ Removed dead summon. Active summons: ${this.player.activeSummons.length}`);
+              }
             }
+            return false;
           }
-          return false;
-        }
-        summon.update();
-        return true;
-      });
+          summon.update();
+          return true;
+        });
+      }
     }
 
     this.checkItemPickup();
@@ -1436,6 +1401,7 @@ export default class MainScene extends Phaser.Scene {
         // Handle death transition
         if (isDead && entry.prevAlive !== false) {
           entry.prevAlive = false;
+          this._checkAllPlayersDead();
           sprite.setTexture('ghost').setScale(0.3).stop();
           if (entry.floatTween) entry.floatTween.stop();
           entry.floatTween = this.tweens.add({
@@ -1638,8 +1604,18 @@ export default class MainScene extends Phaser.Scene {
     this.events.once('destroy', () => this._cleanupMultiplayer(roomCode, user.uid));
   }
 
+  _checkAllPlayersDead() {
+    if (!this.player?.isDead) return;
+    const others = this._otherPlayerSprites || {};
+    if (Object.keys(others).length === 0) return;
+    if (Object.values(others).every(e => e.prevAlive === false)) {
+      this._allPlayersDead = true;
+    }
+  }
+
   _showMpDeathOverlay() {
     if (this._mpDeathOverlay) return;
+    this._checkAllPlayersDead();
     const { width, height } = this.scale;
     const D = 25000;
     const sf = 0;
