@@ -1300,9 +1300,16 @@ export default class MainScene extends Phaser.Scene {
     this._pendingShots = [];
     this._shotSeq = 0;
 
-    // Mark player as in-game in the room
+    // Re-register player in room with full profile (leaveRoom was called when lobby closed)
     const _roomUser = auth.currentUser;
-    if (_roomUser) updatePlayerInRoom(roomCode, _roomUser.uid, { inGame: true }).catch(() => {});
+    if (_roomUser) updatePlayerInRoom(roomCode, _roomUser.uid, {
+      uid: _roomUser.uid,
+      displayName: _roomUser.displayName || 'Player',
+      characterKey: selectedCharKey,
+      isHost: !!isHost,
+      inGame: true,
+      joinedAt: Date.now(),
+    }).catch(() => {});
 
     // Sync own player position every 200ms (reduced from 100ms to avoid Firestore quota)
     this._lastSentX = null;
