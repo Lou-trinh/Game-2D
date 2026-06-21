@@ -1614,9 +1614,10 @@ export default class MainScene extends Phaser.Scene {
     }
   }
 
-  _showMpDeathOverlay() {
+  _showDeathOverlay() {
     if (this._mpDeathOverlay) return;
-    this._checkAllPlayersDead();
+    const isMultiplayer = !!this.registry.get('roomCode');
+    if (isMultiplayer) this._checkAllPlayersDead();
     const { width, height } = this.scale;
     const D = 25000;
     const sf = 0;
@@ -1638,7 +1639,8 @@ export default class MainScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(D + 2).setScrollFactor(sf);
 
-    const sub = this.add.text(width / 2, pY + 34, 'Trận đấu vẫn tiếp tục...', {
+    const subLabel = isMultiplayer ? 'Trận đấu vẫn tiếp tục...' : 'Bạn đã bị đánh bại!';
+    const sub = this.add.text(width / 2, pY + 34, subLabel, {
       fontSize: '9px', color: '#888888',
     }).setOrigin(0.5).setDepth(D + 2).setScrollFactor(sf);
 
@@ -1687,16 +1689,17 @@ export default class MainScene extends Phaser.Scene {
       return [g, t, hit];
     };
 
-    const lobbyBtn = makeBtn(width / 2 - 68, '🏠 Về sảnh', 0x1e6b3e, 0x28a85c, () => {
-      this.scene.stop('MainScene');
-      this.scene.start('MenuScene');
-    });
-    const exitBtn = makeBtn(width / 2 + 68, '🚪 Thoát game', 0x7f1e1e, 0xb03030, () => {
-      this.scene.stop('MainScene');
-      this.scene.start('SceneLoading');
-    });
+    const btn1Label = isMultiplayer ? '🏠 Về sảnh'   : '🔄 Chơi lại';
+    const btn2Label = isMultiplayer ? '🚪 Thoát game' : '🏠 Menu';
+    const btn1Action = isMultiplayer
+      ? () => { this.scene.stop('MainScene'); this.scene.start('MenuScene'); }
+      : () => { this.scene.stop('MainScene'); this.scene.start('MainScene'); };
+    const btn2Action = () => { this.scene.stop('MainScene'); this.scene.start('MenuScene'); };
 
-    this._mpDeathOverlay = [dim, bg, title, sub, div, ...statObjs, ...lobbyBtn, ...exitBtn];
+    const btn1 = makeBtn(width / 2 - 68, btn1Label, 0x1e6b3e, 0x28a85c, btn1Action);
+    const btn2 = makeBtn(width / 2 + 68, btn2Label, 0x7f1e1e, 0xb03030, btn2Action);
+
+    this._mpDeathOverlay = [dim, bg, title, sub, div, ...statObjs, ...btn1, ...btn2];
   }
 
   _cleanupMultiplayer(roomCode, uid) {
