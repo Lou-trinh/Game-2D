@@ -1539,12 +1539,17 @@ export default class MainScene extends Phaser.Scene {
         if (!this.scene.isActive('MainScene')) return;
         if (state.hostLeft && !this._hostLeft) {
           this._hostLeft = true;
+          // Speed per enemy type (px/physics-step at 60fps, matches each class's this.speed)
+          const _typeSpeed = {
+            bear: 0.7, wolf: 1.0, treeman: 0.4, forestguardian: 0.8,
+            gnollbrute: 0.8, gnollshaman: 0.7, mushroom: 0.4, smallmushroom: 0.6, golem: 0.45,
+          };
           if (this._guestEnemySprites) {
             Object.values(this._guestEnemySprites).forEach(sp => {
               if (sp?.active) {
-                // Preserve actual enemy speed from last broadcast; don't default to 1.5 (too fast)
                 const spd = Math.sqrt((sp._vx || 0) ** 2 + (sp._vy || 0) ** 2);
-                sp._chaseSpeed = spd > 0.1 ? spd : 0.7;
+                // Prefer broadcast speed; fallback to type table; final fallback 0.6
+                sp._chaseSpeed = spd > 0.1 ? spd : (_typeSpeed[sp._mpType] || 0.6);
                 sp._targetX = sp.x; sp._targetY = sp.y; sp._vx = 0; sp._vy = 0;
               }
             });
@@ -1591,9 +1596,16 @@ export default class MainScene extends Phaser.Scene {
               };
               const texKey = (e.t && texMap[e.t]) ? texMap[e.t] : (e.textureKey || 'bear');
               const sp = this.add.sprite(e.x, e.y, texKey).setDepth(e.y);
-              // Play default walk anim immediately so atlas frame 0 (may be blank) isn't shown
-              const _defAnimKey = texKey + '_walk';
-              if (this.anims.exists(_defAnimKey)) sp.play(_defAnimKey, true);
+              sp._mpType = e.t || '';
+              // Animation keys don't always match texture key pattern — use explicit map
+              const _animMap = {
+                bear: 'bear_walk', wolf: 'wolf_walk', treeman: 'tree_man_walk',
+                forest_guardian: 'forest_guardian_walk', gnoll_brute: 'gnollbrute_walk',
+                gnoll_shaman: 'gnollshaman_walk', mushroom: 'mushroom_walk',
+                small_mushroom: 'small_mushroom_walk', golem: 'golem_walk',
+              };
+              const _defAnimKey = _animMap[texKey];
+              if (_defAnimKey && this.anims.exists(_defAnimKey)) sp.play(_defAnimKey, true);
               sp._targetX = e.x;
               sp._targetY = e.y;
               sp._hpGfx = this.add.graphics().setDepth(e.y + 10);
@@ -1636,22 +1648,40 @@ export default class MainScene extends Phaser.Scene {
   _spawnLocalEnemy() {
     if (!this.player || this.player.isDead) return;
     if (!this._guestEnemySprites) return;
-    this._localSpawnLeft = !this._localSpawnLeft;
-    const gateX = this._localSpawnLeft ? 100 : 860;
-    const gateY = 260;
+
+    // Rotate through 4 edges so enemies don't all come from one side
+    const _sides = [
+      { x: 80,  y: () => Phaser.Math.Between(120, 420) },
+      { x: 880, y: () => Phaser.Math.Between(120, 420) },
+      { x: () => Phaser.Math.Between(180, 780), y: 60  },
+      { x: () => Phaser.Math.Between(180, 780), y: 480 },
+    ];
+    const side = _sides[this._localEnemyCounter % 4];
+    const gateX = typeof side.x === 'function' ? side.x() : side.x;
+    const gateY = typeof side.y === 'function' ? side.y() : side.y;
+
+    // Types with confirmed texture + animation keys
+    const _pool = [
+      { tex: 'bear',      anim: 'bear_walk',       speed: 0.7, hp: 100, dmg: 10 },
+      { tex: 'wolf',      anim: 'wolf_walk',        speed: 1.0, hp: 60,  dmg: 8  },
+      { tex: 'treeman',   anim: 'tree_man_walk',    speed: 0.4, hp: 150, dmg: 12 },
+      { tex: 'gnoll_brute', anim: 'gnollbrute_walk',speed: 0.8, hp: 180, dmg: 15 },
+    ];
+    const def = _pool[this._localEnemyCounter % _pool.length];
+
     const id = 'local_' + (++this._localEnemyCounter);
-    const sp = this.add.sprite(gateX, gateY, 'bear').setDepth(gateY);
-    // Start walk animation so sprite renders correctly (atlas frame 0 may be blank)
-    if (this.anims.exists('bear_walk')) sp.play('bear_walk', true);
+    const sp = this.add.sprite(gateX, gateY, def.tex).setDepth(gateY);
+    if (def.anim && this.anims.exists(def.anim)) sp.play(def.anim, true);
+    sp._mpType = def.tex;
     sp._targetX = gateX; sp._targetY = gateY; sp._vx = 0; sp._vy = 0;
     sp._lastUpdateAt = 0;
-    sp._chaseSpeed = 0.7;
+    sp._chaseSpeed = def.speed;
     sp._hpGfx = this.add.graphics().setDepth(gateY + 10);
-    sp._dmg = 10; sp._cooldown = 1000; sp._lastHitPlayer = 0;
+    sp._dmg = def.dmg; sp._cooldown = 1000; sp._lastHitPlayer = 0;
     this._guestEnemySprites[id] = sp;
     this._guestEnemyProxies = this._guestEnemyProxies || {};
-    const proxy = new GuestEnemyProxy(sp, id, 100, this, this.registry.get('roomCode'));
-    proxy.maxHp = 100; sp._proxy = proxy;
+    const proxy = new GuestEnemyProxy(sp, id, def.hp, this, this.registry.get('roomCode'));
+    proxy.maxHp = def.hp; sp._proxy = proxy;
     this._guestEnemyProxies[id] = proxy;
     this.guestEnemies.push(proxy);
   }
