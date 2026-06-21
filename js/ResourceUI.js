@@ -390,11 +390,7 @@ export default class ResourceUI {
                     scale: 0.8,
                     duration: 50,
                     yoyo: true,
-                    onComplete: () => {
-                        // Stop MainScene and go to MenuScene
-                        this.scene.scene.stop('MainScene');
-                        this.scene.scene.start('MenuScene');
-                    }
+                    onComplete: () => this._showExitConfirmPopup()
                 });
             });
             return;
@@ -428,13 +424,67 @@ export default class ResourceUI {
                 scale: 0.3,
                 duration: 50,
                 yoyo: true,
-                onComplete: () => {
-                    // Stop MainScene and go to MenuScene
-                    this.scene.scene.stop('MainScene');
-                    this.scene.scene.start('MenuScene');
-                }
+                onComplete: () => this._showExitConfirmPopup()
             });
         });
+    }
+
+    _showExitConfirmPopup() {
+        if (this._exitPopupObjs) return;
+        const scene = this.scene;
+        const { width, height } = scene.cameras.main;
+        const D = 28000;
+        const sf = 0;
+
+        const dim = scene.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.55)
+            .setScrollFactor(sf).setDepth(D).setInteractive();
+
+        const pw = 320, ph = 160;
+        const bg = scene.add.graphics().setDepth(D + 1).setScrollFactor(sf);
+        bg.fillStyle(0x1a2533, 0.97);
+        bg.fillRoundedRect(width / 2 - pw / 2, height / 2 - ph / 2, pw, ph, 12);
+        bg.lineStyle(2, 0xe74c3c, 1);
+        bg.strokeRoundedRect(width / 2 - pw / 2, height / 2 - ph / 2, pw, ph, 12);
+
+        const title = scene.add.text(width / 2, height / 2 - 50, '⚠️ Thoát game?', {
+            fontSize: '16px', fontStyle: 'bold', color: '#e74c3c',
+            stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(D + 2).setScrollFactor(sf);
+
+        const body = scene.add.text(width / 2, height / 2 - 15,
+            'Nếu thoát giữa chừng bạn sẽ\nkhông nhận được bất kỳ vật phẩm nào!', {
+            fontSize: '12px', color: '#cccccc', align: 'center',
+            stroke: '#000000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(D + 2).setScrollFactor(sf);
+
+        const makeBtn = (cx, label, fill, hoverFill, onClick) => {
+            const bw = 110, bh = 32;
+            const bg2 = scene.add.graphics().setDepth(D + 3).setScrollFactor(sf);
+            bg2.fillStyle(fill, 1);
+            bg2.fillRoundedRect(cx - bw / 2, height / 2 + 38, bw, bh, 8);
+            const hit = scene.add.rectangle(cx, height / 2 + 38 + bh / 2, bw, bh)
+                .setScrollFactor(sf).setDepth(D + 4).setAlpha(0.01)
+                .setInteractive({ useHandCursor: true });
+            const txt = scene.add.text(cx, height / 2 + 38 + bh / 2, label, {
+                fontSize: '12px', fontStyle: 'bold', color: '#ffffff',
+                stroke: '#000000', strokeThickness: 2
+            }).setOrigin(0.5).setDepth(D + 5).setScrollFactor(sf);
+            hit.on('pointerover', () => { bg2.clear(); bg2.fillStyle(hoverFill, 1); bg2.fillRoundedRect(cx - bw / 2, height / 2 + 38, bw, bh, 8); });
+            hit.on('pointerout',  () => { bg2.clear(); bg2.fillStyle(fill, 1);      bg2.fillRoundedRect(cx - bw / 2, height / 2 + 38, bw, bh, 8); });
+            hit.on('pointerup', onClick);
+            return [bg2, hit, txt];
+        };
+
+        const exitObjs = makeBtn(width / 2 - 68, '🚪 Thoát', 0x7f1e1e, 0xb03030, () => {
+            scene.scene.stop('MainScene');
+            scene.scene.start('MenuScene');
+        });
+        const stayObjs = makeBtn(width / 2 + 68, '✅ Ở lại', 0x1e5e1e, 0x27ae60, () => {
+            this._exitPopupObjs.forEach(o => o.destroy());
+            this._exitPopupObjs = null;
+        });
+
+        this._exitPopupObjs = [dim, bg, title, body, ...exitObjs, ...stayObjs];
     }
 
     createInventoryButton(slotX, slotY, slotW, slotH, slotMargin, totalSlotsWidth, isMobile) {
