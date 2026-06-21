@@ -828,6 +828,16 @@ export default class MainScene extends Phaser.Scene {
             if (now - (sp._lastHitPlayer || 0) >= (sp._cooldown || 1000)) {
               sp._lastHitPlayer = now;
               if (this.player.takeDamage) this.player.takeDamage(sp._dmg);
+              // Flash enemy sprite red to indicate attack (visible on guest screen)
+              try {
+                sp.setTint(0xff3333);
+                this.time.delayedCall(150, () => { try { if (sp?.active) sp.clearTint(); } catch (_) {} });
+              } catch (_) {}
+              // Expanding red circle at impact point
+              try {
+                const fx = this.add.circle((sp.x + this.player.x) / 2, (sp.y + this.player.y) / 2, 12, 0xff2222, 0.8).setDepth(2000);
+                this.tweens.add({ targets: fx, alpha: 0, scaleX: 2.5, scaleY: 2.5, duration: 280, ease: 'Power2', onComplete: () => { try { fx.destroy(); } catch (_) {} } });
+              } catch (_) {}
             }
           }
         }
@@ -848,7 +858,14 @@ export default class MainScene extends Phaser.Scene {
           if (now - (gp._lastHit || 0) >= 500) {
             gp._lastHit = now;
             this.player.takeDamage?.(gp.dmg);
-            try { gp.circle.destroy(); } catch (_) {}
+            // Projectile impact burst
+            try {
+              const hitX = gp.circle.x; const hitY = gp.circle.y;
+              const fc = gp.circle.fillColor || 0x9966ff;
+              gp.circle.destroy();
+              const fx = this.add.circle(hitX, hitY, 16, fc, 0.9).setDepth(2000);
+              this.tweens.add({ targets: fx, alpha: 0, scaleX: 3, scaleY: 3, duration: 300, ease: 'Power2', onComplete: () => { try { fx.destroy(); } catch (_) {} } });
+            } catch (_) {}
             delete this._guestProjectiles[id];
           }
         }
