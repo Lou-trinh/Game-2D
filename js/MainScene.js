@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import Player from './Player';
 import { CharacterTypes, getCharacterConfig } from './Character';
-import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange, sendEnemyKill, onEnemyKills, updatePlayerInRoom, leaveRoom } from './firebase';
+import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange, sendEnemyKill, onEnemyKills, updatePlayerInRoom, leaveRoom, setRoomStatus } from './firebase';
 import Bear from './Bear';
 import Stone from './Stone';
 import Tree from './Tree';
@@ -308,6 +308,7 @@ export default class MainScene extends Phaser.Scene {
     this._sessionFragRare = 0;
     this._allPlayersDead = false;
     this._mpDeathOverlay = null;
+    this._hostLeft = false;
 
     const map = this.make.tilemap({ key: 'map' });
 
@@ -771,9 +772,23 @@ export default class MainScene extends Phaser.Scene {
       Object.values(this._guestEnemySprites).forEach(sp => {
         if (!sp?.active || sp._targetX === undefined) return;
 
-        // Dead-reckoning: advance target by last known velocity between host broadcasts
+        // Dead-reckoning / chase AI
         const staleness = Date.now() - (sp._lastUpdateAt || 0);
-        if (staleness < 1000 && (sp._vx || sp._vy)) {
+        if (this._hostLeft && this.player && !this.player.isDead) {
+          // Host left: update velocity toward local player (1.5px/frame ≈ 90px/s at 60fps)
+          const dx = this.player.x - sp.x;
+          const dy = this.player.y - sp.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > 30) {
+            sp._vx = (dx / d) * 1.5;
+            sp._vy = (dy / d) * 1.5;
+          } else {
+            sp._vx = 0;
+            sp._vy = 0;
+          }
+          sp._targetX += sp._vx * delta / 16.67;
+          sp._targetY += sp._vy * delta / 16.67;
+        } else if (staleness < 1000 && (sp._vx || sp._vy)) {
           sp._targetX += sp._vx * delta / 16.67;
           sp._targetY += sp._vy * delta / 16.67;
         }
@@ -1516,6 +1531,7 @@ export default class MainScene extends Phaser.Scene {
 
       this._gameStateUnsub = onGameStateChange(roomCode, (state) => {
         if (!this.scene.isActive('MainScene')) return;
+        if (state.hostLeft && !this._hostLeft) this._hostLeft = true;
         const enemies = state.enemies || [];
         const activeIds = new Set(enemies.map(e => String(e.id)));
 
@@ -1687,12 +1703,21 @@ export default class MainScene extends Phaser.Scene {
 
     const btn1Label = isMultiplayer ? '🏠 Về sảnh'   : '🔄 Chơi lại';
     const btn2Label = isMultiplayer ? '🚪 Thoát game' : '🏠 Menu';
+    const _isHost = !!this.registry.get('isMultiplayerHost');
     const btn1Action = isMultiplayer
       ? () => {
           // Return to lobby — keep player in room, mark inGame false
           const _u = auth.currentUser;
           const _rc = this.registry.get('roomCode');
-          if (_u && _rc) updatePlayerInRoom(_rc, _u.uid, { inGame: false }).catch(() => {});
+          if (_u && _rc) {
+            updatePlayerInRoom(_rc, _u.uid, { inGame: false }).catch(() => {});
+            if (_isHost) {
+              // Notify guests that host left so they can run local enemy AI
+              updateGameState(_rc, { hostLeft: true }).catch(() => {});
+              // Reset room status so guests can detect next game start
+              setRoomStatus(_rc, 'waiting').catch(() => {});
+            }
+          }
           this.registry.set('returnToLobbyCode', _rc);
           this.scene.stop('MainScene');
           this.scene.start('MenuScene');

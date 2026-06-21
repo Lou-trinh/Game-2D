@@ -2120,6 +2120,19 @@ export default class MenuScene extends Phaser.Scene {
                 // Returning from game — already in room, just mark inGame: false and listen
                 updatePlayerInRoom(roomCode, user.uid, { inGame: false }).catch(() => {});
                 this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
+                // Listen for next game start (skip initial snapshot — room status may still be 'started')
+                let _returnFirstFire = true;
+                this._lobbyStatusUnsub = onRoomStatusChange(roomCode, (roomData) => {
+                    if (_returnFirstFire) { _returnFirstFire = false; return; }
+                    if (roomData.status === 'started') {
+                        this.registry.set('selectedCharacter', this.selectedCharacterKey);
+                        this.registry.set('roomCode', roomCode);
+                        this.registry.set('isMultiplayerHost', false);
+                        this.closeMultiplayerLobby(false);
+                        this.cameras.main.fadeOut(400, 0, 0, 0);
+                        this.time.delayedCall(400, () => this.scene.start('MainScene'));
+                    }
+                });
             } else {
                 joinRoom(roomCode, myProfile).catch(() => {});
                 this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
