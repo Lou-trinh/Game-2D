@@ -1609,6 +1609,7 @@ export default class MainScene extends Phaser.Scene {
     Economy.addDiamonds(this.player?.diamondCount || 0);
     Economy.addFragCommon(this._sessionFragCommon);
     Economy.addFragRare(this._sessionFragRare);
+    Economy.forceSave(); // Save updated values to cloud immediately
     const { width, height } = this.scale;
     const D = 25000;
     const sf = 0;
