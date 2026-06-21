@@ -1617,7 +1617,12 @@ export default class MainScene extends Phaser.Scene {
   _showDeathOverlay() {
     if (this._mpDeathOverlay) return;
     const isMultiplayer = !!this.registry.get('roomCode');
-    if (isMultiplayer) this._checkAllPlayersDead();
+    if (isMultiplayer) {
+      this._checkAllPlayersDead();
+    } else {
+      this._allPlayersDead = true;
+      if (this._spawnTimer) this._spawnTimer.paused = true;
+    }
     const { width, height } = this.scale;
     const D = 25000;
     const sf = 0;
