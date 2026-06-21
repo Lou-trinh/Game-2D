@@ -2468,6 +2468,8 @@ export default class MenuScene extends Phaser.Scene {
 
                 // Pass drag event to parent logic
                 itemInteract.on('pointerdown', (pointer) => {
+                    if (pointer.x < listAbsX || pointer.x > listAbsX + listW ||
+                        pointer.y < listAbsY || pointer.y > listAbsY + listH) return;
                     isDownOnList = true;
                     startY = pointer.y;
                     startScrollY = currentScrollY;
@@ -2521,6 +2523,8 @@ export default class MenuScene extends Phaser.Scene {
 
                 // Hover/Click Logic
                 itemInteract.on('pointerup', (pointer) => {
+                    if (pointer.x < listAbsX || pointer.x > listAbsX + listW ||
+                        pointer.y < listAbsY || pointer.y > listAbsY + listH) return;
                     const diff = Math.abs(pointer.y - startY);
                     if (diff < dragThreshold && !isDragging) {
                         if (!isOwned) {
