@@ -1533,7 +1533,11 @@ export default class MainScene extends Phaser.Scene {
 
       this._gameStateUnsub = onGameStateChange(roomCode, (state) => {
         if (!this.scene.isActive('MainScene')) return;
-        if (state.hostLeft && !this._hostLeft) this._hostLeft = true;
+        if (state.hostLeft && !this._hostLeft) {
+          this._hostLeft = true;
+          return; // Keep current enemy sprites, local chase AI takes over
+        }
+        if (this._hostLeft) return; // Ignore further Firestore updates once local AI active
         const enemies = state.enemies || [];
         const activeIds = new Set(enemies.map(e => String(e.id)));
 
