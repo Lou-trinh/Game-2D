@@ -772,7 +772,8 @@ export default class MainScene extends Phaser.Scene {
       Object.values(this._guestEnemySprites).forEach(sp => {
         if (!sp?.active || sp._targetX === undefined) return;
 
-        // Dead-reckoning / chase AI
+        // Dead-reckoning / chase AI — cap delta at 50ms to prevent overshoot on lag spikes
+        const drDelta = Math.min(delta, 50);
         const staleness = Date.now() - (sp._lastUpdateAt || 0);
         if (this._hostLeft && this.player && !this.player.isDead) {
           // Host left: update velocity toward local player (1.5px/frame ≈ 90px/s at 60fps)
@@ -786,19 +787,20 @@ export default class MainScene extends Phaser.Scene {
             sp._vx = 0;
             sp._vy = 0;
           }
-          sp._targetX += sp._vx * delta / 16.67;
-          sp._targetY += sp._vy * delta / 16.67;
-        } else if (staleness < 1000 && (sp._vx || sp._vy)) {
-          sp._targetX += sp._vx * delta / 16.67;
-          sp._targetY += sp._vy * delta / 16.67;
+          sp._targetX += sp._vx * drDelta / 16.67;
+          sp._targetY += sp._vy * drDelta / 16.67;
+        } else if (staleness < 2500 && (sp._vx || sp._vy)) {
+          // Extend to 2500ms so enemies keep moving between slow Firestore updates
+          sp._targetX += sp._vx * drDelta / 16.67;
+          sp._targetY += sp._vy * drDelta / 16.67;
         }
 
-        // Delta-time lerp — half-life 30ms for snappier enemy movement
+        // Delta-time lerp — half-life 20ms for faster visual catch-up
         const dist = Phaser.Math.Distance.Between(sp.x, sp.y, sp._targetX, sp._targetY);
         if (dist > 300) {
           sp.setPosition(sp._targetX, sp._targetY);
         } else {
-          const lerpT = 1 - Math.pow(0.5, delta / 30);
+          const lerpT = 1 - Math.pow(0.5, delta / 20);
           sp.x += (sp._targetX - sp.x) * lerpT;
           sp.y += (sp._targetY - sp.y) * lerpT;
         }
