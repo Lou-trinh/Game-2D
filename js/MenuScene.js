@@ -2094,7 +2094,7 @@ export default class MenuScene extends Phaser.Scene {
                     this.registry.set('selectedCharacter', this.selectedCharacterKey);
                     this.registry.set('roomCode', roomCode);
                     this.registry.set('isMultiplayerHost', true);
-                    this.closeMultiplayerLobby();
+                    this.closeMultiplayerLobby(false); // keep player docs in room
                     this.cameras.main.fadeOut(400, 0, 0, 0);
                     this.time.delayedCall(400, () => this.scene.start('MainScene'));
                 });
@@ -2128,7 +2128,7 @@ export default class MenuScene extends Phaser.Scene {
                         this.registry.set('selectedCharacter', this.selectedCharacterKey);
                         this.registry.set('roomCode', roomCode);
                         this.registry.set('isMultiplayerHost', false);
-                        this.closeMultiplayerLobby();
+                        this.closeMultiplayerLobby(false); // keep player docs in room
                         this.cameras.main.fadeOut(400, 0, 0, 0);
                         this.time.delayedCall(400, () => this.scene.start('MainScene'));
                     }
@@ -2139,16 +2139,16 @@ export default class MenuScene extends Phaser.Scene {
         }
     }
 
-    closeMultiplayerLobby() {
+    closeMultiplayerLobby(doLeave = true) {
         if (!this.lobbyPopup) return;
         if (this._lobbyUnsub) { this._lobbyUnsub(); this._lobbyUnsub = null; }
         if (this._lobbyStatusUnsub) { this._lobbyStatusUnsub(); this._lobbyStatusUnsub = null; }
         if (this._lobbySlotEls) { this._lobbySlotEls.forEach(e => e && e.destroy && e.destroy()); this._lobbySlotEls = null; }
         const user = auth.currentUser;
-        if (user && this._lobbyRoomCode) {
+        if (doLeave && user && this._lobbyRoomCode) {
             leaveRoom(this._lobbyRoomCode, user.uid).catch(() => {});
-            this._lobbyRoomCode = null;
         }
+        this._lobbyRoomCode = null;
         this.lobbyPopup.forEach(e => e.destroy());
         this.lobbyPopup = null;
     }
