@@ -792,7 +792,7 @@ export default class MainScene extends Phaser.Scene {
           }
           sp._targetX += sp._vx * drDelta / 16.67;
           sp._targetY += sp._vy * drDelta / 16.67;
-        } else if (staleness < 600 && (sp._vx || sp._vy)) {
+        } else if (staleness < 1500 && (sp._vx || sp._vy)) {
           // Extend to 2500ms so enemies keep moving between slow Firestore updates
           sp._targetX += sp._vx * drDelta / 16.67;
           sp._targetY += sp._vy * drDelta / 16.67;
@@ -829,6 +829,27 @@ export default class MainScene extends Phaser.Scene {
               sp._lastHitPlayer = now;
               if (this.player.takeDamage) this.player.takeDamage(sp._dmg);
             }
+          }
+        }
+      });
+    }
+
+    // Move synced projectiles (GnollShaman bolts / ForestGuardian tornados) and deal damage
+    if (this._guestProjectiles && this.player && !this.player.isDead) {
+      const drDelta = Math.min(delta, 50);
+      Object.keys(this._guestProjectiles).forEach(id => {
+        const gp = this._guestProjectiles[id];
+        if (!gp.circle?.active) { delete this._guestProjectiles[id]; return; }
+        const staleness = Date.now() - (gp.lastUpdateAt || 0);
+        if (staleness < 1500) { gp.circle.x += gp.vx * drDelta / 16.67; gp.circle.y += gp.vy * drDelta / 16.67; }
+        const dist = Phaser.Math.Distance.Between(gp.circle.x, gp.circle.y, this.player.x, this.player.y);
+        if (dist < 20) {
+          const now = Date.now();
+          if (now - (gp._lastHit || 0) >= 500) {
+            gp._lastHit = now;
+            this.player.takeDamage?.(gp.dmg);
+            try { gp.circle.destroy(); } catch (_) {}
+            delete this._guestProjectiles[id];
           }
         }
       });
@@ -1515,7 +1536,23 @@ export default class MainScene extends Phaser.Scene {
               });
             });
           });
-          updateGameState(roomCode, { enemies, updatedAt: Date.now() }).catch(err => console.warn('[MP] gameState write failed:', err?.code));
+          // Collect projectiles from ranged enemies so guest can show visual effects
+          const projectiles = [];
+          this.gnollShamans.forEach(sh => {
+            if (!sh || sh.isDead) return;
+            (sh.projectiles || []).forEach((p, i) => {
+              if (!p?.active) return;
+              projectiles.push({ id: `s${sh.mpId}_${i}`, x: Math.round(p.x), y: Math.round(p.y), vx: p.velocityX || 0, vy: p.velocityY || 0, color: 0x9966ff, r: 6, dmg: p.damage || 15 });
+            });
+          });
+          this.forestGuardians.forEach(fg => {
+            if (!fg || fg.isDead) return;
+            (fg.projectiles || []).forEach((p, i) => {
+              if (!p?.active) return;
+              projectiles.push({ id: `f${fg.mpId}_${i}`, x: Math.round(p.x), y: Math.round(p.y), vx: p.body?.velocity?.x || 0, vy: p.body?.velocity?.y || 0, color: 0x55ff55, r: 8, dmg: p.damage || 15 });
+            });
+          });
+          updateGameState(roomCode, { enemies, projectiles, updatedAt: Date.now() }).catch(err => console.warn('[MP] gameState write failed:', err?.code));
         },
       });
 
@@ -1636,6 +1673,28 @@ export default class MainScene extends Phaser.Scene {
             }
           } catch (err) {
             console.warn('[Guest] enemy sprite error id=' + e.id, err);
+          }
+        });
+
+        // --- Projectile sync (GnollShaman bolts, ForestGuardian tornados) ---
+        this._guestProjectiles = this._guestProjectiles || {};
+        const projData = state.projectiles || [];
+        const activeProjIds = new Set(projData.map(p => p.id));
+        Object.keys(this._guestProjectiles).forEach(id => {
+          if (!activeProjIds.has(id)) {
+            try { this._guestProjectiles[id].circle?.destroy(); } catch (_) {}
+            delete this._guestProjectiles[id];
+          }
+        });
+        projData.forEach(p => {
+          if (this._guestProjectiles[p.id]) {
+            const gp = this._guestProjectiles[p.id];
+            gp.circle.x = p.x; gp.circle.y = p.y;
+            gp.vx = p.vx; gp.vy = p.vy; gp.lastUpdateAt = Date.now();
+          } else {
+            const c = this.add.circle(p.x, p.y, p.r || 6, p.color || 0xff0000, 0.85);
+            c.setDepth(1000);
+            this._guestProjectiles[p.id] = { circle: c, vx: p.vx, vy: p.vy, dmg: p.dmg || 10, lastUpdateAt: Date.now() };
           }
         });
       });
@@ -1825,6 +1884,7 @@ export default class MainScene extends Phaser.Scene {
   _cleanupMultiplayer(roomCode, uid) {
     if (this._syncTimer) { this._syncTimer.remove(); this._syncTimer = null; }
     if (this._localSpawnTimer) { this._localSpawnTimer.remove(); this._localSpawnTimer = null; }
+    if (this._guestProjectiles) { Object.values(this._guestProjectiles).forEach(gp => { try { gp.circle?.destroy(); } catch (_) {} }); this._guestProjectiles = null; }
     if (this._enemyBroadcastTimer) { this._enemyBroadcastTimer.remove(); this._enemyBroadcastTimer = null; }
     if (this._otherPlayersUnsub) { this._otherPlayersUnsub(); this._otherPlayersUnsub = null; }
     if (this._gameStateUnsub) { this._gameStateUnsub(); this._gameStateUnsub = null; }
