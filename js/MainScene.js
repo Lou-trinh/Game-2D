@@ -305,6 +305,7 @@ export default class MainScene extends Phaser.Scene {
     this._sessionHeal = 0;
     this._sessionFrag = 0;
     this._allPlayersDead = false;
+    this._mpDeathOverlay = null;
 
     const map = this.make.tilemap({ key: 'map' });
 
