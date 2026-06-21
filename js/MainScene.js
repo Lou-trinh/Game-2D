@@ -309,6 +309,8 @@ export default class MainScene extends Phaser.Scene {
     this._allPlayersDead = false;
     this._mpDeathOverlay = null;
     this._hostLeft = false;
+    this._localEnemyCounter = 0;
+    this._localSpawnLeft = false;
 
     const map = this.make.tilemap({ key: 'map' });
 
@@ -776,13 +778,14 @@ export default class MainScene extends Phaser.Scene {
         const drDelta = Math.min(delta, 50);
         const staleness = Date.now() - (sp._lastUpdateAt || 0);
         if (this._hostLeft && this.player && !this.player.isDead) {
-          // Host left: update velocity toward local player (1.5px/frame ≈ 90px/s at 60fps)
+          // Host left: chase local player at the same speed as when host was alive
           const dx = this.player.x - sp.x;
           const dy = this.player.y - sp.y;
           const d = Math.sqrt(dx * dx + dy * dy);
+          const spd = sp._chaseSpeed || 0.7;
           if (d > 30) {
-            sp._vx = (dx / d) * 1.5;
-            sp._vy = (dy / d) * 1.5;
+            sp._vx = (dx / d) * spd;
+            sp._vy = (dy / d) * spd;
           } else {
             sp._vx = 0;
             sp._vy = 0;
@@ -1536,12 +1539,21 @@ export default class MainScene extends Phaser.Scene {
         if (!this.scene.isActive('MainScene')) return;
         if (state.hostLeft && !this._hostLeft) {
           this._hostLeft = true;
-          // Reset target positions to sprite's current visual position to prevent lerp rush
           if (this._guestEnemySprites) {
             Object.values(this._guestEnemySprites).forEach(sp => {
-              if (sp?.active) { sp._targetX = sp.x; sp._targetY = sp.y; sp._vx = 0; sp._vy = 0; }
+              if (sp?.active) {
+                // Preserve actual enemy speed from last broadcast; don't default to 1.5 (too fast)
+                const spd = Math.sqrt((sp._vx || 0) ** 2 + (sp._vy || 0) ** 2);
+                sp._chaseSpeed = spd > 0.1 ? spd : 0.7;
+                sp._targetX = sp.x; sp._targetY = sp.y; sp._vx = 0; sp._vy = 0;
+              }
             });
           }
+          // Start local spawn so new enemies keep appearing for remaining players
+          this._localSpawnTimer = this.time.addEvent({
+            delay: 3000, loop: true,
+            callback: this._spawnLocalEnemy, callbackScope: this,
+          });
           return;
         }
         if (this._hostLeft) return; // Ignore further Firestore updates once local AI active
@@ -1616,6 +1628,30 @@ export default class MainScene extends Phaser.Scene {
 
     this.events.once('shutdown', () => this._cleanupMultiplayer(roomCode, user.uid));
     this.events.once('destroy', () => this._cleanupMultiplayer(roomCode, user.uid));
+  }
+
+  _spawnLocalEnemy() {
+    if (!this.player || this.player.isDead) return;
+    if (!this._guestEnemySprites) return;
+    this._localSpawnLeft = !this._localSpawnLeft;
+    const gateX = this._localSpawnLeft ? 100 : 860;
+    const gateY = 260;
+    const id = 'local_' + (++this._localEnemyCounter);
+    const texMap = { bear: 'bear', wolf: 'wolf', treeman: 'treeman', gnollbrute: 'gnoll_brute' };
+    const types = ['bear', 'wolf', 'treeman', 'gnollbrute'];
+    const t = types[Math.floor(Math.random() * types.length)];
+    const sp = this.add.sprite(gateX, gateY, texMap[t] || 'bear').setDepth(gateY);
+    sp._targetX = gateX; sp._targetY = gateY; sp._vx = 0; sp._vy = 0;
+    sp._lastUpdateAt = 0;
+    sp._chaseSpeed = 0.7;
+    sp._hpGfx = this.add.graphics().setDepth(gateY + 10);
+    sp._dmg = 10; sp._cooldown = 1000; sp._lastHitPlayer = 0;
+    this._guestEnemySprites[id] = sp;
+    this._guestEnemyProxies = this._guestEnemyProxies || {};
+    const proxy = new GuestEnemyProxy(sp, id, 100, this, this.registry.get('roomCode'));
+    proxy.maxHp = 100; sp._proxy = proxy;
+    this._guestEnemyProxies[id] = proxy;
+    this.guestEnemies.push(proxy);
   }
 
   _checkAllPlayersDead() {
@@ -1757,6 +1793,7 @@ export default class MainScene extends Phaser.Scene {
 
   _cleanupMultiplayer(roomCode, uid) {
     if (this._syncTimer) { this._syncTimer.remove(); this._syncTimer = null; }
+    if (this._localSpawnTimer) { this._localSpawnTimer.remove(); this._localSpawnTimer = null; }
     if (this._enemyBroadcastTimer) { this._enemyBroadcastTimer.remove(); this._enemyBroadcastTimer = null; }
     if (this._otherPlayersUnsub) { this._otherPlayersUnsub(); this._otherPlayersUnsub = null; }
     if (this._gameStateUnsub) { this._gameStateUnsub(); this._gameStateUnsub = null; }
