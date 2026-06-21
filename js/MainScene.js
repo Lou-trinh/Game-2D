@@ -1641,7 +1641,7 @@ export default class MainScene extends Phaser.Scene {
   _showMpDeathOverlay() {
     if (this._mpDeathOverlay) return;
     const { width, height } = this.scale;
-    const D = 500;
+    const D = 2000;
     const sf = 0;
 
     const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.72).setDepth(D).setScrollFactor(sf);
