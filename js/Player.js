@@ -204,6 +204,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.weaponRotation = 0;
     this.weaponKick = 0;
 
+    // Empty slot — no weapon to show
+    if (!weaponKey) return;
+
     const weapon = getWeaponByKey(weaponKey);
     const texture = weapon ? weapon.texture : weaponKey;
 
