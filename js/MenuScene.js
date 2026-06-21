@@ -1893,14 +1893,14 @@ export default class MenuScene extends Phaser.Scene {
         this.gameModePopup = null;
     }
 
-    showMultiplayerLobby(existingCode) {
+    showMultiplayerLobby(existingCode, isReturn = false) {
         if (this.lobbyPopup) return;
         const { width, height } = this.scale;
         this.lobbyPopup = [];
 
         const pw = 400, ph = 350;
         const px = (width - pw) / 2, py = (height - ph) / 2;
-        const isHost = !existingCode;
+        const isHost = !existingCode && !isReturn;
         const roomCode = existingCode || Math.random().toString(36).substring(2, 8).toUpperCase();
         const inviteLink = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
 
@@ -2005,7 +2005,16 @@ export default class MenuScene extends Phaser.Scene {
                 this._lobbySlotEls.push(sg);
 
                 if (p) {
-                    if (p.isHost) {
+                    if (p.inGame) {
+                        // Player still in-game — show "đang chơi" badge
+                        const igG = this.add.graphics().setDepth(202);
+                        igG.fillStyle(0x1a6b8a, 1);
+                        igG.fillRoundedRect(sx + slotW / 2 - 28, slotY + 6, 56, 14, 4);
+                        this._lobbySlotEls.push(igG);
+                        this._lobbySlotEls.push(
+                            this.add.text(sx + slotW / 2, slotY + 13, '🎮 đang chơi', { fontSize: '7px', color: '#7de8ff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(203)
+                        );
+                    } else if (p.isHost) {
                         const badgeG = this.add.graphics().setDepth(202);
                         badgeG.fillStyle(0xe67e22, 1);
                         badgeG.fillRoundedRect(sx + slotW / 2 - 18, slotY + 6, 36, 14, 4);
@@ -2107,6 +2116,10 @@ export default class MenuScene extends Phaser.Scene {
                     if (players.length === 0) return; // createRoom not committed yet, skip
                     renderSlots(players);
                 });
+            } else if (isReturn) {
+                // Returning from game — already in room, just mark inGame: false and listen
+                updatePlayerInRoom(roomCode, user.uid, { inGame: false }).catch(() => {});
+                this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
             } else {
                 joinRoom(roomCode, myProfile).catch(() => {});
                 this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
@@ -2637,6 +2650,12 @@ export default class MenuScene extends Phaser.Scene {
                 if (this.coinText) this.coinText.setText(Economy.getCoins().toLocaleString());
                 this.updateExpBar();
                 this._renderAuthUI(user);
+                // Return to lobby after dying in multiplayer
+                const returnCode = this.registry.get('returnToLobbyCode');
+                if (returnCode) {
+                    this.registry.remove('returnToLobbyCode');
+                    this.time.delayedCall(150, () => this.showMultiplayerLobby(returnCode, true));
+                }
             } else {
                 // Đăng xuất → về màn hình login
                 unsubscribe();

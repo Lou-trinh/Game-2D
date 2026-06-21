@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import Player from './Player';
 import { CharacterTypes, getCharacterConfig } from './Character';
-import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange, sendEnemyKill, onEnemyKills } from './firebase';
+import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange, sendEnemyKill, onEnemyKills, updatePlayerInRoom, leaveRoom } from './firebase';
 import Bear from './Bear';
 import Stone from './Stone';
 import Tree from './Tree';
@@ -1300,6 +1300,10 @@ export default class MainScene extends Phaser.Scene {
     this._pendingShots = [];
     this._shotSeq = 0;
 
+    // Mark player as in-game in the room
+    const _roomUser = auth.currentUser;
+    if (_roomUser) updatePlayerInRoom(roomCode, _roomUser.uid, { inGame: true }).catch(() => {});
+
     // Sync own player position every 200ms (reduced from 100ms to avoid Firestore quota)
     this._lastSentX = null;
     this._lastSentY = null;
@@ -1684,9 +1688,28 @@ export default class MainScene extends Phaser.Scene {
     const btn1Label = isMultiplayer ? '🏠 Về sảnh'   : '🔄 Chơi lại';
     const btn2Label = isMultiplayer ? '🚪 Thoát game' : '🏠 Menu';
     const btn1Action = isMultiplayer
-      ? () => { this.scene.stop('MainScene'); this.scene.start('MenuScene'); }
+      ? () => {
+          // Return to lobby — keep player in room, mark inGame false
+          const _u = auth.currentUser;
+          const _rc = this.registry.get('roomCode');
+          if (_u && _rc) updatePlayerInRoom(_rc, _u.uid, { inGame: false }).catch(() => {});
+          this.registry.set('returnToLobbyCode', _rc);
+          this.scene.stop('MainScene');
+          this.scene.start('MenuScene');
+        }
       : () => { this.scene.stop('MainScene'); this.scene.start('MainScene'); };
-    const btn2Action = () => { this.scene.stop('MainScene'); this.scene.start('MenuScene'); };
+    const btn2Action = isMultiplayer
+      ? () => {
+          // Quit game — leave room entirely
+          const _u = auth.currentUser;
+          const _rc = this.registry.get('roomCode');
+          if (_u && _rc) leaveRoom(_rc, _u.uid).catch(() => {});
+          this.registry.remove('roomCode');
+          this.registry.remove('isMultiplayerHost');
+          this.scene.stop('MainScene');
+          this.scene.start('MenuScene');
+        }
+      : () => { this.scene.stop('MainScene'); this.scene.start('MenuScene'); };
 
     const btn1 = makeBtn(width / 2 - 68, btn1Label, 0x1e6b3e, 0x28a85c, btn1Action);
     const btn2 = makeBtn(width / 2 + 68, btn2Label, 0x7f1e1e, 0xb03030, btn2Action);
