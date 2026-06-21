@@ -306,6 +306,12 @@ export default class MainScene extends Phaser.Scene {
     this._sessionFrag = 0;
     this._allPlayersDead = false;
     this._mpDeathOverlay = null;
+    this._economySnapshot = {
+      coins: Economy.getCoins(),
+      diamonds: Economy.getDiamonds(),
+      fragCommon: Economy.getFragCommon(),
+      fragRare: Economy.getFragRare()
+    };
 
     const map = this.make.tilemap({ key: 'map' });
 

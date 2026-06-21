@@ -476,6 +476,13 @@ export default class ResourceUI {
         };
 
         const exitObjs = makeBtn(width / 2 - 68, '🚪 Thoát', 0x7f1e1e, 0xb03030, () => {
+            const snap = scene._economySnapshot;
+            if (snap) {
+                Economy.saveCoins(snap.coins);
+                Economy.saveDiamonds(snap.diamonds);
+                localStorage.setItem('frag_common', snap.fragCommon.toString());
+                localStorage.setItem('frag_rare', snap.fragRare.toString());
+            }
             scene.scene.stop('MainScene');
             scene.scene.start('MenuScene');
         });
