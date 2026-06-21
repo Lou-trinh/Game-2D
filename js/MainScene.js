@@ -792,7 +792,7 @@ export default class MainScene extends Phaser.Scene {
           }
           sp._targetX += sp._vx * drDelta / 16.67;
           sp._targetY += sp._vy * drDelta / 16.67;
-        } else if (staleness < 2500 && (sp._vx || sp._vy)) {
+        } else if (staleness < 600 && (sp._vx || sp._vy)) {
           // Extend to 2500ms so enemies keep moving between slow Firestore updates
           sp._targetX += sp._vx * drDelta / 16.67;
           sp._targetY += sp._vy * drDelta / 16.67;
@@ -1591,6 +1591,9 @@ export default class MainScene extends Phaser.Scene {
               };
               const texKey = (e.t && texMap[e.t]) ? texMap[e.t] : (e.textureKey || 'bear');
               const sp = this.add.sprite(e.x, e.y, texKey).setDepth(e.y);
+              // Play default walk anim immediately so atlas frame 0 (may be blank) isn't shown
+              const _defAnimKey = texKey + '_walk';
+              if (this.anims.exists(_defAnimKey)) sp.play(_defAnimKey, true);
               sp._targetX = e.x;
               sp._targetY = e.y;
               sp._hpGfx = this.add.graphics().setDepth(e.y + 10);
@@ -1637,10 +1640,9 @@ export default class MainScene extends Phaser.Scene {
     const gateX = this._localSpawnLeft ? 100 : 860;
     const gateY = 260;
     const id = 'local_' + (++this._localEnemyCounter);
-    const texMap = { bear: 'bear', wolf: 'wolf', treeman: 'treeman', gnollbrute: 'gnoll_brute' };
-    const types = ['bear', 'wolf', 'treeman', 'gnollbrute'];
-    const t = types[Math.floor(Math.random() * types.length)];
-    const sp = this.add.sprite(gateX, gateY, texMap[t] || 'bear').setDepth(gateY);
+    const sp = this.add.sprite(gateX, gateY, 'bear').setDepth(gateY);
+    // Start walk animation so sprite renders correctly (atlas frame 0 may be blank)
+    if (this.anims.exists('bear_walk')) sp.play('bear_walk', true);
     sp._targetX = gateX; sp._targetY = gateY; sp._vx = 0; sp._vy = 0;
     sp._lastUpdateAt = 0;
     sp._chaseSpeed = 0.7;
