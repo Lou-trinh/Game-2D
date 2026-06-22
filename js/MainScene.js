@@ -1547,9 +1547,9 @@ export default class MainScene extends Phaser.Scene {
                 animKey: e.sprite.anims?.currentAnim?.key || '',
                 hp: Math.round(e.health || 100),
                 maxHp: e.maxHealth || 100,
-                dmg: e.damageAmount || 10,
+                dmg: e.damageAmount || 0,
                 cd: e.damageCooldown || 1000,
-                mr: Math.round(e.meleeRange || 20),
+                mr: Math.round(e.damageAmount ? (e.meleeRange || 20) : 0),
               });
             });
           });
@@ -1663,9 +1663,9 @@ export default class MainScene extends Phaser.Scene {
               sp._targetX = e.x;
               sp._targetY = e.y;
               sp._hpGfx = this.add.graphics().setDepth(e.y + 10);
-              sp._dmg = e.dmg || 10;
+              sp._dmg = e.dmg;
               sp._cooldown = e.cd || e.cooldown || 1000;
-              sp._range = e.mr || 20;
+              sp._range = e.mr || 0;
               sp._lastHitPlayer = 0;
               this._guestEnemySprites[key] = sp;
               const proxy = new GuestEnemyProxy(sp, e.id, e.hp || 100, this, roomCode);
