@@ -828,10 +828,10 @@ export default class MainScene extends Phaser.Scene {
             if (now - (sp._lastHitPlayer || 0) >= (sp._cooldown || 1000)) {
               sp._lastHitPlayer = now;
               if (this.player.takeDamage) this.player.takeDamage(sp._dmg);
-              // Flash enemy sprite red to indicate attack (visible on guest screen)
+              // Flash enemy sprite to indicate attack — match host tint color
               try {
-                sp.setTint(0xff3333);
-                this.time.delayedCall(150, () => { try { if (sp?.active) sp.clearTint(); } catch (_) {} });
+                sp.setTint(0xff6666);
+                this.time.delayedCall(100, () => { try { if (sp?.active) sp.clearTint(); } catch (_) {} });
               } catch (_) {}
               // Expanding red circle at impact point
               try {
@@ -849,10 +849,10 @@ export default class MainScene extends Phaser.Scene {
       const drDelta = Math.min(delta, 50);
       Object.keys(this._guestProjectiles).forEach(id => {
         const gp = this._guestProjectiles[id];
-        if (!gp.circle?.active) { delete this._guestProjectiles[id]; return; }
+        if (!gp.gfx?.active) { delete this._guestProjectiles[id]; return; }
         const staleness = Date.now() - (gp.lastUpdateAt || 0);
-        if (staleness < 1500) { gp.circle.x += gp.vx * drDelta / 16.67; gp.circle.y += gp.vy * drDelta / 16.67; }
-        const dist = Phaser.Math.Distance.Between(gp.circle.x, gp.circle.y, this.player.x, this.player.y);
+        if (staleness < 1500) { gp.gfx.x += gp.vx * drDelta / 16.67; gp.gfx.y += gp.vy * drDelta / 16.67; }
+        const dist = Phaser.Math.Distance.Between(gp.gfx.x, gp.gfx.y, this.player.x, this.player.y);
         if (dist < 20) {
           const now = Date.now();
           if (now - (gp._lastHit || 0) >= 500) {
@@ -860,10 +860,9 @@ export default class MainScene extends Phaser.Scene {
             this.player.takeDamage?.(gp.dmg);
             // Projectile impact burst
             try {
-              const hitX = gp.circle.x; const hitY = gp.circle.y;
-              const fc = gp.circle.fillColor || 0x9966ff;
-              gp.circle.destroy();
-              const fx = this.add.circle(hitX, hitY, 16, fc, 0.9).setDepth(2000);
+              const hitX = gp.gfx.x; const hitY = gp.gfx.y;
+              gp.gfx.destroy();
+              const fx = this.add.circle(hitX, hitY, 16, gp.color || 0x9966ff, 0.9).setDepth(2000);
               this.tweens.add({ targets: fx, alpha: 0, scaleX: 3, scaleY: 3, duration: 300, ease: 'Power2', onComplete: () => { try { fx.destroy(); } catch (_) {} } });
             } catch (_) {}
             delete this._guestProjectiles[id];
@@ -1699,19 +1698,27 @@ export default class MainScene extends Phaser.Scene {
         const activeProjIds = new Set(projData.map(p => p.id));
         Object.keys(this._guestProjectiles).forEach(id => {
           if (!activeProjIds.has(id)) {
-            try { this._guestProjectiles[id].circle?.destroy(); } catch (_) {}
+            try { this._guestProjectiles[id].gfx?.destroy(); } catch (_) {}
             delete this._guestProjectiles[id];
           }
         });
         projData.forEach(p => {
           if (this._guestProjectiles[p.id]) {
             const gp = this._guestProjectiles[p.id];
-            gp.circle.x = p.x; gp.circle.y = p.y;
+            gp.gfx.x = p.x; gp.gfx.y = p.y;
             gp.vx = p.vx; gp.vy = p.vy; gp.lastUpdateAt = Date.now();
           } else {
-            const c = this.add.circle(p.x, p.y, p.r || 6, p.color || 0xff0000, 0.85);
-            c.setDepth(1000);
-            this._guestProjectiles[p.id] = { circle: c, vx: p.vx, vy: p.vy, dmg: p.dmg || 10, lastUpdateAt: Date.now() };
+            let gfx;
+            if (p.color === 0x55ff55) {
+              // ForestGuardian tornado — dùng sprite animated giống host
+              gfx = this.add.sprite(p.x, p.y, 'tornado', '001').setScale(0.8).setAlpha(0.9).setDepth(1000);
+              if (this.anims.exists('effect_2')) gfx.play('effect_2', true);
+            } else {
+              // GnollShaman bolt — circle có stroke giống host
+              gfx = this.add.circle(p.x, p.y, p.r || 6, p.color || 0x9966ff, 0.85).setDepth(1000);
+              try { gfx.setStrokeStyle(2, 0xcc99ff, 1); } catch (_) {}
+            }
+            this._guestProjectiles[p.id] = { gfx, vx: p.vx, vy: p.vy, dmg: p.dmg || 10, color: p.color || 0x9966ff, lastUpdateAt: Date.now() };
           }
         });
       });
@@ -1901,7 +1908,7 @@ export default class MainScene extends Phaser.Scene {
   _cleanupMultiplayer(roomCode, uid) {
     if (this._syncTimer) { this._syncTimer.remove(); this._syncTimer = null; }
     if (this._localSpawnTimer) { this._localSpawnTimer.remove(); this._localSpawnTimer = null; }
-    if (this._guestProjectiles) { Object.values(this._guestProjectiles).forEach(gp => { try { gp.circle?.destroy(); } catch (_) {} }); this._guestProjectiles = null; }
+    if (this._guestProjectiles) { Object.values(this._guestProjectiles).forEach(gp => { try { gp.gfx?.destroy(); } catch (_) {} }); this._guestProjectiles = null; }
     if (this._enemyBroadcastTimer) { this._enemyBroadcastTimer.remove(); this._enemyBroadcastTimer = null; }
     if (this._otherPlayersUnsub) { this._otherPlayersUnsub(); this._otherPlayersUnsub = null; }
     if (this._gameStateUnsub) { this._gameStateUnsub(); this._gameStateUnsub = null; }
