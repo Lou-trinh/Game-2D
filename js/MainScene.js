@@ -776,19 +776,23 @@ export default class MainScene extends Phaser.Scene {
         const drDelta = Math.min(delta, 50);
         const staleness = Date.now() - (sp._lastUpdateAt || 0);
         if (this._hostLeft && this.player && !this.player.isDead) {
-          // Host left: chase local player
-          // Ranged enemies (dmg=0, range=0 from host broadcast) keep attack distance
+          // Host left: chase local player, matching single-player AI distances
           const dx = this.player.x - sp.x;
           const dy = this.player.y - sp.y;
           const d = Math.sqrt(dx * dx + dy * dy);
           const spd = sp._chaseSpeed || 0.7;
-          const isRanged = sp._dmg === 0 && sp._range === 0;
-          const stopDist = isRanged ? 120 : 30;
+          // Use _mpType for reliable ranged detection (works for both Firestore-synced
+          // and locally spawned enemies, unlike _dmg===0 which fails for local spawn)
+          const _rangedTypes = ['forestguardian', 'forest_guardian', 'gnollshaman', 'gnoll_shaman'];
+          const isRanged = _rangedTypes.includes(sp._mpType);
+          // Melee enemies stop at their actual broadcast range (not hardcoded 30)
+          // so slow enemies like golem don't undershoot and fail the melee check
+          const stopDist = isRanged ? 120 : Math.max(sp._range || 20, 20);
           if (d > stopDist) {
             sp._vx = (dx / d) * spd;
             sp._vy = (dy / d) * spd;
           } else if (isRanged && d < 55) {
-            // Ranged: retreat if player gets too close
+            // Ranged: retreat if player gets too close (matches single-player min dist ~50)
             sp._vx = -(dx / d) * spd;
             sp._vy = -(dy / d) * spd;
           } else {
