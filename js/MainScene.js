@@ -1,4 +1,4 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import Player from './Player';
 import { CharacterTypes, getCharacterConfig } from './Character';
 import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange, sendEnemyKill, onEnemyKills, updatePlayerInRoom, leaveRoom, setRoomStatus } from './firebase';
@@ -251,14 +251,14 @@ export default class MainScene extends Phaser.Scene {
     if (this.textures.exists('health_potion')) return;
     const g = this.make.graphics({ add: false });
 
-    // Common fragment â€” orange crystal diamond
+    // Common fragment — orange crystal diamond
     g.fillStyle(0xff8800);
     g.fillTriangle(16, 2, 30, 16, 16, 30); g.fillTriangle(16, 2, 2, 16, 16, 30);
     g.fillStyle(0xffcc44);
     g.fillTriangle(16, 7, 24, 16, 16, 24); g.fillTriangle(16, 7, 8, 16, 16, 24);
     g.generateTexture('frag_common', 32, 32); g.clear();
 
-    // Rare fragment â€” purple crystal diamond with gold shine
+    // Rare fragment — purple crystal diamond with gold shine
     g.fillStyle(0x9900cc);
     g.fillTriangle(16, 0, 32, 16, 16, 32); g.fillTriangle(16, 0, 0, 16, 16, 32);
     g.fillStyle(0xdd44ff);
@@ -266,14 +266,14 @@ export default class MainScene extends Phaser.Scene {
     g.fillStyle(0xffffff); g.fillTriangle(16, 5, 22, 14, 18, 10);
     g.generateTexture('frag_rare', 32, 32); g.clear();
 
-    // Stone placeholder â€” gray circle
+    // Stone placeholder — gray circle
     g.fillStyle(0x999999);
     g.fillCircle(16, 16, 14);
     g.fillStyle(0x777777);
     g.fillCircle(12, 12, 6);
     g.generateTexture('stone', 32, 32); g.clear();
 
-    // Wood placeholder â€” brown rectangle (sprite is always invisible in Tree.js)
+    // Wood placeholder — brown rectangle (sprite is always invisible in Tree.js)
     g.fillStyle(0x8B4513);
     g.fillRect(2, 2, 28, 28);
     g.generateTexture('wood', 32, 32); g.clear();
@@ -393,7 +393,7 @@ export default class MainScene extends Phaser.Scene {
     this.gate2.play('gate');
     this.gate2.setDepth(299);
 
-    console.log('âœ¨ Spawned Gates at (100,260) and (860,260)');
+    console.log('✨ Spawned Gates at (100,260) and (860,260)');
 
     // Prevent player from going outside map bounds
     this.matter.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
@@ -527,7 +527,7 @@ export default class MainScene extends Phaser.Scene {
       });
     });
 
-    console.log(`ðŸª¨ Spawned ${this.stones.length} stones from tiles`);
+    console.log(`🪨 Spawned ${this.stones.length} stones from tiles`);
 
     /* ===============================
        SPAWN TREES (FROM TILES)
@@ -559,7 +559,7 @@ export default class MainScene extends Phaser.Scene {
       });
     });
 
-    console.log(`ðŸŒ² Spawned ${this.trees.length} trees from tiles`);
+    console.log(`🌲 Spawned ${this.trees.length} trees from tiles`);
 
     /* ===============================
        SPAWN STONES FROM SPAWN LAYER
@@ -583,7 +583,7 @@ export default class MainScene extends Phaser.Scene {
       });
 
       const stoneObjectCount = spawnLayer.objects.filter(o => o.type === 'stone').length;
-      console.log(`ðŸª¨ Total stones from Spawn layer: ${stoneObjectCount}`);
+      console.log(`🪨 Total stones from Spawn layer: ${stoneObjectCount}`);
     }
 
     /* ===============================
@@ -650,7 +650,7 @@ export default class MainScene extends Phaser.Scene {
       this.spawnChest();
     });
 
-    console.log('âœ… MainScene with Bears, TreeMan, ForestGuardian, GnollBrute, GnollShaman, Wolves, Mushrooms, Chests and Stones loaded');
+    console.log('✅ MainScene with Bears, TreeMan, ForestGuardian, GnollBrute, GnollShaman, Wolves, Mushrooms, Chests and Stones loaded');
 
     this._initMultiplayer();
   }
@@ -665,7 +665,7 @@ export default class MainScene extends Phaser.Scene {
       this.player.weapon.setDepth(playerDepth + 100);
     }
 
-    // Äáº·t health bar á»Ÿ depth cao Ä‘á»ƒ luÃ´n hiá»ƒn thá»‹ trÃªn cÃ¢y/Ä‘Ã¡
+    // Đặt health bar ở depth cao để luôn hiển thị trên cây/đá
     if (this.player.healthBar) {
       this.player.healthBar.setDepth(20001);
     }
@@ -772,7 +772,7 @@ export default class MainScene extends Phaser.Scene {
       Object.values(this._guestEnemySprites).forEach(sp => {
         if (!sp?.active || sp._targetX === undefined) return;
 
-        // Dead-reckoning / chase AI â€” cap delta at 50ms to prevent overshoot on lag spikes
+        // Dead-reckoning / chase AI — cap delta at 50ms to prevent overshoot on lag spikes
         const drDelta = Math.min(delta, 50);
         const staleness = Date.now() - (sp._lastUpdateAt || 0);
         if (this._hostLeft && this.player && !this.player.isDead) {
@@ -796,7 +796,7 @@ export default class MainScene extends Phaser.Scene {
           sp._targetY += sp._vy * drDelta / 16.67;
         }
 
-        // Delta-time lerp â€” half-life 50ms, matches remote player smoothness
+        // Delta-time lerp — half-life 50ms, matches remote player smoothness
         const dist = Phaser.Math.Distance.Between(sp.x, sp.y, sp._targetX, sp._targetY);
         if (dist > 300) {
           sp.setPosition(sp._targetX, sp._targetY);
@@ -826,7 +826,7 @@ export default class MainScene extends Phaser.Scene {
             if (now - (sp._lastHitPlayer || 0) >= (sp._cooldown || 1000)) {
               sp._lastHitPlayer = now;
               if (this.player.takeDamage) this.player.takeDamage(sp._dmg);
-              // Flash enemy sprite to indicate attack â€” same tint as host
+              // Flash enemy sprite to indicate attack — same tint as host
               try {
                 sp.setTint(0xff6666);
                 this.time.delayedCall(100, () => { try { if (sp?.active) sp.clearTint(); } catch (_) {} });
@@ -968,7 +968,7 @@ export default class MainScene extends Phaser.Scene {
 
     const actualHeal = this.player.health - oldHealth;
     this._sessionHeal += actualHeal;
-    console.log(`ðŸ’Š Picked up blood! Healed ${actualHeal} HP`);
+    console.log(`💊 Picked up blood! Healed ${actualHeal} HP`);
 
     this.player.setTint(0x00ff00);
     this.time.delayedCall(150, () => {
@@ -1106,9 +1106,9 @@ export default class MainScene extends Phaser.Scene {
     }
 
     if (!isValidPosition) {
-      console.warn('âš ï¸ Could not find perfect spot for chest, spawning anyway at last pos');
+      console.warn('⚠️ Could not find perfect spot for chest, spawning anyway at last pos');
     } else {
-      console.log(`âœ… Found valid chest position after ${attempts} attempts`);
+      console.log(`✅ Found valid chest position after ${attempts} attempts`);
     }
 
     const chest = new Chest({
@@ -1119,11 +1119,11 @@ export default class MainScene extends Phaser.Scene {
 
     this.chests.push(chest);
 
-    console.log(`ðŸ“¦ Spawned NEW chest at (${chestX}, ${chestY})`);
+    console.log(`📦 Spawned NEW chest at (${chestX}, ${chestY})`);
   }
 
   onChestOpened() {
-    console.log('â³ Chest opened! Next chest will spawn in 30 seconds...');
+    console.log('⏳ Chest opened! Next chest will spawn in 30 seconds...');
 
     // Clean up destroyed chests from array
     this.chests = this.chests.filter(c => !c.isOpened && !c.isOpening);
@@ -1186,7 +1186,7 @@ export default class MainScene extends Phaser.Scene {
               this.time.delayedCall(1000, () => { try { explosion.destroy(); } catch (_) {} });
             }
           }
-          // AoE damage â€” host side only
+          // AoE damage — host side only
           if (!this._isHost) return;
           const aoeRadius = 80;
           const aoeDamage = 120;
@@ -1329,7 +1329,7 @@ export default class MainScene extends Phaser.Scene {
         if (dist < nearestDist) { nearestDist = dist; nearest = entry.sprite; }
       });
     }
-    // Don't fallback to dead player â€” return null so enemies idle instead of clustering on corpse
+    // Don't fallback to dead player — return null so enemies idle instead of clustering on corpse
     return nearest || (this.player?.isDead ? null : this.player);
   }
 
@@ -1477,14 +1477,14 @@ export default class MainScene extends Phaser.Scene {
 
         nameText.setColor(isDead ? '#aaaaaa' : '#ffff88');
 
-        // Health bar (width/color only â€” position follows sprite in update())
+        // Health bar (width/color only — position follows sprite in update())
         if (!isDead) {
           const pct = Math.max(0, (p.health || 0) / (p.maxHealth || 100));
           hpBar.width = pct * 32;
           hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
         }
 
-        // Spawn remote bullets â€” only when alive, shots non-empty, AND shotsSeq is new
+        // Spawn remote bullets — only when alive, shots non-empty, AND shotsSeq is new
         const incomingShotsSeq = p.shotsSeq ?? -1;
         if (!isDead && p.shots?.length && incomingShotsSeq !== entry._lastShotsSeq) {
           entry._lastShotsSeq = incomingShotsSeq;
@@ -1525,7 +1525,7 @@ export default class MainScene extends Phaser.Scene {
           allEnemyGroups.forEach(group => {
             group.forEach(e => {
               if (!e || e.isDead || !e.sprite || !e.sprite.active) return;
-              // Assign mpId if missing â€” undefined id causes Firestore invalid-argument error
+              // Assign mpId if missing — undefined id causes Firestore invalid-argument error
               if (!e.mpId) e.mpId = (e.constructor?.name?.[0] || 'e') + Date.now() + Math.random().toString(36).slice(2, 5);
               const _vx = e.sprite.body?.velocity?.x; const _vy = e.sprite.body?.velocity?.y;
               const _mr = e.damageAmount ? e.meleeRange : 0;
@@ -1647,7 +1647,7 @@ export default class MainScene extends Phaser.Scene {
               const texKey = (e.t && texMap[e.t]) ? texMap[e.t] : (e.textureKey || 'bear');
               const sp = this.add.sprite(e.x, e.y, texKey).setDepth(e.y);
               sp._mpType = e.t || '';
-              // Animation keys don't always match texture key pattern â€” use explicit map
+              // Animation keys don't always match texture key pattern — use explicit map
               const _animMap = {
                 bear: 'bear_walk', wolf: 'wolf_walk', treeman: 'tree_man_walk',
                 forest_guardian: 'forest_guardian_walk', gnoll_brute: 'gnollbrute_walk',
@@ -1713,7 +1713,7 @@ export default class MainScene extends Phaser.Scene {
             if (Date.now() - hitAt < 2500) return;
             let gfx;
             if (p.id && p.id.startsWith('f')) {
-              // ForestGuardian tornado â€” replicate host: animated tornado sprite + guardian flash green
+              // ForestGuardian tornado — replicate host: animated tornado sprite + guardian flash green
               try {
                 gfx = this.add.sprite(p.x, p.y, 'tornado', '001').setScale(0.8).setAlpha(0.9).setDepth(1000);
                 gfx.play('effect_2', true);
@@ -1731,7 +1731,7 @@ export default class MainScene extends Phaser.Scene {
                 }
               } catch (_) {}
             } else {
-              // GnollShaman bolt â€” circle with stroke matching host
+              // GnollShaman bolt — circle with stroke matching host
               gfx = this.add.circle(p.x, p.y, p.r || 6, p.color || 0x9966ff, 0.85).setDepth(1000);
               try { gfx.setStrokeStyle(2, 0xcc99ff, 1); } catch (_) {}
             }
@@ -1805,7 +1805,7 @@ export default class MainScene extends Phaser.Scene {
       if (this._spawnTimer) this._spawnTimer.paused = true;
     }
 
-    // Commit session economy gains â€” only on death
+    // Commit session economy gains — only on death
     Economy.addCoins(this.player?.coinCount || 0);
     Economy.addDiamonds(this.player?.diamondCount || 0);
     Economy.addFragCommon(this._sessionFragCommon);
@@ -1827,12 +1827,12 @@ export default class MainScene extends Phaser.Scene {
     bg.strokeRoundedRect(pX, pY, pW, pH, 12);
 
     // Title
-    const title = this.add.text(width / 2, pY + 18, 'ðŸ’€ Káº¾T QUáº¢ TRáº¬N Äáº¤U', {
+    const title = this.add.text(width / 2, pY + 18, '💀 KẾT QUẢ TRẬN ĐẤU', {
       fontSize: '13px', fontStyle: 'bold', color: '#ff4444',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(D + 2).setScrollFactor(sf);
 
-    const subLabel = isMultiplayer ? 'Tráº­n Ä‘áº¥u váº«n tiáº¿p tá»¥c...' : 'Báº¡n Ä‘Ã£ bá»‹ Ä‘Ã¡nh báº¡i!';
+    const subLabel = isMultiplayer ? 'Trận đấu vẫn tiếp tục...' : 'Bạn đã bị đánh bại!';
     const sub = this.add.text(width / 2, pY + 34, subLabel, {
       fontSize: '9px', color: '#888888',
     }).setOrigin(0.5).setDepth(D + 2).setScrollFactor(sf);
@@ -1844,12 +1844,12 @@ export default class MainScene extends Phaser.Scene {
 
     // Stats
     const stats = [
-      { icon: 'ðŸ’€', label: 'QuÃ¡i diá»‡t Ä‘Æ°á»£c', value: (this._sessionKills || 0).toLocaleString() },
-      { icon: 'âš”ï¸', label: 'Damage gÃ¢y ra',  value: (this._sessionDamage || 0).toLocaleString() },
-      { icon: 'ðŸ’Š', label: 'MÃ¡u Ä‘Ã£ há»“i',      value: (this._sessionHeal || 0).toLocaleString() },
-      { icon: 'ðŸª™', label: 'Xu Ä‘Ã£ nháº·t',      value: (this.player?.coinCount || 0).toLocaleString() },
-      { icon: 'ðŸ’Ž', label: 'Kim cÆ°Æ¡ng nháº·t',  value: (this.player?.diamondCount || 0).toLocaleString() },
-      { icon: 'ðŸ”©', label: 'Máº£nh Ä‘Ã£ nháº·t',    value: (this._sessionFrag || 0).toLocaleString() },
+      { icon: '💀', label: 'Quái diệt được', value: (this._sessionKills || 0).toLocaleString() },
+      { icon: '⚔️', label: 'Damage gây ra',  value: (this._sessionDamage || 0).toLocaleString() },
+      { icon: '💊', label: 'Máu đã hồi',      value: (this._sessionHeal || 0).toLocaleString() },
+      { icon: '🪙', label: 'Xu đã nhặt',      value: (this.player?.coinCount || 0).toLocaleString() },
+      { icon: '💎', label: 'Kim cương nhặt',  value: (this.player?.diamondCount || 0).toLocaleString() },
+      { icon: '🔩', label: 'Mảnh đã nhặt',    value: (this._sessionFrag || 0).toLocaleString() },
     ];
 
     const statObjs = [];
@@ -1882,12 +1882,12 @@ export default class MainScene extends Phaser.Scene {
       return [g, t, hit];
     };
 
-    const btn1Label = isMultiplayer ? 'ðŸ  Vá» sáº£nh'   : 'ðŸ”„ ChÆ¡i láº¡i';
-    const btn2Label = isMultiplayer ? 'ðŸšª ThoÃ¡t game' : 'ðŸ  Menu';
+    const btn1Label = isMultiplayer ? '🏠 Về sảnh'   : '🔄 Chơi lại';
+    const btn2Label = isMultiplayer ? '🚪 Thoát game' : '🏠 Menu';
     const _isHost = !!this.registry.get('isMultiplayerHost');
     const btn1Action = isMultiplayer
       ? () => {
-          // Return to lobby â€” keep player in room, mark inGame false
+          // Return to lobby — keep player in room, mark inGame false
           const _u = auth.currentUser;
           const _rc = this.registry.get('roomCode');
           if (_u && _rc) {
@@ -1906,7 +1906,7 @@ export default class MainScene extends Phaser.Scene {
       : () => { this.scene.stop('MainScene'); this.scene.start('MainScene'); };
     const btn2Action = isMultiplayer
       ? () => {
-          // Quit game â€” leave room entirely
+          // Quit game — leave room entirely
           const _u = auth.currentUser;
           const _rc = this.registry.get('roomCode');
           if (_u && _rc) leaveRoom(_rc, _u.uid).catch(() => {});
