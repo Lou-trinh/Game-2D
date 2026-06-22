@@ -122,19 +122,15 @@ export default class SmallMushRoom {
     // Thử play idle trước, nếu không có thì dùng walk
     if (this.scene.anims.exists('smallmushroom_idle')) {
       this.sprite.play('smallmushroom_idle');
-      console.log('✅ Small Mushroom idle animation started');
     } else if (this.scene.anims.exists('smallmushroom_walk')) {
       this.sprite.play('smallmushroom_walk');
-      console.log('⚠️ Using smallmushroom_walk as idle');
     } else {
       console.warn('⚠️ No Small Mushroom animations found, retrying...');
       this.scene.time.delayedCall(50, () => {
         if (this.scene.anims.exists('smallmushroom_idle')) {
           this.sprite.play('smallmushroom_idle');
-          console.log('✅ Small Mushroom idle animation started (delayed)');
         } else if (this.scene.anims.exists('smallmushroom_walk')) {
           this.sprite.play('smallmushroom_walk');
-          console.log('⚠️ Using smallmushroom_walk as idle (delayed)');
         } else {
           console.error('❌ Failed to load Small Mushroom animations!');
         }
@@ -187,7 +183,6 @@ export default class SmallMushRoom {
       this.lastDamageTime = currentTime;
       if (monster.takeDamage) {
         monster.takeDamage(this.damageAmount);
-        console.log(`🍄 SmallMushRoom attacked ice monster! Dealt ${this.damageAmount} damage`);
         this.sprite.setTint(0xff6666);
         this.scene.time.delayedCall(100, () => { this.sprite.clearTint(); });
       }
@@ -216,7 +211,6 @@ export default class SmallMushRoom {
 
       if (player.takeDamage) {
         player.takeDamage(this.damageAmount);
-        console.log(`🍄 SmallMushRoom attacked player! (distance: ${distance.toFixed(1)}px)`);
 
         this.sprite.setTint(0xff6666);
         this.scene.time.delayedCall(100, () => {
@@ -320,7 +314,6 @@ export default class SmallMushRoom {
       }
     });
 
-    console.log(`🍄 SmallMushRoom health: ${this.health}/${this.maxHealth}`);
 
     this.updateHealthBar();
 

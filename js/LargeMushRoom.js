@@ -122,21 +122,17 @@ export default class LargeMushRoom {
     // Thử play idle trước, nếu không có thì dùng walk
     if (this.scene.anims.exists('mushroom_idle')) {
       this.sprite.play('mushroom_idle');
-      console.log('✅ Mushroom idle animation started');
     } else if (this.scene.anims.exists('mushroom_walk')) {
       // Nếu không có idle, dùng walk làm idle
       this.sprite.play('mushroom_walk');
-      console.log('⚠️ Using mushroom_walk as idle (idle not found)');
     } else {
       console.warn('⚠️ No Mushroom animations found, retrying...');
       // Thử lại sau 50ms
       this.scene.time.delayedCall(50, () => {
         if (this.scene.anims.exists('mushroom_idle')) {
           this.sprite.play('mushroom_idle');
-          console.log('✅ Mushroom idle animation started (delayed)');
         } else if (this.scene.anims.exists('mushroom_walk')) {
           this.sprite.play('mushroom_walk');
-          console.log('⚠️ Using mushroom_walk as idle (delayed)');
         } else {
           console.error('❌ Failed to load Mushroom animations!');
         }
@@ -190,7 +186,6 @@ export default class LargeMushRoom {
       this.lastDamageTime = currentTime;
       if (monster.takeDamage) {
         monster.takeDamage(this.damageAmount);
-        console.log(`🍄 LargeMushRoom attacked ice monster! Dealt ${this.damageAmount} damage`);
         this.sprite.setTint(0xff6666);
         this.scene.time.delayedCall(100, () => { this.sprite.clearTint(); });
       }
@@ -223,7 +218,6 @@ export default class LargeMushRoom {
       // Gây damage cho player
       if (player.takeDamage) {
         player.takeDamage(this.damageAmount);
-        console.log(`🍄 LargeMushRoom attacked player! (distance: ${distance.toFixed(1)}px)`);
 
         // HIỆU ỨNG TẤN CÔNG - nhấp đỏ
         this.sprite.setTint(0xff6666);
@@ -336,7 +330,6 @@ export default class LargeMushRoom {
       }
     });
 
-    console.log(`🍄 LargeMushRoom health: ${this.health}/${this.maxHealth}`);
 
     // Cập nhật health bar
     this.updateHealthBar();
@@ -447,11 +440,9 @@ export default class LargeMushRoom {
           }
         });
 
-        console.log(`🍄 Spawned SmallMushRoom ${index + 1} at (${pos.x}, ${pos.y})`);
       });
     });
 
-    console.log('🍄🍄 LargeMushRoom split into 2 SmallMushrooms!');
   }
 
   dropItems() {

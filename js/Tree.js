@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 
 export default class Tree {
   constructor(data) {
@@ -16,7 +16,7 @@ export default class Tree {
     this.sprite = scene.matter.add.sprite(x, y, 'wood');
     this.sprite.setVisible(false);
 
-    // ⚠️ QUAN TRỌNG: set shape TRƯỚC – static SAU
+    // âš ï¸ QUAN TRá»ŒNG: set shape TRÆ¯á»šC â€“ static SAU
     this.sprite.setCircle(10);
     this.sprite.setStatic(true);
 
@@ -36,7 +36,6 @@ export default class Tree {
     this.createHealthBar(scene);
     this.sprite.treeInstance = this;
 
-    console.log(`🌲 Tree spawned at (${x}, ${y})`);
   }
 
   static preload(_scene) {}
@@ -84,7 +83,7 @@ export default class Tree {
   }
 
   /* =========================
-        DESTROY – FIX COLLISION
+        DESTROY â€“ FIX COLLISION
   ========================== */
   destroy() {
     // Tree farming disabled - trees cannot be destroyed
@@ -92,9 +91,9 @@ export default class Tree {
     if (this.isDead) return;
     this.isDead = true;
 
-    console.log('💥 Tree chopped down!');
+    console.log('ðŸ’¥ Tree chopped down!');
 
-    // 1️⃣ Tắt collision tile
+    // 1ï¸âƒ£ Táº¯t collision tile
     if (this.layer) {
       const tile = this.layer.getTileAt(this.tileX, this.tileY);
       tile?.setCollision(false);
@@ -108,7 +107,7 @@ export default class Tree {
       this.aboveLayer.removeTileAt(this.tileX, this.tileY - 1);
     }
 
-    // 2️⃣ Rebuild Matter tile collision
+    // 2ï¸âƒ£ Rebuild Matter tile collision
     if (this.layer?.body) {
       this.scene.matter.world.remove(this.layer.body);
       this.scene.matter.world.convertTilemapLayer(this.layer);
@@ -119,7 +118,7 @@ export default class Tree {
       this.scene.matter.world.convertTilemapLayer(this.aboveLayer);
     }
 
-    // 3️⃣ Remove tree body
+    // 3ï¸âƒ£ Remove tree body
     if (this.sprite?.body) {
       this.scene.matter.world.remove(this.sprite.body);
     }
@@ -147,30 +146,30 @@ export default class Tree {
   dropItems() {
     const dropX = this.sprite.x;
     const dropY = this.sprite.y;
-    const count = Phaser.Math.Between(2, 3); // 2 hoặc 3 khúc gỗ giống stone
+    const count = Phaser.Math.Between(2, 3); // 2 hoáº·c 3 khÃºc gá»— giá»‘ng stone
 
-    console.log(`🌲 Dropped ${count} wood pieces!`);
+    console.log(`ðŸŒ² Dropped ${count} wood pieces!`);
 
-    // Tạo từng khúc gỗ rơi ra
+    // Táº¡o tá»«ng khÃºc gá»— rÆ¡i ra
     for (let i = 0; i < count; i++) {
-      this.scene.time.delayedCall(i * 60, () => {  // delay nhỏ giữa các khúc để đẹp hơn
+      this.scene.time.delayedCall(i * 60, () => {  // delay nhá» giá»¯a cÃ¡c khÃºc Ä‘á»ƒ Ä‘áº¹p hÆ¡n
         const wood = this.scene.add.image(dropX, dropY, 'wood');
-        wood.setScale(0.1);                    // scale tương đối giống stone (điều chỉnh nếu cần)
-        wood.setDepth(dropY - 1);               // nằm trên mặt đất một chút
+        wood.setScale(0.1);                    // scale tÆ°Æ¡ng Ä‘á»‘i giá»‘ng stone (Ä‘iá»u chá»‰nh náº¿u cáº§n)
+        wood.setDepth(dropY - 1);               // náº±m trÃªn máº·t Ä‘áº¥t má»™t chÃºt
         wood.setAlpha(0.85);
         wood.setData('itemType', 'wood');
 
-        // Hướng văng ngẫu nhiên nhưng có xu hướng phân tán đều
+        // HÆ°á»›ng vÄƒng ngáº«u nhiÃªn nhÆ°ng cÃ³ xu hÆ°á»›ng phÃ¢n tÃ¡n Ä‘á»u
         const angle = (Math.PI * 2 * i) / count + Phaser.Math.FloatBetween(-0.4, 0.4);
         const dist = 25 + Phaser.Math.Between(0, 18);
         const targetX = dropX + Math.cos(angle) * dist;
         const targetY = dropY + Math.sin(angle) * dist + Phaser.Math.Between(-8, 12);
 
-        // Hiệu ứng bay lên rồi rơi xuống + nảy
+        // Hiá»‡u á»©ng bay lÃªn rá»“i rÆ¡i xuá»‘ng + náº£y
         this.scene.tweens.add({
           targets: wood,
           x: targetX,
-          y: targetY - 30,                    // bay lên cao một chút
+          y: targetY - 30,                    // bay lÃªn cao má»™t chÃºt
           alpha: 1,
           duration: 220,
           ease: 'Quad.easeOut'
@@ -181,7 +180,7 @@ export default class Tree {
           y: targetY,
           duration: 380,
           delay: 220,
-          ease: 'Bounce.easeOut',             // nảy xuống giống stone
+          ease: 'Bounce.easeOut',             // náº£y xuá»‘ng giá»‘ng stone
           onComplete: () => {
             if (this.scene.items) {
               this.scene.items.push(wood);
@@ -189,7 +188,7 @@ export default class Tree {
           }
         });
 
-        // Thêm xoay nhẹ (giống stone)
+        // ThÃªm xoay nháº¹ (giá»‘ng stone)
         this.scene.tweens.add({
           targets: wood,
           angle: Phaser.Math.Between(-180, 180),

@@ -111,19 +111,14 @@ export default class GnollShaman {
     this.scene.time.delayedCall(100, () => {
       if (this.scene.anims.exists('gnollshaman_idle')) {
         this.sprite.play('gnollshaman_idle');
-        console.log('✅ Gnoll Shaman idle animation started');
       } else if (this.scene.anims.exists('idle')) {
         this.sprite.play('idle');
-        console.log('✅ Gnoll Shaman idle animation started (fallback)');
       } else if (this.scene.anims.exists('gnollshaman_walk')) {
         this.sprite.play('gnollshaman_walk');
-        console.log('⚠️ Using walk as idle (gnollshaman_walk)');
       } else if (this.scene.anims.exists('walk')) {
         this.sprite.play('walk');
-        console.log('⚠️ Using walk as idle (walk)');
       } else {
         console.error('❌ No Gnoll Shaman animations found!');
-        console.log('Available animations:', this.scene.anims.anims.entries);
       }
     });
   }
@@ -194,7 +189,6 @@ export default class GnollShaman {
     projectile.maxLifeTime = 2000;
 
     this.projectiles.push(projectile);
-    console.log(`🔮 Gnoll Shaman shot projectile!`);
 
     this.sprite.setTint(0xcc99ff);
     this.scene.time.delayedCall(100, () => {
@@ -228,7 +222,6 @@ export default class GnollShaman {
         const distance = Phaser.Math.Distance.Between(proj.x, proj.y, player.x, player.y);
         if (distance <= 15) {
           player.takeDamage?.(proj.damage);
-          console.log(`🔮 Magic projectile hit player! Damage: ${proj.damage}`);
           proj.destroy();
           this.projectiles.splice(i, 1);
           continue;
@@ -242,7 +235,6 @@ export default class GnollShaman {
           const distance = Phaser.Math.Distance.Between(proj.x, proj.y, monster.x, monster.y);
           if (distance <= 15) {
             monster.takeDamage?.(proj.damage);
-            console.log(`🔮 Magic projectile hit ice monster! Damage: ${proj.damage}`);
             proj.destroy();
             this.projectiles.splice(i, 1);
             break;
@@ -385,7 +377,6 @@ export default class GnollShaman {
       }
     });
 
-    console.log(`🔮 Gnoll Shaman health: ${this.health}/${this.maxHealth}`);
 
     this.updateHealthBar();
 

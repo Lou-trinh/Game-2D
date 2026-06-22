@@ -195,7 +195,6 @@ export default class Bear {
       // Deal damage to ice monster
       if (monster.takeDamage) {
         monster.takeDamage(this.damageAmount);
-        console.log(`🐻 Bear attacked ice monster! Dealt ${this.damageAmount} damage`);
 
         // Attack flash effect
         this.sprite.setTint(0xff6666);
@@ -232,7 +231,6 @@ export default class Bear {
       // Gây damage cho player
       if (player.takeDamage) {
         player.takeDamage(this.damageAmount);
-        console.log(`🐻 Bear attacked player! (distance: ${distance.toFixed(1)}px)`);
 
         // HIỆU ỨNG TẤN CÔNG - nháy đỏ
         this.sprite.setTint(0xff6666);
@@ -360,7 +358,6 @@ export default class Bear {
       }
     });
 
-    console.log(`🐻 Bear health: ${this.health}/${this.maxHealth}`);
 
     // Cập nhật health bar
     this.updateHealthBar();

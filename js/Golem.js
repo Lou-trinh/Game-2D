@@ -187,7 +187,6 @@ export default class Golem {
       this.sprite.setTint(0xff6666);
       this.scene.time.delayedCall(100, () => this.sprite.clearTint());
       this.createAttackEffect(monster.x, monster.y);
-      console.log(`🗿 Golem attacked ice monster! Dealt ${this.damageAmount} damage`);
     }
   }
 

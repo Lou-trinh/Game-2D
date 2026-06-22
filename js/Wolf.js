@@ -117,19 +117,14 @@ export default class Wolf {
     this.scene.time.delayedCall(100, () => {
       if (this.scene.anims.exists('wolf_idle')) {
         this.sprite.play('wolf_idle');
-        console.log('✅ Wolf idle animation started');
       } else if (this.scene.anims.exists('idle')) {
         this.sprite.play('idle');
-        console.log('✅ Wolf idle animation started (fallback)');
       } else if (this.scene.anims.exists('wolf_walk')) {
         this.sprite.play('wolf_walk');
-        console.log('⚠️ Using walk as idle (wolf_walk)');
       } else if (this.scene.anims.exists('walk')) {
         this.sprite.play('walk');
-        console.log('⚠️ Using walk as idle (walk)');
       } else {
         console.error('❌ No Wolf animations found!');
-        console.log('Available animations:', this.scene.anims.anims.entries);
       }
     });
   }
@@ -223,7 +218,6 @@ export default class Wolf {
       // Deal damage to ice monster
       if (monster.takeDamage) {
         monster.takeDamage(this.damageAmount);
-        console.log(`🐺 Wolf attacked ice monster! Dealt ${this.damageAmount} damage`);
 
         // Attack flash effect
         this.sprite.setTint(0xff6666);
@@ -262,7 +256,6 @@ export default class Wolf {
       // Gây damage cho player
       if (player.takeDamage) {
         player.takeDamage(this.damageAmount);
-        console.log(`🐺 Wolf attacked player! (distance: ${distance.toFixed(1)}px)`);
 
         // HIỆU ỨNG TẤN CÔNG - nhấp đỏ
         this.sprite.setTint(0xff6666);
@@ -384,7 +377,6 @@ export default class Wolf {
       }
     });
 
-    console.log(`🐺 Wolf health: ${this.health}/${this.maxHealth}`);
 
     // Cập nhật health bar
     this.updateHealthBar();

@@ -116,21 +116,17 @@ export default class TreeMan {
     // Thử play idle trước, nếu không có thì dùng walk
     if (this.scene.anims.exists('tree_man_idle')) {
       this.sprite.play('tree_man_idle');
-      console.log('✅ Tree man idle animation started');
     } else if (this.scene.anims.exists('tree_man_walk')) {
       // Nếu không có idle, dùng walk làm idle
       this.sprite.play('tree_man_walk');
-      console.log('⚠️ Using tree_man_walk as idle (tree_man_idle not found)');
     } else {
       console.warn('⚠️ No tree man animations found, retrying...');
       // Thử lại sau 50ms
       this.scene.time.delayedCall(50, () => {
         if (this.scene.anims.exists('tree_man_idle')) {
           this.sprite.play('tree_man_idle');
-          console.log('✅ Tree man idle animation started (delayed)');
         } else if (this.scene.anims.exists('tree_man_walk')) {
           this.sprite.play('tree_man_walk');
-          console.log('⚠️ Using tree_man_walk as idle (delayed)');
         } else {
           console.error('❌ Failed to load tree man animations!');
         }
@@ -202,7 +198,6 @@ export default class TreeMan {
       this.lastDamageTime = currentTime;
       if (monster.takeDamage) {
         monster.takeDamage(this.damageAmount);
-        console.log(`🌳 TreeMan attacked ice monster! Dealt ${this.damageAmount} damage`);
         this.sprite.setTint(0xff6666);
         this.scene.time.delayedCall(100, () => {
           this.sprite.clearTint();
@@ -237,7 +232,6 @@ export default class TreeMan {
       // Gây damage cho player
       if (player.takeDamage) {
         player.takeDamage(this.damageAmount);
-        console.log(`🌳 Tree man attacked player! (distance: ${distance.toFixed(1)}px)`);
 
         // HIỆU ỨNG TẤN CÔNG - nhấp đỏ
         this.sprite.setTint(0xff6666);
@@ -358,7 +352,6 @@ export default class TreeMan {
       }
     });
 
-    console.log(`🌳 Tree man health: ${this.health}/${this.maxHealth}`);
 
     // Cập nhật health bar
     this.updateHealthBar();

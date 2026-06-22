@@ -128,21 +128,17 @@ export default class ForestGuardian {
     // Thử play idle trước, nếu không có thì dùng walk
     if (this.scene.anims.exists('forest_guardian_idle')) {
       this.sprite.play('forest_guardian_idle');
-      console.log('✅ Forest Guardian idle animation started');
     } else if (this.scene.anims.exists('forest_guardian_walk')) {
       // Nếu không có idle, dùng walk làm idle
       this.sprite.play('forest_guardian_walk');
-      console.log('⚠️ Using forest_guardian_walk as idle (forest_guardian_idle not found)');
     } else {
       console.warn('⚠️ No forest guardian animations found, retrying...');
       // Thử lại sau 100ms
       this.scene.time.delayedCall(100, () => {
         if (this.scene.anims.exists('forest_guardian_idle')) {
           this.sprite.play('forest_guardian_idle');
-          console.log('✅ Forest Guardian idle animation started (delayed)');
         } else if (this.scene.anims.exists('forest_guardian_walk')) {
           this.sprite.play('forest_guardian_walk');
-          console.log('⚠️ Using forest_guardian_walk as idle (delayed)');
         } else {
           console.error('❌ Failed to load forest guardian animations!');
         }
@@ -218,7 +214,6 @@ export default class ForestGuardian {
     tornado.maxLifeTime = 1500;
 
     this.projectiles.push(tornado);
-    console.log(`🌪️ Forest Guardian shot tornado!`);
 
     this.sprite.setTint(0x66ff66);
     this.scene.time.delayedCall(100, () => {
@@ -255,7 +250,6 @@ export default class ForestGuardian {
       if (lifeTime >= proj.maxLifeTime) {
         this.projectiles.splice(i, 1);
         proj.destroy();
-        console.log(`🌪️ Tornado destroyed after ${lifeTime}ms`);
         continue;
       }
 
@@ -297,14 +291,12 @@ export default class ForestGuardian {
           // Gây damage cho player
           if (player.takeDamage) {
             player.takeDamage(proj.damage);
-            console.log(`🌪️ Tornado hit player! Damage: ${proj.damage} + Knockback (${knockbackX.toFixed(1)}, ${knockbackY.toFixed(1)})!`);
           }
 
           // Xóa khỏi mảng và destroy ngay lập tức
           this.projectiles.splice(i, 1);
           proj.destroy();
 
-          console.log(`🌪️ Tornado destroyed on hit!`);
           continue;
         }
       }
@@ -316,7 +308,6 @@ export default class ForestGuardian {
           const distance = Phaser.Math.Distance.Between(proj.x, proj.y, monster.x, monster.y);
           if (distance <= 20) {
             monster.takeDamage?.(proj.damage);
-            console.log(`🌪️ Tornado hit ice monster! Damage: ${proj.damage}`);
             this.projectiles.splice(i, 1);
             proj.destroy();
             break;
@@ -467,7 +458,6 @@ export default class ForestGuardian {
       }
     });
 
-    console.log(`🌲 Forest Guardian health: ${this.health}/${this.maxHealth}`);
 
     // Cập nhật health bar
     this.updateHealthBar();

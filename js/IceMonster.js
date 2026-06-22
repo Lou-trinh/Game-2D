@@ -253,7 +253,6 @@ export default class IceMonster {
             // Deal damage to enemy
             if (enemy.takeDamage) {
                 enemy.takeDamage(this.damageAmount);
-                console.log(`â„ï¸ Ice Monster attacked enemy! Dealt ${this.damageAmount} damage`);
 
                 // Attack flash effect
                 this.sprite.setTint(0x66ffff);
@@ -320,7 +319,6 @@ export default class IceMonster {
             }
         });
 
-        console.log(`â„ï¸ Ice Monster health: ${this.health}/${this.maxHealth}`);
 
         // Update health bar
         this.updateHealthBar();

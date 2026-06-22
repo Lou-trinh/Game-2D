@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { preloadCharacters, getCharacterConfig, CharacterTypes } from './Character';
 import { getWeaponByKey, WeaponCategories } from './data/WeaponData';
 import { Economy } from './utils/Economy';
@@ -45,8 +45,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.setExistingBody(compoundBody);
     this.setPosition(x, y);
 
-    // Đặt category/mask rõ ràng để enemy nhận diện player qua collision filter
-    // Category 0x0001 được enemy (0x0002) cấu hình collidesWith.
+    // Äáº·t category/mask rÃµ rÃ ng Ä‘á»ƒ enemy nháº­n diá»‡n player qua collision filter
+    // Category 0x0001 Ä‘Æ°á»£c enemy (0x0002) cáº¥u hÃ¬nh collidesWith.
     this.setCollisionCategory(0x0001);
     this.setCollidesWith([0x0002]);
 
@@ -54,18 +54,18 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.compoundBody = compoundBody;
     this.colliderBody = collider;
     this.sensorBody = sensor;
-    // Lưu collision filter gốc để giữ hành vi va chạm khi biến hình
+    // LÆ°u collision filter gá»‘c Ä‘á»ƒ giá»¯ hÃ nh vi va cháº¡m khi biáº¿n hÃ¬nh
     this.defaultCollisionFilter = {
       category: this.body.collisionFilter.category,
       mask: this.body.collisionFilter.mask
     };
-    // Mask bỏ enemy (0x0002) để tránh bị đẩy khi biến hình Mino
+    // Mask bá» enemy (0x0002) Ä‘á»ƒ trÃ¡nh bá»‹ Ä‘áº©y khi biáº¿n hÃ¬nh Mino
     this.noEnemyCollisionMask = this.defaultCollisionFilter.mask & ~0x0002;
     // Store original radii for restoration
     this.originalColliderRadius = 8;
     this.originalSensorRadius = 16;
     // Scale factor for Taoist -> Mino body size (affects 2 debug circles)
-    // Giảm bớt để vòng tròn nhỏ lại một chút
+    // Giáº£m bá»›t Ä‘á»ƒ vÃ²ng trÃ²n nhá» láº¡i má»™t chÃºt
     this.transformScaleFactor = 2.5;
 
     // =====================
@@ -73,7 +73,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // =====================
     this.attackDamage = this.characterConfig.stats.damage || 10;
     this.bonusDamage = 0;
-    this.lastAttackAngle = 0; // Lưu góc tấn công
+    this.lastAttackAngle = 0; // LÆ°u gÃ³c táº¥n cÃ´ng
 
     // =====================
     // HEALTH
@@ -204,7 +204,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.weaponRotation = 0;
     this.weaponKick = 0;
 
-    // Empty slot — no weapon to show
+    // Empty slot â€” no weapon to show
     if (!weaponKey) return;
 
     const weapon = getWeaponByKey(weaponKey);
@@ -248,7 +248,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // Track mouse movement
     // (Aiming logic removed)
 
-    // Bắt sự kiện click chuột
+    // Báº¯t sá»± kiá»‡n click chuá»™t
     scene.input.on('pointerdown', (pointer) => {
       if (this.isDead) return;
 
@@ -258,7 +258,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
       if (this.isAttacking) return;
 
-      // Tính góc từ player đến vị trí chuột (trong world coordinates)
+      // TÃ­nh gÃ³c tá»« player Ä‘áº¿n vá»‹ trÃ­ chuá»™t (trong world coordinates)
       const worldX = pointer.worldX;
       const worldY = pointer.worldY;
 
@@ -269,8 +269,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         worldY
       );
 
-      // Flip player theo hướng chuột
-      // Flip player theo hướng chuột
+      // Flip player theo hÆ°á»›ng chuá»™t
+      // Flip player theo hÆ°á»›ng chuá»™t
       if (worldX < this.x) {
         // Player 1 defaults to facing right? No, Player is left by default in atlas?
         // Let's assume standard behavior:
@@ -323,7 +323,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       if (ammo) {
         // Reduced decrement here as it's now handled in attack() for gun_fire
         // But for other characters/archers, we still want a log
-        console.log(`Ammo check: ${ammo.current}/${ammo.max}`);
       }
     }
 
@@ -372,8 +371,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       };
 
       // Rotate projectile to face flight direction
-      // Rocket bullets point horizontally by default, so no 90° offset needed
-      // Regular bullets are vertical sprites and need 90° offset
+      // Rocket bullets point horizontally by default, so no 90Â° offset needed
+      // Regular bullets are vertical sprites and need 90Â° offset
       const isRocket = weapon?.key === 'Rocket';
       const rotationOffset = isRocket ? 0 : 90;
       projectile.setAngle(Phaser.Math.RadToDeg(projectileAngle) + rotationOffset);
@@ -413,12 +412,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // Gun character ammo check before attacking
     if (this.characterType === CharacterTypes.PLAYER_1 || this.characterType === CharacterTypes.CHARACTER_02 || this.characterType === CharacterTypes.PLAYER_3) {
       if (this.currentAmmo <= 0) {
-        console.log('❌ Out of ammo! Cannot attack.');
+        console.log('âŒ Out of ammo! Cannot attack.');
         // Optional: Play empty click sound
         return;
       }
       if (this.isReloading) {
-        console.log('❌ Reloading! Cannot attack.');
+        console.log('âŒ Reloading! Cannot attack.');
         return;
       }
     }
@@ -638,21 +637,21 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
       }
 
-      // 1. Raise High (Giơ thẳng lên trời)
+      // 1. Raise High (GiÆ¡ tháº³ng lÃªn trá»i)
       this.scene.tweens.add({
         targets: this,
-        weaponRotation: -90, // Giơ thẳng lên (-90 độ)
+        weaponRotation: -90, // GiÆ¡ tháº³ng lÃªn (-90 Ä‘á»™)
         duration: 120,
         ease: 'Cubic.easeOut',
         onComplete: () => {
-          // 2. The Smash (Bổ thẳng xuống đất)
-          this.checkAttackHit(); // Gây dame
+          // 2. The Smash (Bá»• tháº³ng xuá»‘ng Ä‘áº¥t)
+          this.checkAttackHit(); // GÃ¢y dame
 
           this.scene.tweens.add({
             targets: this,
-            weaponRotation: 0, // Bổ xuống ngang người (0 độ)
-            duration: 80, // Bổ nhanh dứt khoát
-            ease: 'Bounce.easeOut', // Hiệu ứng nảy nhẹ khi dừng lại
+            weaponRotation: 0, // Bá»• xuá»‘ng ngang ngÆ°á»i (0 Ä‘á»™)
+            duration: 80, // Bá»• nhanh dá»©t khoÃ¡t
+            ease: 'Bounce.easeOut', // Hiá»‡u á»©ng náº£y nháº¹ khi dá»«ng láº¡i
             onComplete: () => {
               // 3. Recovery
               this.scene.tweens.add({
@@ -707,7 +706,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   checkAttackHit() {
     const damage = this.attackDamage + (this.bonusDamage || 0);
 
-    // Tính vị trí tấn công theo góc
+    // TÃ­nh vá»‹ trÃ­ táº¥n cÃ´ng theo gÃ³c
     const attackDistance = 25;
     const hitWidth = 50;
     const hitHeight = 50;
@@ -978,7 +977,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       console.warn('Could not play area damage sound:', e);
     }
 
-    // 4. Create Zone — Electric_Bomb dùng effect_8, các bomb khác dùng effect_6
+    // 4. Create Zone â€” Electric_Bomb dÃ¹ng effect_8, cÃ¡c bomb khÃ¡c dÃ¹ng effect_6
     const fireEffect = weaponKey === 'Electric_Bomb' ? 'effect_8' : 'effect_6';
     this.createFireZone(ex, ey, 7000, fireEffect);
   }
@@ -996,7 +995,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       const offsetY = (Math.random() - 0.5) * 80;
       const fire = this.scene.add.sprite(x + offsetX, y + offsetY, fireEffect);
 
-      // Giảm kích thước effect_8 vì sprite tia sét gốc rất to
+      // Giáº£m kÃ­ch thÆ°á»›c effect_8 vÃ¬ sprite tia sÃ©t gá»‘c ráº¥t to
       if (fireEffect === 'effect_8') {
         fire.setScale(0.5 + Math.random() * 0.3);
       } else {
@@ -1017,7 +1016,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       callback: () => {
         const elapsed = this.scene.time.now - startTime;
 
-        // Damage enemies in zone, truyền tên effect vào thay vì biến boolean true
+        // Damage enemies in zone, truyá»n tÃªn effect vÃ o thay vÃ¬ biáº¿n boolean true
         this.damageEnemiesInArea(x, y, fireRadius, damagePerTick, fireEffect);
 
         // Check if finished
@@ -1091,7 +1090,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const scene = this.scene;
     if (!scene) return;
 
-    // Nếu đứng trong vùng nổ điện (effect_8), hiệu ứng bám trên người là tia sét (effect_9)
+    // Náº¿u Ä‘á»©ng trong vÃ¹ng ná»• Ä‘iá»‡n (effect_8), hiá»‡u á»©ng bÃ¡m trÃªn ngÆ°á»i lÃ  tia sÃ©t (effect_9)
     const bodyEffectKey = effectKey === 'effect_8' ? 'effect_9' : effectKey;
 
     // Visual effect: attach bodyEffectKey to enemy
@@ -1111,15 +1110,15 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     }
     burnSprite.setDepth(targetSprite.depth + 1);
 
-    // XỬ LÝ STUN CHO BOM ĐIỆN (effect_9)
+    // Xá»¬ LÃ STUN CHO BOM ÄIá»†N (effect_9)
     if (bodyEffectKey === 'effect_9' && !enemy.isStunned) {
       enemy.isStunned = true;
       const targetObj = isPlayer ? this : enemy;
       const originalUpdate = targetObj.update;
 
-      // Ghi đè hàm update để đóng băng (không di chuyển, không tấn công)
+      // Ghi Ä‘Ã¨ hÃ m update Ä‘á»ƒ Ä‘Ã³ng bÄƒng (khÃ´ng di chuyá»ƒn, khÃ´ng táº¥n cÃ´ng)
       targetObj.update = function () {
-        // Nếu đã chết thì không làm gì cả
+        // Náº¿u Ä‘Ã£ cháº¿t thÃ¬ khÃ´ng lÃ m gÃ¬ cáº£
         if (this.isDead) return;
 
         if (typeof this.setVelocity === 'function' && this.body) {
@@ -1131,7 +1130,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
       };
 
-      // Hết 4 giây thì phục hồi lại
+      // Háº¿t 4 giÃ¢y thÃ¬ phá»¥c há»“i láº¡i
       scene.time.delayedCall(4000, () => {
         const isDead = isPlayer ? targetObj.isDead : (targetObj.isDead || !targetObj.sprite || !targetObj.sprite.active);
         if (isDead) return;
@@ -1141,7 +1140,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         if (typeof targetObj.resume === 'function') targetObj.resume();
         else if (targetObj.sprite && targetObj.sprite.anims) targetObj.sprite.anims.resume();
         else if (targetObj.anims) targetObj.anims.resume();
-        console.log('⚡ Hết bị điện giật!');
+        console.log('âš¡ Háº¿t bá»‹ Ä‘iá»‡n giáº­t!');
       });
     }
 
@@ -1464,11 +1463,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   }
 
   createPortalEffect(x, y, onComplete) {
-    console.log(`🌀 Creating portal at (${Math.floor(x)}, ${Math.floor(y)})`);
 
     // Check if texture exists
     if (!this.scene.textures.exists('tele_port')) {
-      console.error('❌ Texture "tele_port" not found!');
+      console.error('âŒ Texture "tele_port" not found!');
       if (onComplete) onComplete(x, y);
       return;
     }
@@ -1480,7 +1478,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     portal.setDepth(y);
     portal.setAlpha(0);
 
-    console.log('✨ Portal sprite created, playing animation...');
 
     // Fade in portal
     this.scene.tweens.add({
@@ -1493,9 +1490,8 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // Play portal animation
     if (this.scene.anims.exists('skill_2')) {
       portal.play('skill_2');
-      console.log('▶️ Playing skill_2 portal animation');
     } else {
-      console.warn('⚠️ Animation "skill_2" not found, using manual frame animation');
+      console.warn('âš ï¸ Animation "skill_2" not found, using manual frame animation');
       // Manual frame animation as fallback
       const frames = ['tele_port1', 'tele_port2', 'tele_port3', 'tele_port4'];
       let frameIndex = 0;
@@ -1526,7 +1522,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         ease: 'Power2',
         onComplete: () => {
           portal.destroy();
-          console.log('🌀 Portal closed');
         }
       });
     });
@@ -1537,7 +1532,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     const trailCount = 5;
     const spacing = 15;
 
-    console.log('🌊 Creating surf trail effect...');
 
     for (let i = 0; i < trailCount; i++) {
       // Delay each trail sprite slightly for smooth effect
@@ -1546,11 +1540,10 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         const offsetX = -Math.cos(angle) * spacing * (i * 0.5);
         const offsetY = -Math.sin(angle) * spacing * (i * 0.5);
 
-        console.log(`Creating surf sprite ${i + 1}/${trailCount} at offset (${offsetX.toFixed(1)}, ${offsetY.toFixed(1)})`);
 
         // Check if texture exists
         if (!this.scene.textures.exists('surf')) {
-          console.error('❌ Texture "surf" not found!');
+          console.error('âŒ Texture "surf" not found!');
           return;
         }
 
@@ -1569,15 +1562,11 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         // Rotate surf to match dash direction
         surf.setAngle(Phaser.Math.RadToDeg(angle));
 
-        console.log(`✨ Surf sprite created at (${surf.x}, ${surf.y}), depth: ${surf.depth}, scale: ${surf.scale}, alpha: ${surf.alpha}`);
-        console.log(` Surf sprite created. Checking for animation 'effect_3'...`);
 
         // Play surf animation if available
         if (this.scene.anims.exists('effect_3')) {
-          console.log('✅ Animation effect_3 found, playing...');
           surf.play('effect_3');
         } else {
-          console.warn('⚠️ Animation effect_3 not found! Available animations:', this.scene.anims.anims.entries);
         }
 
         // Fade out and destroy - LONGER DURATION
@@ -1589,7 +1578,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           duration: 800,  // Longer duration to see effect
           ease: 'Power2',
           onComplete: () => {
-            console.log('Surf sprite destroyed');
             surf.destroy();
           }
         });
@@ -1604,11 +1592,11 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.healthBar) this.healthBar.setVisible(false);
     if (this.healthBarBg) this.healthBarBg.setVisible(false);
 
-    console.log('💀 Player died! isTransformed:', this.isTransformed);
+    console.log('ðŸ’€ Player died! isTransformed:', this.isTransformed);
 
     // Cancel transform timer if dying while transformed
     if (this.transformTimerEvent) {
-      console.log('⏰ Canceling transform timer on death');
+      console.log('â° Canceling transform timer on death');
       this.transformTimerEvent.remove(false);
       this.transformTimerEvent = null;
     }
@@ -1619,7 +1607,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.setScale(0.3); // Make ghost smaller
     this.setAlpha(1); // Reset alpha to full opacity
 
-    console.log('👻 Ghost sprite set. Texture:', this.texture.key, 'Scale:', this.scale);
+    console.log('ðŸ‘» Ghost sprite set. Texture:', this.texture.key, 'Scale:', this.scale);
 
     // Floating animation (up and down)
     this.scene.tweens.add({
@@ -1638,7 +1626,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   }
 
   revive() {
-    console.log('✨ Player reviving!');
+    console.log('âœ¨ Player reviving!');
     this.isDead = false;
     this.health = this.maxHealth;
 
@@ -1680,7 +1668,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
 
     // Grant 3-second invulnerability
     this.isInvulnerable = true;
-    console.log('🛡️ Player is invulnerable for 3 seconds!');
+    console.log('ðŸ›¡ï¸ Player is invulnerable for 3 seconds!');
 
     // Create flashing effect to indicate invulnerability
     const flashTween = this.scene.tweens.add({
@@ -1696,16 +1684,16 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       this.isInvulnerable = false;
       flashTween.stop();
       this.setAlpha(1); // Restore full opacity
-      console.log('🛡️ Invulnerability period ended');
+      console.log('ðŸ›¡ï¸ Invulnerability period ended');
     });
 
-    console.log('✨ Player revived with health:', this.health, '/', this.maxHealth);
+    console.log('âœ¨ Player revived with health:', this.health, '/', this.maxHealth);
   }
 
   update() {
     if (this.isDead) return;
 
-    // Chỉ block movement khi đang tấn công với Mino (transformed)
+    // Chá»‰ block movement khi Ä‘ang táº¥n cÃ´ng vá»›i Mino (transformed)
     const blockMovementForMino = this.characterType === CharacterTypes.TAOIST && this.isTransformed && this.isAttacking;
     if (blockMovementForMino) return;
 
@@ -1895,9 +1883,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         }
         // Flip logic: invert for Mino since sprite faces opposite direction
         if (useTransformAnim) {
-          this.setFlipX(vel.x > 0); // Ngược lại với Taoist
+          this.setFlipX(vel.x > 0); // NgÆ°á»£c láº¡i vá»›i Taoist
         } else {
-          this.setFlipX(vel.x < 0); // Bình thường cho Taoist
+          this.setFlipX(vel.x < 0); // BÃ¬nh thÆ°á»ng cho Taoist
         }
       } else if (!this.isDashing) {
         this.setVelocity(0, 0);
@@ -2102,21 +2090,21 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.characterType !== CharacterTypes.TAOIST || !this.transformConfig) return;
 
     if (!this.isTransformed) {
-      console.log('🔥 Starting Taoist transformation...');
+      console.log('ðŸ”¥ Starting Taoist transformation...');
       this.performTaoistTransformation();
     } else {
       // Revert back to Taoist
       this.isTransformed = false;
-      // Mở lại phím R sau khi hết trạng thái biến hình
+      // Má»Ÿ láº¡i phÃ­m R sau khi háº¿t tráº¡ng thÃ¡i biáº¿n hÃ¬nh
       this.transformCooldown = false;
 
-      // Lưu flipX hiện tại trước khi revert
+      // LÆ°u flipX hiá»‡n táº¡i trÆ°á»›c khi revert
       const currentFlipX = this.flipX;
 
       this.setTexture(this.originalTexture);
       this.setScale(this.originalScale || 1);
 
-      // Đảo ngược lại hướng khi revert về Taoist
+      // Äáº£o ngÆ°á»£c láº¡i hÆ°á»›ng khi revert vá» Taoist
       this.setFlipX(!currentFlipX);
 
       // Restore original physics body size
@@ -2149,7 +2137,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           inertia: Infinity
         });
 
-        // Khôi phục collision filter gốc
+        // KhÃ´i phá»¥c collision filter gá»‘c
         if (this.defaultCollisionFilter) {
           originalCompoundBody.collisionFilter.category = this.defaultCollisionFilter.category;
           originalCompoundBody.collisionFilter.mask = this.defaultCollisionFilter.mask;
@@ -2161,7 +2149,7 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setPosition(currentX, currentY);
         this.setVelocity(currentVelocity.x, currentVelocity.y);
 
-        // Khôi phục mask gốc để va chạm lại bình thường với enemy
+        // KhÃ´i phá»¥c mask gá»‘c Ä‘á»ƒ va cháº¡m láº¡i bÃ¬nh thÆ°á»ng vá»›i enemy
         if (this.defaultCollisionFilter) {
           this.body.collisionFilter.mask = this.defaultCollisionFilter.mask;
         }
@@ -2202,7 +2190,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   castArrowRain(targetX, targetY) {
     if (this.arrowRainCooldown) return;
 
-    console.log('🏹 Archer casting Arrow Rain!');
 
     // Start cooldown
     this.arrowRainCooldown = true;
@@ -2257,7 +2244,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // Reset cooldown
     this.scene.time.delayedCall(this.arrowRainCooldownTime, () => {
       this.arrowRainCooldown = false;
-      console.log('✅ Arrow Rain ready!');
     });
   }
 
@@ -2337,7 +2323,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
   castMageExplosion(targetX, targetY) {
     if (this.arrowRainCooldown) return;
 
-    console.log('🔥 Mage casting Explosion (Multi-strike)!');
 
     // Start cooldown
     this.arrowRainCooldown = true;
@@ -2415,7 +2400,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
               }
             });
           });
-          console.log(`💥 Strike ${i + 1} hit ${hitCount} enemies`);
         });
       });
     }
@@ -2423,7 +2407,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     // Reset cooldown
     this.scene.time.delayedCall(this.arrowRainCooldownTime, () => {
       this.arrowRainCooldown = false;
-      console.log('✅ Mage Explosion ready!');
     });
   }
 
@@ -2431,7 +2414,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     this.isSpinning = true;
     this.spinCooldown = true;
 
-    console.log('🌪️ Warrior Spin Started!');
 
     // Define spin duration and damage interval
     const duration = 8000; // 8 seconds 
@@ -2456,7 +2438,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           // Reset cooldown (e.g. 10s after finish)
           this.scene.time.delayedCall(10000, () => {
             this.spinCooldown = false;
-            console.log('✅ Warrior Spin Ready!');
           });
           return;
         }
