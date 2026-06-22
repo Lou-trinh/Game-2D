@@ -776,14 +776,21 @@ export default class MainScene extends Phaser.Scene {
         const drDelta = Math.min(delta, 50);
         const staleness = Date.now() - (sp._lastUpdateAt || 0);
         if (this._hostLeft && this.player && !this.player.isDead) {
-          // Host left: chase local player at the same speed as when host was alive
+          // Host left: chase local player
+          // Ranged enemies (dmg=0, range=0 from host broadcast) keep attack distance
           const dx = this.player.x - sp.x;
           const dy = this.player.y - sp.y;
           const d = Math.sqrt(dx * dx + dy * dy);
           const spd = sp._chaseSpeed || 0.7;
-          if (d > 30) {
+          const isRanged = sp._dmg === 0 && sp._range === 0;
+          const stopDist = isRanged ? 120 : 30;
+          if (d > stopDist) {
             sp._vx = (dx / d) * spd;
             sp._vy = (dy / d) * spd;
+          } else if (isRanged && d < 55) {
+            // Ranged: retreat if player gets too close
+            sp._vx = -(dx / d) * spd;
+            sp._vy = -(dy / d) * spd;
           } else {
             sp._vx = 0;
             sp._vy = 0;
@@ -1589,17 +1596,19 @@ export default class MainScene extends Phaser.Scene {
         if (!this.scene.isActive('MainScene')) return;
         if (state.hostLeft && !this._hostLeft) {
           this._hostLeft = true;
-          // Speed per enemy type (px/physics-step at 60fps, matches each class's this.speed)
+          // Speed per enemy type — always use table, never broadcast velocity
+          // (broadcast vel could be retreat speed which is same magnitude but wrong direction)
           const _typeSpeed = {
-            bear: 0.7, wolf: 1.0, treeman: 0.4, forestguardian: 0.8,
-            gnollbrute: 0.8, gnollshaman: 0.7, mushroom: 0.4, smallmushroom: 0.6, golem: 0.45,
+            bear: 0.7, wolf: 1.0, treeman: 0.4,
+            forestguardian: 0.8, forest_guardian: 0.8,
+            gnollbrute: 0.8, gnoll_brute: 0.8,
+            gnollshaman: 0.7, gnoll_shaman: 0.7,
+            mushroom: 0.4, smallmushroom: 0.6, small_mushroom: 0.6, golem: 0.45,
           };
           if (this._guestEnemySprites) {
             Object.values(this._guestEnemySprites).forEach(sp => {
               if (sp?.active) {
-                const spd = Math.sqrt((sp._vx || 0) ** 2 + (sp._vy || 0) ** 2);
-                // Prefer broadcast speed; fallback to type table; final fallback 0.6
-                sp._chaseSpeed = spd > 0.1 ? spd : (_typeSpeed[sp._mpType] || 0.6);
+                sp._chaseSpeed = _typeSpeed[sp._mpType] || 0.6;
                 sp._targetX = sp.x; sp._targetY = sp.y; sp._vx = 0; sp._vy = 0;
               }
             });
