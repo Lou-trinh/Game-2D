@@ -1528,20 +1528,24 @@ export default class MainScene extends Phaser.Scene {
           allEnemyGroups.forEach(group => {
             group.forEach(e => {
               if (!e || e.isDead || !e.sprite || !e.sprite.active) return;
+              // Assign mpId if missing — undefined id causes Firestore invalid-argument error
+              if (!e.mpId) e.mpId = (e.constructor?.name?.[0] || 'e') + Date.now() + Math.random().toString(36).slice(2, 5);
+              const _vx = e.sprite.body?.velocity?.x; const _vy = e.sprite.body?.velocity?.y;
+              const _mr = e.damageAmount ? e.meleeRange : 0;
               enemies.push({
-                id: e.mpId,
+                id: String(e.mpId),
                 t: e.mpType || '',
                 x: Math.round(e.sprite.x),
                 y: Math.round(e.sprite.y),
-                vx: e.sprite.body?.velocity?.x || 0,
-                vy: e.sprite.body?.velocity?.y || 0,
-                flipX: e.sprite.flipX,
+                vx: isFinite(_vx) ? _vx : 0,
+                vy: isFinite(_vy) ? _vy : 0,
+                flipX: !!e.sprite.flipX,
                 animKey: e.sprite.anims?.currentAnim?.key || '',
-                hp: Math.round(e.health || 100),
-                maxHp: e.maxHealth || 100,
+                hp: Math.round(isFinite(e.health) ? e.health : 100),
+                maxHp: isFinite(e.maxHealth) ? e.maxHealth : 100,
                 dmg: e.damageAmount || 0,
                 cd: e.damageCooldown || 1000,
-                mr: Math.round(e.damageAmount ? (e.meleeRange || 20) : 0),
+                mr: isFinite(_mr) ? Math.round(_mr) : 20,
               });
             });
           });
@@ -1558,7 +1562,10 @@ export default class MainScene extends Phaser.Scene {
             if (!fg || fg.isDead) return;
             (fg.projectiles || []).forEach((p, i) => {
               if (!p?.active) return;
-              projectiles.push({ id: `f${fg.mpId}_${i}`, x: Math.round(p.x), y: Math.round(p.y), vx: p.body?.velocity?.x || 0, vy: p.body?.velocity?.y || 0, color: 0x55ff55, r: 8, dmg: p.damage || 15 });
+              const px = p.x, py = p.y;
+              if (!isFinite(px) || !isFinite(py)) return; // skip uninitialized positions
+              const pvx = p.body?.velocity?.x; const pvy = p.body?.velocity?.y;
+              projectiles.push({ id: `f${fg.mpId}_${i}`, x: Math.round(px), y: Math.round(py), vx: isFinite(pvx) ? pvx : 0, vy: isFinite(pvy) ? pvy : 0, color: 0x55ff55, r: 8, dmg: p.damage || 15 });
             });
           });
           updateGameState(roomCode, { enemies, projectiles, updatedAt: Date.now() }).catch(err => console.warn('[MP] gameState write failed:', err?.code));
@@ -1709,13 +1716,23 @@ export default class MainScene extends Phaser.Scene {
             if (Date.now() - hitAt < 2500) return;
             let gfx;
             if (p.id && p.id.startsWith('f')) {
-              // ForestGuardian tornado — use actual animated sprite
-              if (this.textures.exists('tornado')) {
+              // ForestGuardian tornado — replicate host: animated tornado sprite + guardian flash green
+              try {
                 gfx = this.add.sprite(p.x, p.y, 'tornado', '001').setScale(0.8).setAlpha(0.9).setDepth(1000);
-                try { gfx.play('effect_2', true); } catch (_) {}
-              } else {
-                gfx = this.add.circle(p.x, p.y, 10, 0xcccccc, 0.85).setDepth(1000);
+                gfx.play('effect_2', true);
+              } catch (_) {
+                // Fallback if tornado texture missing
+                gfx = this.add.circle(p.x, p.y, 12, 0xaaffaa, 0.9).setDepth(1000);
               }
+              // Flash the associated ForestGuardian sprite green (same as host setTint(0x66ff66))
+              try {
+                const guardianKey = p.id.split('_')[0].slice(1); // strip leading 'f'
+                const guardianSp = this._guestEnemySprites?.[guardianKey];
+                if (guardianSp?.active) {
+                  guardianSp.setTint(0x66ff66);
+                  this.time.delayedCall(100, () => { try { if (guardianSp.active) guardianSp.clearTint(); } catch (_) {} });
+                }
+              } catch (_) {}
             } else {
               // GnollShaman bolt — circle with stroke matching host
               gfx = this.add.circle(p.x, p.y, p.r || 6, p.color || 0x9966ff, 0.85).setDepth(1000);
