@@ -828,15 +828,10 @@ export default class MainScene extends Phaser.Scene {
             if (now - (sp._lastHitPlayer || 0) >= (sp._cooldown || 1000)) {
               sp._lastHitPlayer = now;
               if (this.player.takeDamage) this.player.takeDamage(sp._dmg);
-              // Flash enemy sprite to indicate attack — match host tint color
+              // Flash enemy sprite to indicate attack — same tint as host
               try {
                 sp.setTint(0xff6666);
                 this.time.delayedCall(100, () => { try { if (sp?.active) sp.clearTint(); } catch (_) {} });
-              } catch (_) {}
-              // Expanding red circle at impact point
-              try {
-                const fx = this.add.circle((sp.x + this.player.x) / 2, (sp.y + this.player.y) / 2, 12, 0xff2222, 0.8).setDepth(2000);
-                this.tweens.add({ targets: fx, alpha: 0, scaleX: 2.5, scaleY: 2.5, duration: 280, ease: 'Power2', onComplete: () => { try { fx.destroy(); } catch (_) {} } });
               } catch (_) {}
             }
           }
@@ -858,13 +853,10 @@ export default class MainScene extends Phaser.Scene {
           if (now - (gp._lastHit || 0) >= 500) {
             gp._lastHit = now;
             this.player.takeDamage?.(gp.dmg);
-            // Projectile impact burst
-            try {
-              const hitX = gp.gfx.x; const hitY = gp.gfx.y;
-              gp.gfx.destroy();
-              const fx = this.add.circle(hitX, hitY, 16, gp.color || 0x9966ff, 0.9).setDepth(2000);
-              this.tweens.add({ targets: fx, alpha: 0, scaleX: 3, scaleY: 3, duration: 300, ease: 'Power2', onComplete: () => { try { fx.destroy(); } catch (_) {} } });
-            } catch (_) {}
+            // Mark as hit so it won't be re-created from next Firestore broadcast
+            this._hitProjIds = this._hitProjIds || new Map();
+            this._hitProjIds.set(id, now);
+            try { gp.gfx.destroy(); } catch (_) {}
             delete this._guestProjectiles[id];
           }
         }
@@ -1711,13 +1703,21 @@ export default class MainScene extends Phaser.Scene {
             gp.gfx.x = p.x; gp.gfx.y = p.y;
             gp.vx = p.vx; gp.vy = p.vy; gp.lastUpdateAt = Date.now();
           } else {
+            // Skip if this projectile was already hit recently (prevents re-creation after guest destroys it)
+            this._hitProjIds = this._hitProjIds || new Map();
+            const hitAt = this._hitProjIds.get(p.id) || 0;
+            if (Date.now() - hitAt < 2500) return;
             let gfx;
-            if (p.color === 0x55ff55) {
-              // ForestGuardian tornado — dùng sprite animated giống host
-              gfx = this.add.sprite(p.x, p.y, 'tornado', '001').setScale(0.8).setAlpha(0.9).setDepth(1000);
-              if (this.anims.exists('effect_2')) gfx.play('effect_2', true);
+            if (p.id && p.id.startsWith('f')) {
+              // ForestGuardian tornado — use actual animated sprite
+              if (this.textures.exists('tornado')) {
+                gfx = this.add.sprite(p.x, p.y, 'tornado', '001').setScale(0.8).setAlpha(0.9).setDepth(1000);
+                try { gfx.play('effect_2', true); } catch (_) {}
+              } else {
+                gfx = this.add.circle(p.x, p.y, 10, 0xcccccc, 0.85).setDepth(1000);
+              }
             } else {
-              // GnollShaman bolt — circle có stroke giống host
+              // GnollShaman bolt — circle with stroke matching host
               gfx = this.add.circle(p.x, p.y, p.r || 6, p.color || 0x9966ff, 0.85).setDepth(1000);
               try { gfx.setStrokeStyle(2, 0xcc99ff, 1); } catch (_) {}
             }
@@ -1913,6 +1913,7 @@ export default class MainScene extends Phaser.Scene {
     if (this._syncTimer) { this._syncTimer.remove(); this._syncTimer = null; }
     if (this._localSpawnTimer) { this._localSpawnTimer.remove(); this._localSpawnTimer = null; }
     if (this._guestProjectiles) { Object.values(this._guestProjectiles).forEach(gp => { try { gp.gfx?.destroy(); } catch (_) {} }); this._guestProjectiles = null; }
+    this._hitProjIds = null;
     if (this._enemyBroadcastTimer) { this._enemyBroadcastTimer.remove(); this._enemyBroadcastTimer = null; }
     if (this._otherPlayersUnsub) { this._otherPlayersUnsub(); this._otherPlayersUnsub = null; }
     if (this._gameStateUnsub) { this._gameStateUnsub(); this._gameStateUnsub = null; }
