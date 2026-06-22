@@ -798,12 +798,12 @@ export default class MainScene extends Phaser.Scene {
           sp._targetY += sp._vy * drDelta / 16.67;
         }
 
-        // Delta-time lerp — half-life 20ms for faster visual catch-up
+        // Delta-time lerp — half-life 50ms, matches remote player smoothness
         const dist = Phaser.Math.Distance.Between(sp.x, sp.y, sp._targetX, sp._targetY);
         if (dist > 300) {
           sp.setPosition(sp._targetX, sp._targetY);
         } else {
-          const lerpT = 1 - Math.pow(0.5, delta / 20);
+          const lerpT = 1 - Math.pow(0.5, delta / 50);
           sp.x += (sp._targetX - sp.x) * lerpT;
           sp.y += (sp._targetY - sp.y) * lerpT;
         }
@@ -820,10 +820,10 @@ export default class MainScene extends Phaser.Scene {
           sp._hpGfx.fillRect(bx, by, pct * 30, 5);
         }
 
-        // Guest-side melee damage: enemy sprite close to local player
+        // Guest-side melee damage: use broadcasted melee range + 12px sync-lag buffer
         if (this.player && !this.player.isDead && sp._dmg) {
           const dist = Phaser.Math.Distance.Between(sp.x, sp.y, this.player.x, this.player.y);
-          if (dist < 48) {
+          if (dist < (sp._range || 20) + 12) {
             const now = Date.now();
             if (now - (sp._lastHitPlayer || 0) >= (sp._cooldown || 1000)) {
               sp._lastHitPlayer = now;
@@ -1549,6 +1549,7 @@ export default class MainScene extends Phaser.Scene {
                 maxHp: e.maxHealth || 100,
                 dmg: e.damageAmount || 10,
                 cd: e.damageCooldown || 1000,
+                mr: Math.round(e.meleeRange || 20),
               });
             });
           });
@@ -1664,6 +1665,7 @@ export default class MainScene extends Phaser.Scene {
               sp._hpGfx = this.add.graphics().setDepth(e.y + 10);
               sp._dmg = e.dmg || 10;
               sp._cooldown = e.cd || e.cooldown || 1000;
+              sp._range = e.mr || 20;
               sp._lastHitPlayer = 0;
               this._guestEnemySprites[key] = sp;
               const proxy = new GuestEnemyProxy(sp, e.id, e.hp || 100, this, roomCode);
@@ -1678,6 +1680,7 @@ export default class MainScene extends Phaser.Scene {
             sp._targetY = e.y;
             sp._vx = e.vx || 0;
             sp._vy = e.vy || 0;
+            if (e.mr) sp._range = e.mr;
             sp.setFlipX(e.flipX || false);
             if (e.animKey && this.anims.exists(e.animKey) && sp.anims?.currentAnim?.key !== e.animKey) {
               sp.play(e.animKey, true);
@@ -1759,7 +1762,8 @@ export default class MainScene extends Phaser.Scene {
     sp._lastUpdateAt = 0;
     sp._chaseSpeed = def.speed;
     sp._hpGfx = this.add.graphics().setDepth(gateY + 10);
-    sp._dmg = def.dmg; sp._cooldown = 1000; sp._lastHitPlayer = 0;
+    const _rangeMap = { bear:17, wolf:17, treeman:17, forest_guardian:0, gnoll_brute:20, gnoll_shaman:0, mushroom:28, small_mushroom:20, golem:50 };
+    sp._dmg = def.dmg; sp._cooldown = 1000; sp._range = _rangeMap[def.tex] || 20; sp._lastHitPlayer = 0;
     this._guestEnemySprites[id] = sp;
     this._guestEnemyProxies = this._guestEnemyProxies || {};
     const proxy = new GuestEnemyProxy(sp, id, def.hp, this, this.registry.get('roomCode'));
