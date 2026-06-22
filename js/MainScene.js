@@ -797,6 +797,16 @@ export default class MainScene extends Phaser.Scene {
           }
           sp._targetX += sp._vx * drDelta / 16.67;
           sp._targetY += sp._vy * drDelta / 16.67;
+          // Ranged enemies shoot local projectiles when in attack zone
+          if (isRanged && d >= 55 && d <= 120) {
+            const now = Date.now();
+            const isGuardian = sp._mpType === 'forestguardian' || sp._mpType === 'forest_guardian';
+            const cd = isGuardian ? 2000 : 1500;
+            if (now - (sp._lastLocalShot || 0) >= cd) {
+              sp._lastLocalShot = now;
+              this._fireLocalProjectile(sp, this.player, isGuardian);
+            }
+          }
         } else if (staleness < 1500 && (sp._vx || sp._vy)) {
           // Extend to 2500ms so enemies keep moving between slow Firestore updates
           sp._targetX += sp._vx * drDelta / 16.67;
@@ -850,8 +860,17 @@ export default class MainScene extends Phaser.Scene {
       Object.keys(this._guestProjectiles).forEach(id => {
         const gp = this._guestProjectiles[id];
         if (!gp.gfx?.active) { delete this._guestProjectiles[id]; return; }
-        const staleness = Date.now() - (gp.lastUpdateAt || 0);
-        if (staleness < 1500) { gp.gfx.x += gp.vx * drDelta / 16.67; gp.gfx.y += gp.vy * drDelta / 16.67; }
+        if (gp._local) {
+          // Local projectile: lifetime-based, always moves
+          if (Date.now() - gp._spawnAt >= gp._maxLife) {
+            try { gp.gfx.destroy(); } catch (_) {}
+            delete this._guestProjectiles[id]; return;
+          }
+          gp.gfx.x += gp.vx * drDelta / 16.67; gp.gfx.y += gp.vy * drDelta / 16.67;
+        } else {
+          const staleness = Date.now() - (gp.lastUpdateAt || 0);
+          if (staleness < 1500) { gp.gfx.x += gp.vx * drDelta / 16.67; gp.gfx.y += gp.vy * drDelta / 16.67; }
+        }
         const dist = Phaser.Math.Distance.Between(gp.gfx.x, gp.gfx.y, this.player.x, this.player.y);
         if (dist < 20) {
           const now = Date.now();
@@ -1752,6 +1771,41 @@ export default class MainScene extends Phaser.Scene {
 
     this.events.once('shutdown', () => this._cleanupMultiplayer(roomCode, user.uid));
     this.events.once('destroy', () => this._cleanupMultiplayer(roomCode, user.uid));
+  }
+
+  _fireLocalProjectile(sp, target, isGuardian) {
+    if (!this._guestProjectiles) this._guestProjectiles = {};
+    const angle = Math.atan2(target.y - sp.y, target.x - sp.x);
+    const speed = 3;
+    const id = '_lp' + Date.now() + Math.random().toString(36).slice(2, 5);
+    let gfx;
+    try {
+      if (isGuardian && this.textures.exists('tornado') && this.anims.exists('effect_2')) {
+        gfx = this.add.sprite(sp.x, sp.y, 'tornado', '001').setScale(0.8).setAlpha(0.9);
+        gfx.play('effect_2');
+      } else {
+        const color = isGuardian ? 0x55ff55 : 0x9966ff;
+        const r = isGuardian ? 8 : 6;
+        gfx = this.add.graphics();
+        gfx.fillStyle(color, 0.8);
+        gfx.fillCircle(0, 0, r);
+        gfx.lineStyle(2, isGuardian ? 0x88ffaa : 0xcc99ff, 1);
+        gfx.strokeCircle(0, 0, r);
+        gfx.x = sp.x; gfx.y = sp.y;
+      }
+      gfx.setDepth(sp.y + 1);
+    } catch (_) { return; }
+    // Flash tint on shooter
+    try {
+      sp.setTint(isGuardian ? 0x66ff66 : 0xcc99ff);
+      this.time.delayedCall(100, () => { try { if (sp?.active) sp.clearTint(); } catch (_) {} });
+    } catch (_) {}
+    this._guestProjectiles[id] = {
+      gfx, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+      dmg: isGuardian ? 15 : 12,
+      _local: true, _spawnAt: Date.now(), _maxLife: isGuardian ? 1500 : 2000,
+      lastUpdateAt: Date.now(),
+    };
   }
 
   _spawnLocalEnemy() {
