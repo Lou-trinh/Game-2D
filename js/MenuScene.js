@@ -1893,6 +1893,70 @@ export default class MenuScene extends Phaser.Scene {
         this.gameModePopup = null;
     }
 
+    showKickedFromRoomPopup() {
+        if (this.kickedPopup) return;
+        const { width, height } = this.scale;
+        this.kickedPopup = [];
+
+        const pw = 300, ph = 150;
+        const px = (width - pw) / 2;
+        const py = (height - ph) / 2;
+
+        const ov = this.add.rectangle(0, 0, width, height, 0x000000, 0.68)
+            .setOrigin(0)
+            .setDepth(700)
+            .setInteractive();
+        this.kickedPopup.push(ov);
+
+        const pg = this.add.graphics().setDepth(701);
+        pg.fillStyle(0x1a1014, 0.98);
+        pg.fillRoundedRect(px, py, pw, ph, 12);
+        pg.lineStyle(2, 0xc0392b, 0.9);
+        pg.strokeRoundedRect(px, py, pw, ph, 12);
+        this.kickedPopup.push(pg);
+
+        const hg = this.add.graphics().setDepth(701);
+        hg.fillStyle(0x7f1e1e, 1);
+        hg.fillRoundedRect(px + 1, py + 1, pw - 2, 36, { tl: 11, tr: 11, bl: 0, br: 0 });
+        this.kickedPopup.push(hg);
+
+        this.kickedPopup.push(
+            this.add.text(px + pw / 2, py + 18, 'THÔNG BÁO', {
+                fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
+            }).setOrigin(0.5).setDepth(702)
+        );
+        this.kickedPopup.push(
+            this.add.text(px + pw / 2, py + 68, 'Bạn đã bị đá khỏi phòng', {
+                fontSize: '15px', color: '#ffdddd', fontStyle: 'bold',
+            }).setOrigin(0.5).setDepth(702)
+        );
+
+        const okG = this.add.graphics().setDepth(701);
+        const drawOk = (hover) => {
+            okG.clear();
+            okG.fillStyle(hover ? 0xe74c3c : 0xc0392b, 1);
+            okG.fillRoundedRect(px + pw / 2 - 48, py + 104, 96, 30, 7);
+            okG.lineStyle(1, 0xffaaaa, hover ? 1 : 0.6);
+            okG.strokeRoundedRect(px + pw / 2 - 48, py + 104, 96, 30, 7);
+        };
+        drawOk(false);
+        this.kickedPopup.push(okG);
+        const okTxt = this.add.text(px + pw / 2, py + 119, 'OK', {
+            fontSize: '12px', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(702);
+        this.kickedPopup.push(okTxt);
+        const okHit = this.add.rectangle(px + pw / 2, py + 119, 96, 30, 0, 0)
+            .setDepth(703)
+            .setInteractive({ useHandCursor: true });
+        okHit.on('pointerover', () => drawOk(true));
+        okHit.on('pointerout', () => drawOk(false));
+        okHit.on('pointerdown', () => {
+            this.kickedPopup?.forEach(e => e && e.destroy && e.destroy());
+            this.kickedPopup = null;
+        });
+        this.kickedPopup.push(okHit);
+    }
+
     showMultiplayerLobby(existingCode, isReturn = false) {
         if (this.lobbyPopup) return;
         const { width, height } = this.scale;
@@ -2002,6 +2066,7 @@ export default class MenuScene extends Phaser.Scene {
                     seenSelfInLobby = true;
                 } else if (seenSelfInLobby) {
                     this.closeMultiplayerLobby(false);
+                    this.showKickedFromRoomPopup();
                     return;
                 }
             }
