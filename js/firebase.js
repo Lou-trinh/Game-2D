@@ -114,7 +114,7 @@ export async function createRoom(roomCode, playerProfile) {
     hostUpdatedAt: Date.now(),
   });
   await setDoc(doc(db, 'rooms', roomCode, 'players', playerProfile.uid), {
-    ...playerProfile, isHost: true, joinedAt: Date.now(),
+    ...playerProfile, isHost: true, ready: true, joinedAt: Date.now(),
   });
 }
 
@@ -130,7 +130,7 @@ export function onRoomStatusChange(roomCode, callback) {
 
 export async function joinRoom(roomCode, playerProfile) {
   await setDoc(doc(db, 'rooms', roomCode, 'players', playerProfile.uid), {
-    ...playerProfile, isHost: false, joinedAt: Date.now(),
+    ...playerProfile, isHost: false, ready: false, joinedAt: Date.now(),
   });
 }
 

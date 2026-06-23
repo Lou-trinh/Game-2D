@@ -2060,6 +2060,10 @@ export default class MenuScene extends Phaser.Scene {
             const me = auth.currentUser;
             const amHost = players.length > 0 && players[0].uid === me?.uid && players[0].isHost;
             const canStart = players.length >= 2;
+            const myRoomPlayer = me ? players.find(p => p.uid === me.uid) : null;
+            const allGuestsReady = players
+                .filter(p => !p.isHost)
+                .every(p => p.ready === true);
 
             if (me && players.length > 0) {
                 if (players.some(p => p.uid === me.uid)) {
@@ -2099,6 +2103,14 @@ export default class MenuScene extends Phaser.Scene {
                         this._lobbySlotEls.push(badgeG);
                         this._lobbySlotEls.push(
                             this.add.text(sx + slotW / 2, slotY + 13, 'HOST', { fontSize: '7px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(203)
+                        );
+                    } else if (p.ready) {
+                        const readyG = this.add.graphics().setDepth(202);
+                        readyG.fillStyle(0x0e6b3a, 1);
+                        readyG.fillRoundedRect(sx + slotW / 2 - 24, slotY + 6, 48, 14, 4);
+                        this._lobbySlotEls.push(readyG);
+                        this._lobbySlotEls.push(
+                            this.add.text(sx + slotW / 2, slotY + 13, 'READY', { fontSize: '7px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setDepth(203)
                         );
                     }
                     const avG = this.add.graphics().setDepth(202);
@@ -2165,31 +2177,51 @@ export default class MenuScene extends Phaser.Scene {
 
             // Start button — active for host when ≥2 players, passive for guests
             const startG = this.add.graphics().setDepth(201);
-            if (canStart && amHost) {
-                startG.fillStyle(0x0e6b3a, 1);
+            const isReadyButton = !!myRoomPlayer && !myRoomPlayer.isHost;
+            const guestReady = myRoomPlayer?.ready === true;
+            const startEnabled = (amHost && canStart) || isReadyButton;
+            const baseFill = isReadyButton
+                ? (guestReady ? 0x0e6b3a : 0x1a5a8a)
+                : (canStart && amHost ? 0x0e6b3a : 0x0a1c14);
+            const hoverFill = isReadyButton
+                ? (guestReady ? 0x15803d : 0x2980b9)
+                : 0x17a35a;
+            if (startEnabled) {
+                startG.fillStyle(baseFill, 1);
                 startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
                 startG.lineStyle(1.5, 0x1abc9c, 0.9);
                 startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
             } else {
-                startG.fillStyle(0x0a1c14, 1);
+                startG.fillStyle(baseFill, 1);
                 startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
                 startG.lineStyle(1, 0x1abc9c, 0.2);
                 startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8);
             }
             this._lobbySlotEls.push(startG);
 
-            const startLabel = canStart && amHost ? 'Bắt đầu ▶' : canStart ? 'Chờ host bắt đầu...' : 'Đang chờ người chơi...';
-            const startColor = canStart && amHost ? '#1fff90' : '#2a5040';
+            const startLabel = isReadyButton
+                ? (guestReady ? 'Đã sẵn sàng' : 'Sẵn sàng')
+                : (canStart && amHost ? 'Bắt đầu ▶' : canStart ? 'Chờ host bắt đầu...' : 'Đang chờ người chơi...');
+            const startColor = startEnabled ? '#ffffff' : '#2a5040';
             const startTxt = this.add.text(px + pw / 2, py + ph - 31, startLabel, {
-                fontSize: '10px', color: startColor, fontStyle: canStart && amHost ? 'bold' : 'normal',
+                fontSize: '10px', color: startColor, fontStyle: startEnabled ? 'bold' : 'normal',
             }).setOrigin(0.5).setDepth(202);
             this._lobbySlotEls.push(startTxt);
 
-            if (canStart && amHost) {
+            if (startEnabled) {
                 const startHit = this.add.rectangle(px + pw / 2, py + ph - 31, 170, 34, 0, 0).setDepth(203).setInteractive({ useHandCursor: true });
-                startHit.on('pointerover', () => { startG.clear(); startG.fillStyle(0x17a35a, 1); startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); startG.lineStyle(1.5, 0x1abc9c, 1); startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); });
-                startHit.on('pointerout', () => { startG.clear(); startG.fillStyle(0x0e6b3a, 1); startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); startG.lineStyle(1.5, 0x1abc9c, 0.9); startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); });
+                startHit.on('pointerover', () => { startG.clear(); startG.fillStyle(hoverFill, 1); startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); startG.lineStyle(1.5, 0x1abc9c, 1); startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); });
+                startHit.on('pointerout', () => { startG.clear(); startG.fillStyle(baseFill, 1); startG.fillRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); startG.lineStyle(1.5, 0x1abc9c, 0.9); startG.strokeRoundedRect(px + pw / 2 - 85, py + ph - 48, 170, 34, 8); });
                 startHit.on('pointerdown', () => {
+                    if (isReadyButton) {
+                        updatePlayerInRoom(roomCode, me.uid, { ready: !guestReady }).catch(() => {});
+                        return;
+                    }
+                    if (!allGuestsReady) {
+                        toastTxt.setText('Còn người chơi chưa sẵn sàng').setColor('#ffcc66').setAlpha(1);
+                        this.time.delayedCall(2200, () => { if (toastTxt.active) toastTxt.setAlpha(0); });
+                        return;
+                    }
                     setRoomStatus(roomCode, 'started').catch(() => {});
                     this.registry.set('selectedCharacter', this.selectedCharacterKey);
                     this.registry.set('roomCode', roomCode);
@@ -2218,7 +2250,7 @@ export default class MenuScene extends Phaser.Scene {
                 });
             } else if (isReturn) {
                 // Returning from game — already in room, just mark inGame: false and listen
-                updatePlayerInRoom(roomCode, user.uid, { inGame: false }).catch(() => {});
+                updatePlayerInRoom(roomCode, user.uid, { inGame: false, ready: false }).catch(() => {});
                 this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
                 // Listen for next game start (skip initial snapshot — room status may still be 'started')
                 let _returnFirstFire = true;
