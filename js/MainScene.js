@@ -1395,6 +1395,11 @@ export default class MainScene extends Phaser.Scene {
       const me = players.find(p => p.uid === user.uid);
       if (me?.isHost === true && !this._isHost) {
         this._promoteToHostInGame(roomCode);
+        return;
+      }
+      const hasHost = players.some(p => p.isHost === true);
+      if (!this._isHost && players.length > 0 && !hasHost) {
+        this._activateGuestLocalEnemyControl();
       }
     });
 
@@ -1889,6 +1894,37 @@ export default class MainScene extends Phaser.Scene {
     });
   }
 
+  _activateGuestLocalEnemyControl() {
+    this._hostLeft = true;
+    if (!this._guestEnemySprites) this._guestEnemySprites = {};
+
+    const typeSpeed = {
+      bear: 0.7, wolf: 1.0, treeman: 0.4,
+      forestguardian: 0.8, forest_guardian: 0.8,
+      gnollbrute: 0.8, gnoll_brute: 0.8,
+      gnollshaman: 0.7, gnoll_shaman: 0.7,
+      mushroom: 0.4, smallmushroom: 0.6, small_mushroom: 0.6, golem: 0.45,
+    };
+
+    Object.values(this._guestEnemySprites).forEach(sp => {
+      if (!sp?.active) return;
+      sp._chaseSpeed = typeSpeed[sp._mpType] || 0.6;
+      sp._targetX = sp.x;
+      sp._targetY = sp.y;
+      sp._vx = 0;
+      sp._vy = 0;
+    });
+
+    if (!this._localSpawnTimer) {
+      this._localSpawnTimer = this.time.addEvent({
+        delay: 1500,
+        loop: true,
+        callback: this._spawnLocalEnemy,
+        callbackScope: this,
+      });
+    }
+  }
+
   _fireLocalProjectile(sp, target, isGuardian) {
     if (!this._guestProjectiles) this._guestProjectiles = {};
     const angle = Math.atan2(target.y - sp.y, target.x - sp.x);
@@ -2116,6 +2152,10 @@ export default class MainScene extends Phaser.Scene {
   }
 
   _cleanupMultiplayer(roomCode, uid) {
+    if (this._isHost && roomCode) {
+      updateGameState(roomCode, { hostLeft: true, updatedAt: Date.now() }).catch(() => {});
+      setRoomStatus(roomCode, 'waiting').catch(() => {});
+    }
     if (this._syncTimer) { this._syncTimer.remove(); this._syncTimer = null; }
     if (this._localSpawnTimer) { this._localSpawnTimer.remove(); this._localSpawnTimer = null; }
     if (this._guestProjectiles) { Object.values(this._guestProjectiles).forEach(gp => { try { gp.gfx?.destroy(); } catch (_) {} }); this._guestProjectiles = null; }
