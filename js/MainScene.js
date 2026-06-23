@@ -65,6 +65,16 @@ class GuestEnemyProxy {
   }
 }
 
+function destroyRemotePlayerEntry(entry) {
+  if (!entry) return;
+  try { if (entry.floatTween) entry.floatTween.stop(); } catch (_) {}
+  try { if (entry.sprite?.active) entry.sprite.destroy(); } catch (_) {}
+  try { if (entry.nameText?.active) entry.nameText.destroy(); } catch (_) {}
+  try { if (entry.hpBg?.active) entry.hpBg.destroy(); } catch (_) {}
+  try { if (entry.hpBar?.active) entry.hpBar.destroy(); } catch (_) {}
+  try { if (entry.weaponImg?.active) entry.weaponImg.destroy(); } catch (_) {}
+}
+
 export default class MainScene extends Phaser.Scene {
   constructor() {
     super('MainScene');
@@ -1456,18 +1466,15 @@ export default class MainScene extends Phaser.Scene {
     this._otherPlayersUnsub = onOtherPlayersChange(roomCode, user.uid, (others) => {
       if (!this.scene.isActive('MainScene')) return;
       const now = Date.now();
-      const activeUids = new Set(others.map(p => p.uid));
+      const freshOthers = others.filter(p => p.x && now - (p.updatedAt || 0) <= 8000);
+      const activeUids = new Set(freshOthers.map(p => p.uid));
       Object.keys(this._otherPlayerSprites).forEach(uid => {
         if (!activeUids.has(uid)) {
-          const { sprite, nameText, weaponImg } = this._otherPlayerSprites[uid];
-          try { if (sprite.active) sprite.destroy(); } catch (_) {}
-          try { if (nameText.active) nameText.destroy(); } catch (_) {}
-          try { if (weaponImg?.active) weaponImg.destroy(); } catch (_) {}
+          destroyRemotePlayerEntry(this._otherPlayerSprites[uid]);
           delete this._otherPlayerSprites[uid];
         }
       });
-      others.forEach(p => {
-        if (!p.x || now - (p.updatedAt || 0) > 8000) return;
+      freshOthers.forEach(p => {
         if (!this._otherPlayerSprites[p.uid]) {
           const sprite = this.add.sprite(p.x, p.y, p.characterKey || 'player_1').setDepth(p.y);
           const nameText = this.add.text(p.x, p.y - 38, p.displayName || '?', {
@@ -2169,11 +2176,7 @@ export default class MainScene extends Phaser.Scene {
     this.guestEnemies = [];
     if (this._otherPlayerSprites) {
       Object.values(this._otherPlayerSprites).forEach(entry => {
-        try { if (entry.floatTween) entry.floatTween.stop(); } catch (_) {}
-        try { if (entry.sprite?.active) entry.sprite.destroy(); } catch (_) {}
-        try { if (entry.nameText?.active) entry.nameText.destroy(); } catch (_) {}
-        try { if (entry.hpBg?.active) entry.hpBg.destroy(); } catch (_) {}
-        try { if (entry.hpBar?.active) entry.hpBar.destroy(); } catch (_) {}
+        destroyRemotePlayerEntry(entry);
       });
       this._otherPlayerSprites = null;
     }
