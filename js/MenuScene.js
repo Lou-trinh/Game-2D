@@ -1,7 +1,7 @@
 import { getAllCharacters, getCharacterConfig } from './Character';
 import { Economy } from './utils/Economy';
 import { WeaponData, WeaponCategories, getWeaponsByCategory, getWeaponByKey, getWeaponsByCategories } from './data/WeaponData';
-import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, onFriendRequestsChange, createRoom, joinRoom, onRoomPlayersChange, leaveRoom, setRoomStatus, onRoomStatusChange, sendRoomInvite, onRoomInviteChange, declineRoomInvite, updatePlayerInRoom } from './firebase.js';
+import { auth, onAuthChange, signInWithGoogle, signOutUser, saveUserProfile, getFriends, searchPlayers, sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend, onFriendRequestsChange, createRoom, joinRoom, onRoomPlayersChange, leaveRoom, setRoomStatus, onRoomStatusChange, sendRoomInvite, onRoomInviteChange, declineRoomInvite, updatePlayerInRoom, kickRoomPlayer } from './firebase.js';
 
 export default class MenuScene extends Phaser.Scene {
     constructor() {
@@ -1988,10 +1988,23 @@ export default class MenuScene extends Phaser.Scene {
         const slotStartX = px + (pw - totalW) / 2;
         const slotY = py + 112;
         this._lobbySlotEls = [];
+        let seenSelfInLobby = false;
 
         const renderSlots = (players) => {
             this._lobbySlotEls.forEach(e => e && e.destroy && e.destroy());
             this._lobbySlotEls = [];
+            const me = auth.currentUser;
+            const amHost = players.length > 0 && players[0].uid === me?.uid && players[0].isHost;
+            const canStart = players.length >= 2;
+
+            if (me && players.length > 0) {
+                if (players.some(p => p.uid === me.uid)) {
+                    seenSelfInLobby = true;
+                } else if (seenSelfInLobby) {
+                    this.closeMultiplayerLobby(false);
+                    return;
+                }
+            }
 
             for (let i = 0; i < 3; i++) {
                 const p = players[i] || null;
@@ -2035,6 +2048,32 @@ export default class MenuScene extends Phaser.Scene {
                     this._lobbySlotEls.push(
                         this.add.text(sx + slotW / 2, slotY + 84, p.displayName || 'Người chơi', { fontSize: '9px', color: '#1abc9c', fontStyle: 'bold' }).setOrigin(0.5).setDepth(202)
                     );
+                    if (amHost && !p.isHost && p.uid !== me?.uid) {
+                        const kickG = this.add.graphics().setDepth(204);
+                        const drawKick = (hover) => {
+                            kickG.clear();
+                            kickG.fillStyle(hover ? 0xc0392b : 0x7f1e1e, 1);
+                            kickG.fillCircle(sx + slotW - 14, slotY + 14, 10);
+                        };
+                        drawKick(false);
+                        this._lobbySlotEls.push(kickG);
+                        const kickTxt = this.add.text(sx + slotW - 14, slotY + 13, 'x', {
+                            fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
+                        }).setOrigin(0.5).setDepth(205);
+                        this._lobbySlotEls.push(kickTxt);
+                        const kickHit = this.add.circle(sx + slotW - 14, slotY + 14, 12, 0, 0)
+                            .setDepth(206)
+                            .setInteractive({ useHandCursor: true });
+                        kickHit.on('pointerover', () => drawKick(true));
+                        kickHit.on('pointerout', () => drawKick(false));
+                        kickHit.on('pointerdown', () => {
+                            kickHit.disableInteractive();
+                            kickRoomPlayer(roomCode, p.uid).catch(() => {
+                                if (kickHit.active) kickHit.setInteractive({ useHandCursor: true });
+                            });
+                        });
+                        this._lobbySlotEls.push(kickHit);
+                    }
                 } else {
                     const invG = this.add.graphics().setDepth(202);
                     const drawInv = (hover) => {
@@ -2060,10 +2099,6 @@ export default class MenuScene extends Phaser.Scene {
             }
 
             // Start button — active for host when ≥2 players, passive for guests
-            const me = auth.currentUser;
-            const amHost = players.length > 0 && players[0].uid === me?.uid && players[0].isHost;
-            const canStart = players.length >= 2;
-
             const startG = this.add.graphics().setDepth(201);
             if (canStart && amHost) {
                 startG.fillStyle(0x0e6b3a, 1);

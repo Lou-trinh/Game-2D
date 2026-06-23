@@ -185,6 +185,11 @@ export async function leaveRoom(roomCode, uid) {
   }
 }
 
+export async function kickRoomPlayer(roomCode, uid) {
+  await deleteDoc(doc(db, 'rooms', roomCode, 'players', uid));
+  await deleteDoc(doc(db, 'rooms', roomCode, 'playerStates', uid));
+}
+
 export async function updateGameState(roomCode, data) {
   await setDoc(doc(db, 'rooms', roomCode, 'gameState', 'main'), data);
 }
