@@ -142,12 +142,9 @@ export default class Bear {
   findNearestTarget() {
     const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     let nearestTarget = player;
-    let nearestDistance = Phaser.Math.Distance.Between(
-      this.sprite.x,
-      this.sprite.y,
-      player.x,
-      player.y
-    );
+    let nearestDistance = player
+      ? Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, player.x, player.y)
+      : Infinity;
 
     // Check for ice monsters
     if (this.scene.summonedMonsters) {
@@ -249,6 +246,11 @@ export default class Bear {
 
     // Find nearest target (player or ice monster)
     const { target, distance } = this.findNearestTarget();
+    if (!target) {
+      this.state = 'idle';
+      this.sprite.setVelocity(0, 0);
+      return;
+    }
     const isIceMonster = target !== player;
 
     // Xác định trạng thái

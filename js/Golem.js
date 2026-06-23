@@ -152,9 +152,9 @@ export default class Golem {
   findNearestTarget() {
     const player = this.scene.getNearestPlayer(this.sprite.x, this.sprite.y);
     let nearestTarget = player;
-    let nearestDistance = Phaser.Math.Distance.Between(
-      this.sprite.x, this.sprite.y, player.x, player.y
-    );
+    let nearestDistance = player
+      ? Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, player.x, player.y)
+      : Infinity;
 
     if (this.scene.summonedMonsters) {
       this.scene.summonedMonsters.forEach(monster => {
@@ -247,6 +247,11 @@ export default class Golem {
     if (!player) return;
 
     const { target, distance } = this.findNearestTarget();
+    if (!target) {
+      this.state = 'idle';
+      this.sprite.setVelocity(0, 0);
+      return;
+    }
     const isIceMonster = target !== player;
 
     // Logic giống TreeMan
