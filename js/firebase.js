@@ -107,7 +107,12 @@ export async function removeFriend(myUid, friendUid) {
 }
 
 export async function createRoom(roomCode, playerProfile) {
-  await setDoc(doc(db, 'rooms', roomCode), { status: 'waiting', createdAt: Date.now() });
+  await setDoc(doc(db, 'rooms', roomCode), {
+    status: 'waiting',
+    createdAt: Date.now(),
+    hostUid: playerProfile.uid,
+    hostUpdatedAt: Date.now(),
+  });
   await setDoc(doc(db, 'rooms', roomCode, 'players', playerProfile.uid), {
     ...playerProfile, isHost: true, joinedAt: Date.now(),
   });
@@ -133,6 +138,32 @@ export async function updatePlayerInRoom(roomCode, uid, data) {
   await setDoc(doc(db, 'rooms', roomCode, 'players', uid), data, { merge: true });
 }
 
+export async function promoteRoomHost(roomCode) {
+  const snap = await getDocs(collection(db, 'rooms', roomCode, 'players'));
+  const players = snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+  if (players.length === 0) {
+    await setDoc(doc(db, 'rooms', roomCode), {
+      hostUid: null,
+      hostUpdatedAt: Date.now(),
+    }, { merge: true });
+    return null;
+  }
+
+  const nextHost = players[0];
+  await Promise.all(players.map(p => setDoc(
+    doc(db, 'rooms', roomCode, 'players', p.id),
+    { isHost: p.id === nextHost.id, hostUpdatedAt: Date.now() },
+    { merge: true }
+  )));
+  await setDoc(doc(db, 'rooms', roomCode), {
+    hostUid: nextHost.id,
+    hostUpdatedAt: Date.now(),
+  }, { merge: true });
+  return nextHost;
+}
+
 export function onRoomPlayersChange(roomCode, callback) {
   return onSnapshot(collection(db, 'rooms', roomCode, 'players'), snap => {
     const players = snap.docs.map(d => d.data()).sort((a, b) => {
@@ -145,7 +176,13 @@ export function onRoomPlayersChange(roomCode, callback) {
 }
 
 export async function leaveRoom(roomCode, uid) {
+  const leavingRef = doc(db, 'rooms', roomCode, 'players', uid);
+  const leavingSnap = await getDoc(leavingRef);
+  const wasHost = leavingSnap.exists() && leavingSnap.data()?.isHost === true;
   await deleteDoc(doc(db, 'rooms', roomCode, 'players', uid));
+  if (wasHost) {
+    await promoteRoomHost(roomCode);
+  }
 }
 
 export async function updateGameState(roomCode, data) {

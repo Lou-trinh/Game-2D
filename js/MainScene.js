@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import Player from './Player';
 import { CharacterTypes, getCharacterConfig } from './Character';
-import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange, sendEnemyKill, onEnemyKills, updatePlayerInRoom, leaveRoom, setRoomStatus } from './firebase';
+import { auth, updatePlayerState, onOtherPlayersChange, removePlayerState, updateGameState, onGameStateChange, sendEnemyKill, onEnemyKills, updatePlayerInRoom, leaveRoom, setRoomStatus, onRoomPlayersChange } from './firebase';
 import Bear from './Bear';
 import Stone from './Stone';
 import Tree from './Tree';
@@ -1390,6 +1390,14 @@ export default class MainScene extends Phaser.Scene {
     const _roomUser = auth.currentUser;
     if (_roomUser) updatePlayerInRoom(roomCode, _roomUser.uid, { inGame: true }).catch(() => {});
 
+    this._roomPlayersUnsub = onRoomPlayersChange(roomCode, (players) => {
+      if (!this.scene.isActive('MainScene')) return;
+      const me = players.find(p => p.uid === user.uid);
+      if (me?.isHost === true && !this._isHost) {
+        this._promoteToHostInGame(roomCode);
+      }
+    });
+
     // Sync own player position every 200ms (reduced from 100ms to avoid Firestore quota)
     this._lastSentX = null;
     this._lastSentY = null;
@@ -1786,6 +1794,101 @@ export default class MainScene extends Phaser.Scene {
     this.events.once('destroy', () => this._cleanupMultiplayer(roomCode, user.uid));
   }
 
+  _promoteToHostInGame(roomCode) {
+    if (this._isHost) return;
+    this._isHost = true;
+    this._hostLeft = true;
+    this.registry.set('isMultiplayerHost', true);
+    if (this._gameStateUnsub) { this._gameStateUnsub(); this._gameStateUnsub = null; }
+
+    const typeSpeed = {
+      bear: 0.7, wolf: 1.0, treeman: 0.4,
+      forestguardian: 0.8, forest_guardian: 0.8,
+      gnollbrute: 0.8, gnoll_brute: 0.8,
+      gnollshaman: 0.7, gnoll_shaman: 0.7,
+      mushroom: 0.4, smallmushroom: 0.6, small_mushroom: 0.6, golem: 0.45,
+    };
+    Object.values(this._guestEnemySprites || {}).forEach(sp => {
+      if (!sp?.active) return;
+      sp._chaseSpeed = typeSpeed[sp._mpType] || 0.6;
+      sp._targetX = sp.x;
+      sp._targetY = sp.y;
+      sp._vx = 0;
+      sp._vy = 0;
+    });
+
+    if (!this._localSpawnTimer) {
+      this._localSpawnTimer = this.time.addEvent({
+        delay: 1500, loop: true,
+        callback: this._spawnLocalEnemy, callbackScope: this,
+      });
+    }
+
+    if (this._enemyBroadcastTimer) this._enemyBroadcastTimer.remove();
+    this._enemyBroadcastTimer = this.time.addEvent({
+      delay: 250,
+      loop: true,
+      callback: () => {
+        const enemies = [];
+        Object.entries(this._guestEnemySprites || {}).forEach(([id, sp]) => {
+          if (!sp?.active || sp._proxy?.isDead) return;
+          enemies.push({
+            id: String(id),
+            t: sp._mpType || '',
+            x: Math.round(sp.x),
+            y: Math.round(sp.y),
+            vx: sp._vx || 0,
+            vy: sp._vy || 0,
+            flipX: !!sp.flipX,
+            animKey: sp.anims?.currentAnim?.key || '',
+            hp: Math.round(sp._proxy?.hp ?? 100),
+            maxHp: Math.round(sp._proxy?.maxHp ?? sp._proxy?.hp ?? 100),
+            dmg: sp._dmg || 0,
+            cd: sp._cooldown || 1000,
+            mr: sp._range || 20,
+          });
+        });
+
+        const projectiles = [];
+        Object.entries(this._guestProjectiles || {}).forEach(([id, gp]) => {
+          const gfx = gp?.gfx;
+          if (!gfx?.active) return;
+          projectiles.push({
+            id: String(id),
+            x: Math.round(gfx.x),
+            y: Math.round(gfx.y),
+            vx: gp.vx || 0,
+            vy: gp.vy || 0,
+            color: gp.color || 0x9966ff,
+            r: 6,
+            dmg: gp.dmg || 10,
+          });
+        });
+
+        updateGameState(roomCode, { enemies, projectiles, updatedAt: Date.now() })
+          .catch(err => console.warn('[MP] promoted host gameState write failed:', err?.code));
+      },
+    });
+
+    if (this._killsUnsub) this._killsUnsub();
+    this._killsUnsub = onEnemyKills(roomCode, (mpId) => {
+      if (!this.scene.isActive('MainScene')) return;
+      const proxy = this._guestEnemyProxies?.[String(mpId)];
+      if (proxy && !proxy.isDead) {
+        proxy.takeDamage(9999);
+        return;
+      }
+      const allGroups = [
+        this.bears, this.wolves, this.treeMen, this.forestGuardians,
+        this.gnollBrutes, this.gnollShamans, this.mushrooms, this.smallMushrooms, this.golems,
+      ];
+      for (const group of allGroups) {
+        const enemy = group.find(e => e && e.mpId === mpId && !e.isDead);
+        if (enemy) { enemy.takeDamage(9999); break; }
+      }
+    });
+  }
+
   _fireLocalProjectile(sp, target, isGuardian) {
     if (!this._guestProjectiles) this._guestProjectiles = {};
     const angle = Math.atan2(target.y - sp.y, target.x - sp.x);
@@ -2006,6 +2109,7 @@ export default class MainScene extends Phaser.Scene {
     this._hitProjIds = null;
     if (this._enemyBroadcastTimer) { this._enemyBroadcastTimer.remove(); this._enemyBroadcastTimer = null; }
     if (this._otherPlayersUnsub) { this._otherPlayersUnsub(); this._otherPlayersUnsub = null; }
+    if (this._roomPlayersUnsub) { this._roomPlayersUnsub(); this._roomPlayersUnsub = null; }
     if (this._gameStateUnsub) { this._gameStateUnsub(); this._gameStateUnsub = null; }
     if (this._killsUnsub) { this._killsUnsub(); this._killsUnsub = null; }
     if (this._guestEnemyProxies) { this._guestEnemyProxies = null; }
