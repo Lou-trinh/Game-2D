@@ -2136,7 +2136,9 @@ export default class MenuScene extends Phaser.Scene {
             } else {
                 joinRoom(roomCode, myProfile).catch(() => {});
                 this._lobbyUnsub = onRoomPlayersChange(roomCode, renderSlots);
+                let _joinFirstFire = true;
                 this._lobbyStatusUnsub = onRoomStatusChange(roomCode, (roomData) => {
+                    if (_joinFirstFire) { _joinFirstFire = false; return; }
                     if (roomData.status === 'started') {
                         this.registry.set('selectedCharacter', this.selectedCharacterKey);
                         this.registry.set('roomCode', roomCode);

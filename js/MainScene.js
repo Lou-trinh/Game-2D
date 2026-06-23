@@ -2069,18 +2069,22 @@ export default class MainScene extends Phaser.Scene {
           // Return to lobby — keep player in room, mark inGame false
           const _u = auth.currentUser;
           const _rc = this.registry.get('roomCode');
+          const goLobby = () => {
+            this.registry.set('returnToLobbyCode', _rc);
+            this.scene.stop('MainScene');
+            this.scene.start('MenuScene');
+          };
           if (_u && _rc) {
             updatePlayerInRoom(_rc, _u.uid, { inGame: false }).catch(() => {});
             if (_isHost) {
               // Notify guests that host left so they can run local enemy AI
               updateGameState(_rc, { hostLeft: true }).catch(() => {});
               // Reset room status so guests can detect next game start
-              setRoomStatus(_rc, 'waiting').catch(() => {});
+              setRoomStatus(_rc, 'waiting').catch(() => {}).finally(goLobby);
+              return;
             }
           }
-          this.registry.set('returnToLobbyCode', _rc);
-          this.scene.stop('MainScene');
-          this.scene.start('MenuScene');
+          goLobby();
         }
       : () => { this.scene.stop('MainScene'); this.scene.start('MainScene'); };
     const btn2Action = isMultiplayer
