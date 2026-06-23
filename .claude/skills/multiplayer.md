@@ -19,6 +19,15 @@
 - `onRoomInviteChange(uid, cb)` — realtime listener
 - `declineRoomInvite(uid, fromUid)` — xoá invite
 
+## hostLeft flow
+1. Host thoát game (chết hoặc về sảnh) → xóa `gameState` Firestore
+2. Guest detect → set `_hostLeft = true`, dừng nhận broadcast
+3. Guest tự chạy AI cho `_guestEnemySprites` (xem chi tiết trong `monsters.md` — mục **hostLeft**)
+4. `_localSpawnTimer` spawn thêm enemy mỗi 1500ms từ pool 9 loại
+
+**Lưu ý quan trọng**: enemy Firestore-synced và locally spawned có `_dmg/_range` khác nhau
+→ luôn dùng `_mpType` để nhận diện loại enemy, không dùng `_dmg === 0`
+
 ## Files
 - `js/MenuScene.js` — lobby UI, friend system, room invite
 - `js/MainScene.js` — gameplay, sync enemies + players, death handling
