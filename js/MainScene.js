@@ -318,6 +318,7 @@ export default class MainScene extends Phaser.Scene {
     this._allPlayersDead = false;
     this._mpDeathOverlay = null;
     this._hostLeft = false;
+    this._leavingRoom = false;
     this._localEnemyCounter = 0;
     this._localSpawnLeft = false;
 
@@ -2118,7 +2119,7 @@ export default class MainScene extends Phaser.Scene {
             this.scene.start('MenuScene');
           };
           if (_u && _rc) {
-            updatePlayerInRoom(_rc, _u.uid, { inGame: false }).catch(() => {});
+            updatePlayerInRoom(_rc, _u.uid, { inGame: false, ready: false }).catch(() => {});
             if (_isHost) {
               // Notify guests that host left so they can run local enemy AI
               updateGameState(_rc, { hostLeft: true }).catch(() => {});
@@ -2136,6 +2137,8 @@ export default class MainScene extends Phaser.Scene {
           const _u = auth.currentUser;
           const _rc = this.registry.get('roomCode');
           if (_u && _rc) {
+            this._leavingRoom = true;
+            updatePlayerInRoom(_rc, _u.uid, { inGame: false, ready: false }).catch(() => {});
             if (_isHost) {
               updateGameState(_rc, { hostLeft: true }).catch(() => {});
               setRoomStatus(_rc, 'waiting')
@@ -2159,6 +2162,9 @@ export default class MainScene extends Phaser.Scene {
   }
 
   _cleanupMultiplayer(roomCode, uid) {
+    if (roomCode && uid && !this._leavingRoom) {
+      updatePlayerInRoom(roomCode, uid, { inGame: false, ready: false }).catch(() => {});
+    }
     if (this._isHost && roomCode) {
       updateGameState(roomCode, { hostLeft: true, updatedAt: Date.now() }).catch(() => {});
       setRoomStatus(roomCode, 'waiting').catch(() => {});
