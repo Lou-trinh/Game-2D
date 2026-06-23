@@ -852,6 +852,15 @@ export default class MainScene extends Phaser.Scene {
                 sp.setTint(0xff6666);
                 this.time.delayedCall(100, () => { try { if (sp?.active) sp.clearTint(); } catch (_) {} });
               } catch (_) {}
+              // Golem: play effect_1 at player position (matches Golem.createAttackEffect)
+              if (sp._mpType === 'golem' && this.textures.exists('effect_1') && this.anims.exists('effect_1')) {
+                try {
+                  const fx = this.add.sprite(this.player.x, this.player.y - 20, 'effect_1', '001');
+                  fx.setScale(1).setDepth(10000);
+                  fx.play({ key: 'effect_1', repeat: 0 });
+                  fx.on('animationcomplete', () => { try { fx.destroy(); } catch (_) {} });
+                } catch (_) {}
+              }
             }
           }
         }
