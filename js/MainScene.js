@@ -2088,7 +2088,16 @@ export default class MainScene extends Phaser.Scene {
           // Quit game — leave room entirely
           const _u = auth.currentUser;
           const _rc = this.registry.get('roomCode');
-          if (_u && _rc) leaveRoom(_rc, _u.uid).catch(() => {});
+          if (_u && _rc) {
+            if (_isHost) {
+              updateGameState(_rc, { hostLeft: true }).catch(() => {});
+              setRoomStatus(_rc, 'waiting')
+                .catch(() => {})
+                .finally(() => leaveRoom(_rc, _u.uid).catch(() => {}));
+            } else {
+              leaveRoom(_rc, _u.uid).catch(() => {});
+            }
+          }
           this.registry.remove('roomCode');
           this.registry.remove('isMultiplayerHost');
           this.scene.stop('MainScene');
