@@ -80,6 +80,12 @@ rooms/{roomCode}/players/{uid}         — { isHost, joinedAt, ...profile }
 | `friendsPopup` | Array Phaser objects friends list |
 | `joinPopup` | Array Phaser objects join-by-code popup |
 
+## Kick Guest (Host)
+- Host thấy nút kick trên từng guest slot trong lobby
+- `kickRoomPlayer(roomCode, uid)` — xóa player khỏi `rooms/{code}/players/{uid}`
+- Guest bị kick: `onRoomPlayersChange` detect mình bị xóa → hiện popup "Bạn đã bị đá khỏi phòng" → về MenuScene
+- **State reset**: `inGame: false, ready: false` (Firestore) khi guest về sảnh sau trận
+
 ## Gotchas & bugs đã fix
 
 - **⚠️ CRITICAL — intermittent invite**: `_startRoomInviteListener()` nằm sau `await Economy.syncFromCloud()`. Nếu syncFromCloud throw (network lỗi / Firestore timeout), listener không được gọi → bạn không nhận invite. Fix: `try { await Economy.syncFromCloud() } catch {}`.

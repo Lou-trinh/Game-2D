@@ -146,6 +146,16 @@ Asset: `assets/images/skill/ice_monster/ice_monster_anim.json` *(chú ý: folder
 | Golem | `golem_idle` | `golem_walk` | 12 | **6** | nhiều frame nhất |
 | IceMonster | `ice_monster_idle` | `ice_monster_walk` | ? | ? | thêm `_attack` |
 
+## Duplicate animation warning khi scene restart
+`SceneLoading` chạy lại mỗi lần về menu → `load.animation()` re-register gây warning.
+**Fix:** wrap toàn bộ `load.animation()` trong `loadFullAssets()` bằng:
+```js
+if (!this.anims.exists('character_01_idle')) {
+  this.load.animation(...); // tất cả 37 animation JSONs
+}
+```
+`load.atlas()` và `load.image()` không cần check — Phaser tự dedup texture cache.
+
 ## Gotchas
 - Không entity nào có **hit animation** hay **death animation** — tất cả dùng tint flash đỏ khi bị đánh, tween alpha→0 khi chết
 - Guard `currentAnim.key !== 'xxx_idle'` trước khi play để tránh restart animation giữa chừng
