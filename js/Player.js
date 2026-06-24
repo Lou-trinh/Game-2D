@@ -1592,7 +1592,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
     if (this.healthBar) this.healthBar.setVisible(false);
     if (this.healthBarBg) this.healthBarBg.setVisible(false);
 
-    console.log('💀 Player died! isTransformed:', this.isTransformed);
 
     // Cancel transform timer if dying while transformed
     if (this.transformTimerEvent) {
