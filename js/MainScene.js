@@ -1654,6 +1654,8 @@ export default class MainScene extends Phaser.Scene {
 
       this._gameStateUnsub = onGameStateChange(roomCode, (state) => {
         if (!this.scene.isActive('MainScene')) return;
+        // Skip stale data from previous game session (updatedAt predates this session)
+        if ((state.updatedAt || 0) < (this._gameStartedAt || 0)) return;
         if (state.hostLeft && !this._hostLeft && Date.now() - (this._gameStartedAt || 0) > 3000) {
           this._hostLeft = true;
           // Speed per enemy type — always use table, never broadcast velocity
