@@ -364,7 +364,6 @@ export default class GnollBrute {
     this.isDead = true;
       if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(35);
-    console.log('💀 Gnoll Brute died!');
 
     // Ẩn health bar
     if (this.healthBar) this.healthBar.setVisible(false);

@@ -416,7 +416,6 @@ export default class GnollShaman {
     this.isDead = true;
       if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(40);
-    console.log('💀 Gnoll Shaman died!');
 
     if (this.healthBar) this.healthBar.setVisible(false);
     if (this.healthBarBg) this.healthBarBg.setVisible(false);

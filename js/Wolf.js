@@ -412,7 +412,6 @@ export default class Wolf {
     this.isDead = true;
       if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(15);
-    console.log('💀 Wolf died!');
 
     // Ẩn health bar
     if (this.healthBar) this.healthBar.setVisible(false);

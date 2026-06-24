@@ -353,7 +353,6 @@ export default class SmallMushRoom {
     this.isDead = true;
       if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(10);
-    console.log('💀 SmallMushRoom died!');
 
     if (this.healthBar) this.healthBar.setVisible(false);
     if (this.healthBarBg) this.healthBarBg.setVisible(false);

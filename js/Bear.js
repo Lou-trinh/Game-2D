@@ -393,7 +393,6 @@ export default class Bear {
     this.isDead = true;
       if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(20);
-    console.log('💀 Bear died!');
 
     // Ẩn health bar
     if (this.healthBar) this.healthBar.setVisible(false);

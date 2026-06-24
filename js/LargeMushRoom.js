@@ -370,7 +370,6 @@ export default class LargeMushRoom {
     this.isDead = true;
       if (this.scene?._sessionKills !== undefined) this.scene._sessionKills++;
     Economy.addExp(20);
-    console.log('💀 LargeMushRoom died!');
 
     // Ẩn health bar
     if (this.healthBar) this.healthBar.setVisible(false);
