@@ -1716,7 +1716,8 @@ export default class MainScene extends Phaser.Scene {
                 golem: 'golem',
               };
               const texKey = (e.t && texMap[e.t]) ? texMap[e.t] : (e.textureKey || 'bear');
-              const sp = this.add.sprite(e.x, e.y, texKey).setDepth(e.y);
+              const _scaleMap = { forest_guardian: 1.5, mushroom: 1.5, golem: 1.5 };
+              const sp = this.add.sprite(e.x, e.y, texKey).setDepth(e.y).setScale(_scaleMap[texKey] || 1);
               sp._mpType = e.t || '';
               // Animation keys don't always match texture key pattern — use explicit map
               const _animMap = {
