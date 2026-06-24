@@ -1743,121 +1743,70 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
       ? this.transformConfig.idleAnim || this.characterConfig.idleAnim
       : this.characterConfig.idleAnim;
 
+    // Helper: resolve facing direction from attack angle
+    const _resolveFaceDir = () => {
+      const _a = this.lastAttackAngle || 0;
+      const _ac = Math.cos(_a), _as = Math.sin(_a);
+      if (Math.abs(_as) > Math.abs(_ac)) return _as > 0 ? 'front' : 'back';
+      return _ac < 0 ? 'left' : 'right';
+    };
+    const _applyFaceDir = (faceDir) => {
+      if (faceDir === 'left') this.setFlipX(true);
+      else if (faceDir === 'right') this.setFlipX(false);
+    };
+
     if (this.characterType === CharacterTypes.PLAYER_1) {
-      // --- CHARACTER_01: separate atlas per animation, directional idle ---
-      if (vel.length() > 0 && !this.isDashing) {
-        vel.normalize().scale(speed);
-        this.setVelocity(vel.x, vel.y);
-        if (Math.abs(vel.y) >= Math.abs(vel.x)) {
-          if (vel.y < 0) {
-            this.anims.play('character_01_run_back', true);
-            this._lastDir = 'back';
-          } else {
-            this.anims.play('character_01_run_front', true);
-            this._lastDir = 'front';
-          }
+      // --- CHARACTER_01: facing always follows attack angle ---
+      const _moving = vel.length() > 0 && !this.isDashing;
+      if (!this.isDashing) {
+        if (_moving) { vel.normalize().scale(speed); this.setVelocity(vel.x, vel.y); }
+        else { this.setVelocity(0, 0); }
+        const _fd = _resolveFaceDir();
+        _applyFaceDir(_fd);
+        if (_moving) {
+          if (_fd === 'back') this.anims.play('character_01_run_back', true);
+          else if (_fd === 'front') this.anims.play('character_01_run_front', true);
+          else this.anims.play('character_01_run_right', true);
         } else {
-          if (vel.x > 0) {
-            this.setFlipX(false);
-            this.anims.play('character_01_run_right', true);
-            this._lastDir = 'right';
-          } else {
-            this.setFlipX(true);
-            this.anims.play('character_01_run_right', true);
-            this._lastDir = 'left';
-          }
-        }
-      } else if (!this.isDashing) {
-        this.setVelocity(0, 0);
-        const dir = this._lastDir || 'front';
-        if (dir === 'back') {
-          this.anims.play('character_01_idle_back', true);
-        } else if (dir === 'right') {
-          this.setFlipX(false);
-          this.anims.play('character_01_idle_right', true);
-        } else if (dir === 'left') {
-          this.setFlipX(true);
-          this.anims.play('character_01_idle_right', true);
-        } else {
-          this.anims.play('character_01_idle', true);
+          if (_fd === 'back') this.anims.play('character_01_idle_back', true);
+          else if (_fd === 'front') this.anims.play('character_01_idle', true);
+          else this.anims.play('character_01_idle_right', true);
         }
       }
     } else if (this.characterType === CharacterTypes.CHARACTER_02) {
-      // --- CHARACTER_02: separate atlas per animation, directional idle ---
-      if (vel.length() > 0 && !this.isDashing) {
-        vel.normalize().scale(speed);
-        this.setVelocity(vel.x, vel.y);
-        if (Math.abs(vel.y) >= Math.abs(vel.x)) {
-          if (vel.y < 0) {
-            this.anims.play('character_02_run_back', true);
-            this._lastDir = 'back';
-          } else {
-            this.anims.play('character_02_run_front', true);
-            this._lastDir = 'front';
-          }
+      // --- CHARACTER_02: facing always follows attack angle ---
+      const _moving = vel.length() > 0 && !this.isDashing;
+      if (!this.isDashing) {
+        if (_moving) { vel.normalize().scale(speed); this.setVelocity(vel.x, vel.y); }
+        else { this.setVelocity(0, 0); }
+        const _fd = _resolveFaceDir();
+        _applyFaceDir(_fd);
+        if (_moving) {
+          if (_fd === 'back') this.anims.play('character_02_run_back', true);
+          else if (_fd === 'front') this.anims.play('character_02_run_front', true);
+          else this.anims.play('character_02_run_right', true);
         } else {
-          if (vel.x > 0) {
-            this.setFlipX(false);
-            this.anims.play('character_02_run_right', true);
-            this._lastDir = 'right';
-          } else {
-            this.setFlipX(true);
-            this.anims.play('character_02_run_right', true);
-            this._lastDir = 'left';
-          }
-        }
-      } else if (!this.isDashing) {
-        this.setVelocity(0, 0);
-        const dir = this._lastDir || 'front';
-        if (dir === 'back') {
-          this.anims.play('character_02_idle_back', true);
-        } else if (dir === 'right') {
-          this.setFlipX(false);
-          this.anims.play('character_02_idle_right', true);
-        } else if (dir === 'left') {
-          this.setFlipX(true);
-          this.anims.play('character_02_idle_right', true);
-        } else {
-          this.anims.play('character_02_idle', true);
+          if (_fd === 'back') this.anims.play('character_02_idle_back', true);
+          else if (_fd === 'front') this.anims.play('character_02_idle', true);
+          else this.anims.play('character_02_idle_right', true);
         }
       }
     } else if (this.characterType === CharacterTypes.PLAYER_3) {
-      // --- CHARACTER_03: separate atlas per animation, directional idle ---
-      if (vel.length() > 0 && !this.isDashing) {
-        vel.normalize().scale(speed);
-        this.setVelocity(vel.x, vel.y);
-        if (Math.abs(vel.y) >= Math.abs(vel.x)) {
-          if (vel.y < 0) {
-            this.anims.play('character_03_run_back', true);
-            this._lastDir = 'back';
-          } else {
-            this.anims.play('character_03_run_front', true);
-            this._lastDir = 'front';
-          }
+      // --- CHARACTER_03: facing always follows attack angle ---
+      const _moving = vel.length() > 0 && !this.isDashing;
+      if (!this.isDashing) {
+        if (_moving) { vel.normalize().scale(speed); this.setVelocity(vel.x, vel.y); }
+        else { this.setVelocity(0, 0); }
+        const _fd = _resolveFaceDir();
+        _applyFaceDir(_fd);
+        if (_moving) {
+          if (_fd === 'back') this.anims.play('character_03_run_back', true);
+          else if (_fd === 'front') this.anims.play('character_03_run_front', true);
+          else this.anims.play('character_03_run_right', true);
         } else {
-          if (vel.x > 0) {
-            this.setFlipX(false);
-            this.anims.play('character_03_run_right', true);
-            this._lastDir = 'right';
-          } else {
-            this.setFlipX(true);
-            this.anims.play('character_03_run_right', true);
-            this._lastDir = 'left';
-          }
-        }
-      } else if (!this.isDashing) {
-        this.setVelocity(0, 0);
-        const dir = this._lastDir || 'front';
-        if (dir === 'back') {
-          this.anims.play('character_03_idle_back', true);
-        } else if (dir === 'right') {
-          this.setFlipX(false);
-          this.anims.play('character_03_idle_right', true);
-        } else if (dir === 'left') {
-          this.setFlipX(true);
-          this.anims.play('character_03_idle_right', true);
-        } else {
-          this.anims.play('character_03_idle', true);
+          if (_fd === 'back') this.anims.play('character_03_idle_back', true);
+          else if (_fd === 'front') this.anims.play('character_03_idle', true);
+          else this.anims.play('character_03_idle_right', true);
         }
       }
     } else {
