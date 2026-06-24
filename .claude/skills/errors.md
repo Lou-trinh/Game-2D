@@ -27,3 +27,14 @@
 ## GitHub Secret Scanning alert
 **Cause**: API key hardcode trong git history
 **Fix**: Rotate key trong Google Cloud Console → cập nhật `js/firebase.js` → dismiss alert trên GitHub
+
+## Ghost enemies xuất hiện khi bắt đầu game mới (multiplayer)
+**Cause**: Firestore `gameState/main` từ trận cũ còn `hostLeft: true` → guest vừa vào game đã trigger `_hostLeft = true` ngay lập tức
+**Fix**: So sánh `state.updatedAt` với `this._gameStartedAt` (set khi enter MainScene):
+```js
+if ((state.updatedAt || 0) < (this._gameStartedAt || 0)) return; // skip stale data
+```
+
+## Stale enemy data flash trên màn guest khi bắt đầu game mới
+**Cause**: Firestore `gameState/main` cũ còn enemy positions → render flash trước khi host ghi data mới
+**Fix**: Cùng guard `updatedAt >= _gameStartedAt` ở đầu `onGameStateChange` callback

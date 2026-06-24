@@ -22,6 +22,12 @@ activate skill_2
 ## Character Skills (CharacterConfigs)
 Field `transformSkill` trong `CharacterConfigs` dự phòng cho cơ chế biến hình (Taoist → Mino style) — chưa implement cho bất kỳ nhân vật nào.
 
+## IceMonster (Ally Summon) — STUB, chưa implement
+`IceMonster.js` tồn tại và được import trong `MainScene.js` nhưng **chưa bao giờ được spawn**.
+- Các monster class (Bear, GnollBrute, Golem...) có `attackIceMonster()` method sẵn để target ally
+- Chưa có trigger nào trong `Player.js` hay `MainScene.js` để summon IceMonster
+- Khi implement: cần gán vào `scene.iceMonster` để các enemy class target được
+
 ## CharacterSelectScene — UI chọn nhân vật
 - Grid 3×2 card layout, mỗi card là `container` gộp glow/border/preview/name/desc
 - Lock overlay cho `!charData.unlocked`
