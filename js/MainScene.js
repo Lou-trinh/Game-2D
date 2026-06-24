@@ -2161,6 +2161,26 @@ export default class MainScene extends Phaser.Scene {
     this._mpDeathOverlay = [dim, bg, title, sub, div, ...statObjs, ...btn1, ...btn2];
   }
 
+  _exitToMenu() {
+    const _u = auth.currentUser;
+    const _rc = this.registry.get('roomCode');
+    if (_u && _rc) {
+      this._leavingRoom = true;
+      if (this._isHost) {
+        updateGameState(_rc, { hostLeft: true }).catch(() => {});
+        setRoomStatus(_rc, 'waiting')
+          .catch(() => {})
+          .finally(() => leaveRoom(_rc, _u.uid).catch(() => {}));
+      } else {
+        leaveRoom(_rc, _u.uid).catch(() => {});
+      }
+    }
+    this.registry.remove('roomCode');
+    this.registry.remove('isMultiplayerHost');
+    this.scene.stop('MainScene');
+    this.scene.start('MenuScene');
+  }
+
   _cleanupMultiplayer(roomCode, uid) {
     if (roomCode && uid && !this._leavingRoom) {
       updatePlayerInRoom(roomCode, uid, { inGame: false, ready: false }).catch(() => {});

@@ -476,8 +476,12 @@ export default class ResourceUI {
         };
 
         const exitObjs = makeBtn(width / 2 - 68, '🚪 Thoát', 0x7f1e1e, 0xb03030, () => {
-            scene.scene.stop('MainScene');
-            scene.scene.start('MenuScene');
+            if (typeof scene._exitToMenu === 'function') {
+                scene._exitToMenu();
+            } else {
+                scene.scene.stop('MainScene');
+                scene.scene.start('MenuScene');
+            }
         });
         const stayObjs = makeBtn(width / 2 + 68, '✅ Ở lại', 0x1e5e1e, 0x27ae60, () => {
             this._exitPopupObjs.forEach(o => o.destroy());
