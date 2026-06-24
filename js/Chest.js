@@ -25,7 +25,6 @@ export default class Chest {
         // Store reference
         this.sprite.chestInstance = this;
 
-        console.log(`📦 Chest spawned at (${x}, ${y})`);
     }
 
     static preload(scene) {
@@ -48,7 +47,6 @@ export default class Chest {
         // If already opened or opening, ignore
         if (this.isOpened || this.isOpening) return;
 
-        console.log('📦 Chest hit! Opening...');
         this.open();
     }
 
@@ -79,7 +77,6 @@ export default class Chest {
 
             // Destroy the chest after opening
             this.sprite.destroy();
-            console.log('📦 Chest opened and destroyed!');
 
             // Notify scene to schedule next spawn
             if (this.scene.onChestOpened) {
@@ -143,7 +140,6 @@ export default class Chest {
             });
         }
 
-        console.log(`📦 Chest: ${potionCount} potions, ${diamondCount} diamonds, ${fragCommon} frag_common`);
     }
 
     dropSingleItem(dropX, dropY, itemType, offsetX, offsetY) {

@@ -404,7 +404,6 @@ export default class MainScene extends Phaser.Scene {
     this.gate2.play('gate');
     this.gate2.setDepth(299);
 
-    console.log('✨ Spawned Gates at (100,260) and (860,260)');
 
     // Prevent player from going outside map bounds
     this.matter.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
@@ -538,7 +537,6 @@ export default class MainScene extends Phaser.Scene {
       });
     });
 
-    console.log(`🪨 Spawned ${this.stones.length} stones from tiles`);
 
     /* ===============================
        SPAWN TREES (FROM TILES)
@@ -570,7 +568,6 @@ export default class MainScene extends Phaser.Scene {
       });
     });
 
-    console.log(`🌲 Spawned ${this.trees.length} trees from tiles`);
 
     /* ===============================
        SPAWN STONES FROM SPAWN LAYER
@@ -594,7 +591,6 @@ export default class MainScene extends Phaser.Scene {
       });
 
       const stoneObjectCount = spawnLayer.objects.filter(o => o.type === 'stone').length;
-      console.log(`🪨 Total stones from Spawn layer: ${stoneObjectCount}`);
     }
 
     /* ===============================
@@ -661,7 +657,6 @@ export default class MainScene extends Phaser.Scene {
       this.spawnChest();
     });
 
-    console.log('✅ MainScene with Bears, TreeMan, ForestGuardian, GnollBrute, GnollShaman, Wolves, Mushrooms, Chests and Stones loaded');
 
     this._initMultiplayer();
   }
@@ -1018,7 +1013,6 @@ export default class MainScene extends Phaser.Scene {
 
     const actualHeal = this.player.health - oldHealth;
     this._sessionHeal += actualHeal;
-    console.log(`💊 Picked up blood! Healed ${actualHeal} HP`);
 
     this.player.setTint(0x00ff00);
     this.time.delayedCall(150, () => {
@@ -1158,7 +1152,6 @@ export default class MainScene extends Phaser.Scene {
     if (!isValidPosition) {
       console.warn('⚠️ Could not find perfect spot for chest, spawning anyway at last pos');
     } else {
-      console.log(`✅ Found valid chest position after ${attempts} attempts`);
     }
 
     const chest = new Chest({
@@ -1169,11 +1162,9 @@ export default class MainScene extends Phaser.Scene {
 
     this.chests.push(chest);
 
-    console.log(`📦 Spawned NEW chest at (${chestX}, ${chestY})`);
   }
 
   onChestOpened() {
-    console.log('⏳ Chest opened! Next chest will spawn in 30 seconds...');
 
     // Clean up destroyed chests from array
     this.chests = this.chests.filter(c => !c.isOpened && !c.isOpening);
