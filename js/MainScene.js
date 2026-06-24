@@ -52,7 +52,27 @@ class GuestEnemyProxy {
       this.isDead = true;
       this._scene._sessionKills++;
       sendEnemyKill(this._roomCode, this.mpId).catch(() => {});
-      this._scene.dropLoot(this.x, this.y, 1, 'coin');
+      const _t = this.sprite?._mpType || '';
+      const _lt = {
+        bear:            { coin: [1,3],  fc: 0.03, fr: 0.01 },
+        wolf:            { coin: [1,2],  fc: 0.02, fr: 0 },
+        treeman:         { coin: [2,5],  fc: 0.03, fr: 0.01 },
+        tree_man:        { coin: [2,5],  fc: 0.03, fr: 0.01 },
+        forestguardian:  { coin: [5,10], fc: 0.10, fr: 0.04 },
+        forest_guardian: { coin: [5,10], fc: 0.10, fr: 0.04 },
+        gnollbrute:      { coin: [2,4],  fc: 0.05, fr: 0.02 },
+        gnoll_brute:     { coin: [2,4],  fc: 0.05, fr: 0.02 },
+        gnollshaman:     { coin: [2,4],  fc: 0.04, fr: 0.01 },
+        gnoll_shaman:    { coin: [2,4],  fc: 0.04, fr: 0.01 },
+        golem:           { coin: [3,6],  fc: 0.08, fr: 0.03 },
+        mushroom:        { coin: [2,3],  fc: 0.05, fr: 0.02 },
+        smallmushroom:   { coin: [1,1],  fc: 0,    fr: 0 },
+        small_mushroom:  { coin: [1,1],  fc: 0,    fr: 0 },
+      };
+      const _d = _lt[_t] || { coin: [1,2], fc: 0.03, fr: 0.01 };
+      this._scene.dropLoot(this.x, this.y, Phaser.Math.Between(_d.coin[0], _d.coin[1]), 'coin');
+      if (_d.fc > 0 && Math.random() < _d.fc) this._scene.dropLoot(this.x, this.y, 1, 'frag_common');
+      if (_d.fr > 0 && Math.random() < _d.fr) this._scene.dropLoot(this.x, this.y, 1, 'frag_rare');
       if (sp?.active) {
         try { if (sp._hpGfx?.active) sp._hpGfx.destroy(); } catch (_) {}
         this._scene.tweens.add({
