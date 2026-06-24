@@ -710,8 +710,8 @@ export default class MainScene extends Phaser.Scene {
         sprite.setDepth(sprite.y);
         const sx = sprite.x, sy = sprite.y;
         if (nameText?.active) nameText.setPosition(sx, sy - 38).setDepth(sy + 2);
-        if (hpBg?.active) hpBg.setPosition(sx, sy - 28).setDepth(sy + 2);
-        if (hpBar?.active) hpBar.setPosition(sx - 16, sy - 28).setDepth(sy + 3);
+        if (hpBg?.active) hpBg.setPosition(sx, sy - 30).setDepth(sy + 2);
+        if (hpBar?.active) hpBar.setPosition(sx - 25, sy - 30).setDepth(sy + 3);
         // Weapon image follows sprite
         if (entry.weaponImg?.active && entry.prevAlive !== false) {
           const wFlip = sprite.flipX;
@@ -1430,12 +1430,15 @@ export default class MainScene extends Phaser.Scene {
         const newAlive = !this.player.isDead;
         const hasPendingShots = this._pendingShots.length > 0;
         if (hasPendingShots) this._shotSeq++;
+        const isHeartbeat = Date.now() - (this._lastHeartbeat || 0) >= 6000;
         const hasChanged = hasPendingShots
           || newX !== this._lastSentX
           || newY !== this._lastSentY
           || newHealth !== this._lastSentHealth
-          || newAlive !== this._lastSentAlive;
+          || newAlive !== this._lastSentAlive
+          || isHeartbeat;
         if (!hasChanged) return;
+        if (isHeartbeat) this._lastHeartbeat = Date.now();
         this._lastSentX = newX;
         this._lastSentY = newY;
         this._lastSentHealth = newHealth;
@@ -1481,8 +1484,8 @@ export default class MainScene extends Phaser.Scene {
           const nameText = this.add.text(p.x, p.y - 38, p.displayName || '?', {
             fontSize: '8px', color: '#ffff88', stroke: '#000000', strokeThickness: 3,
           }).setOrigin(0.5).setDepth(p.y + 2);
-          const hpBg = this.add.rectangle(p.x, p.y - 28, 32, 4, 0x000000).setDepth(p.y + 2);
-          const hpBar = this.add.rectangle(p.x - 16, p.y - 28, 32, 4, 0x00ff00).setOrigin(0, 0.5).setDepth(p.y + 3);
+          const hpBg = this.add.rectangle(p.x, p.y - 30, 50, 6, 0x000000).setDepth(p.y + 2);
+          const hpBar = this.add.rectangle(p.x - 25, p.y - 30, 50, 6, 0x00ff00).setOrigin(0, 0.5).setDepth(p.y + 3);
           this._otherPlayerSprites[p.uid] = { sprite, nameText, hpBg, hpBar, weaponImg: null, _weaponKey: null, prevAlive: true, _targetX: p.x, _targetY: p.y, _lastShotsSeq: -1 };
         }
 
@@ -1540,7 +1543,7 @@ export default class MainScene extends Phaser.Scene {
         // Health bar (width/color only — position follows sprite in update())
         if (!isDead) {
           const pct = Math.max(0, (p.health || 0) / (p.maxHealth || 100));
-          hpBar.width = pct * 32;
+          hpBar.width = pct * 50;
           hpBar.setFillStyle(pct > 0.5 ? 0x00ff00 : pct > 0.25 ? 0xffaa00 : 0xff3300);
         }
 

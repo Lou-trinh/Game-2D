@@ -1750,11 +1750,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setVelocity(vel.x, vel.y);
         if (Math.abs(vel.y) >= Math.abs(vel.x)) {
           if (vel.y < 0) {
-            this.setFlipX(false);
             this.anims.play('character_01_run_back', true);
             this._lastDir = 'back';
           } else {
-            this.setFlipX(false);
             this.anims.play('character_01_run_front', true);
             this._lastDir = 'front';
           }
@@ -1773,7 +1771,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setVelocity(0, 0);
         const dir = this._lastDir || 'front';
         if (dir === 'back') {
-          this.setFlipX(false);
           this.anims.play('character_01_idle_back', true);
         } else if (dir === 'right') {
           this.setFlipX(false);
@@ -1782,7 +1779,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           this.setFlipX(true);
           this.anims.play('character_01_idle_right', true);
         } else {
-          this.setFlipX(false);
           this.anims.play('character_01_idle', true);
         }
       }
@@ -1793,11 +1789,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setVelocity(vel.x, vel.y);
         if (Math.abs(vel.y) >= Math.abs(vel.x)) {
           if (vel.y < 0) {
-            this.setFlipX(false);
             this.anims.play('character_02_run_back', true);
             this._lastDir = 'back';
           } else {
-            this.setFlipX(false);
             this.anims.play('character_02_run_front', true);
             this._lastDir = 'front';
           }
@@ -1816,7 +1810,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setVelocity(0, 0);
         const dir = this._lastDir || 'front';
         if (dir === 'back') {
-          this.setFlipX(false);
           this.anims.play('character_02_idle_back', true);
         } else if (dir === 'right') {
           this.setFlipX(false);
@@ -1825,7 +1818,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           this.setFlipX(true);
           this.anims.play('character_02_idle_right', true);
         } else {
-          this.setFlipX(false);
           this.anims.play('character_02_idle', true);
         }
       }
@@ -1836,11 +1828,9 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setVelocity(vel.x, vel.y);
         if (Math.abs(vel.y) >= Math.abs(vel.x)) {
           if (vel.y < 0) {
-            this.setFlipX(false);
             this.anims.play('character_03_run_back', true);
             this._lastDir = 'back';
           } else {
-            this.setFlipX(false);
             this.anims.play('character_03_run_front', true);
             this._lastDir = 'front';
           }
@@ -1859,7 +1849,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
         this.setVelocity(0, 0);
         const dir = this._lastDir || 'front';
         if (dir === 'back') {
-          this.setFlipX(false);
           this.anims.play('character_03_idle_back', true);
         } else if (dir === 'right') {
           this.setFlipX(false);
@@ -1868,7 +1857,6 @@ export default class Player extends Phaser.Physics.Matter.Sprite {
           this.setFlipX(true);
           this.anims.play('character_03_idle_right', true);
         } else {
-          this.setFlipX(false);
           this.anims.play('character_03_idle', true);
         }
       }
