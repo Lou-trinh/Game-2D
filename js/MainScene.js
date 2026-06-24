@@ -1391,6 +1391,7 @@ export default class MainScene extends Phaser.Scene {
 
     const isHost = this.registry.get('isMultiplayerHost') !== false;
     this._isHost = isHost;
+    this._gameStartedAt = Date.now();
     const selectedCharKey = this.registry.get('selectedCharacter') || 'player_1';
     this._otherPlayerSprites = {};
     this._guestEnemySprites = {};
@@ -1575,6 +1576,9 @@ export default class MainScene extends Phaser.Scene {
     });
 
     if (isHost) {
+      // Reset gameState so guests don't receive stale hostLeft:true from previous game
+      updateGameState(roomCode, { enemies: [], projectiles: [], hostLeft: false, updatedAt: Date.now() }).catch(() => {});
+
       // Host: broadcast all enemy states every 250ms
       this._enemyBroadcastTimer = this.time.addEvent({
         delay: 250,
@@ -1650,7 +1654,7 @@ export default class MainScene extends Phaser.Scene {
 
       this._gameStateUnsub = onGameStateChange(roomCode, (state) => {
         if (!this.scene.isActive('MainScene')) return;
-        if (state.hostLeft && !this._hostLeft) {
+        if (state.hostLeft && !this._hostLeft && Date.now() - (this._gameStartedAt || 0) > 3000) {
           this._hostLeft = true;
           // Speed per enemy type — always use table, never broadcast velocity
           // (broadcast vel could be retreat speed which is same magnitude but wrong direction)
